@@ -1,0 +1,261 @@
+\chapter{Least Squares and Gram--Schmidt Orthogonalization}
+\label{ch:ls}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 6, 7, 8, 11, and 22.
+  \item \cite{Demmel} Sections 3.1--3.3.
+\end{itemize}
+
+\section{Is Partial Pivoting Enough?}
+
+\Cref{ch:pivoting} bounded the backward error of LU by $m\epsm\abs{\tilde{L}}\abs{\tilde{U}}$ and introduced partial pivoting to keep the multipliers bounded, $\abs{L_{ij}} \le 1$; commuting the permutations past the elimination matrices then gave $PA = LU$ and an in-place algorithm. Rows and columns can also be pivoted simultaneously (\emph{complete pivoting}), giving $PA\tilde{P} = LU$ with a column permutation $\tilde{P}$. In practice, partial pivoting is usually enough. In theory, however, it can be \emph{unstable} when $m$ is large.
+
+\begin{example}[Exponential Growth Under Partial Pivoting]
+  \label{ex:growth}
+  Consider
+  \begin{equation}
+    A = \begin{bmatrix} 1 & & & 1 \\ -1 & 1 & & 1 \\ -1 & -1 & 1 & 1 \\ -1 & -1 & -1 & 1 \end{bmatrix}.
+  \end{equation}
+  In every column the candidate pivots have the same absolute value, $\abs{1} = \abs{-1}$, and \texttt{argmax} returns the first, so partial pivoting never swaps rows. Tracking the in-place storage (multipliers below the diagonal),
+  \begin{equation}
+    A \rightsquigarrow
+    \begin{bmatrix} 1 & & & 1 \\ -1 & 1 & & 2 \\ -1 & -1 & 1 & 2 \\ -1 & -1 & -1 & 2 \end{bmatrix} \rightsquigarrow
+    \begin{bmatrix} 1 & & & 1 \\ -1 & 1 & & 2 \\ -1 & -1 & 1 & 4 \\ -1 & -1 & -1 & 4 \end{bmatrix} \rightsquigarrow
+    \begin{bmatrix} 1 & & & 1 \\ -1 & 1 & & 2 \\ -1 & -1 & 1 & 4 \\ -1 & -1 & -1 & 8 \end{bmatrix}.
+  \end{equation}
+  The multiplier at step $k$ is $-1$, i.e., row $k$ is added to every row below it. Row $k$ is zero in columns $k + 1$ through $m - 1$, so the middle part never changes, but the last column doubles at every step. The result is
+  \begin{equation}
+    L = \begin{bmatrix} 1 & & & \\ -1 & 1 & & \\ -1 & -1 & 1 & \\ -1 & -1 & -1 & 1 \end{bmatrix}, \qquad
+    U = \begin{bmatrix} 1 & & & 1 \\ & 1 & & 2 \\ & & 1 & 4 \\ & & & 8 \end{bmatrix}.
+  \end{equation}
+  For general $m$, $U_{mm} = 2^{m-1}$, so $\abs{L}\abs{U} \gtrsim 2^m$ and the error bound $m\epsm\abs{L}\abs{U}$ can reach $m2^m\epsm$. In double precision, all accuracy is lost for $m \approx 60$.
+\end{example}
+
+This is the worst case $\rho = 2^{m-1}$ of the growth factor mentioned in \Cref{ch:pivoting}. Fortunately, such matrices are extremely rare in practice.
+
+\section{Non-Square Systems}
+
+So far we have only considered $A \in \K^{m \times n}$ with $m = n$. If $m \ne n$, there are two cases.
+
+\paragraph{Overdetermined systems ($m > n$).} $A$ is tall: there are more equations than unknowns. Then $\range(A) \ne \K^m$, since $n$ columns span at most an $n$-dimensional subspace. Hence for a general $\vec{b}$ the equation $A\vec{x} = \vec{b}$ \emph{need not have a solution}. Such a system is called an \emph{overdetermined linear system}.
+
+\paragraph{Underdetermined systems ($m < n$).} $A$ is wide: there are more unknowns than equations. Then $\nullsp(A) \ne \{\zerovec\}$, since the rank is at most $m < n$. Hence even when a solution exists, it is \emph{never unique}: adding any vector of the null space to a solution gives another solution. Such a system is called an \emph{underdetermined linear system}.
+
+\section{Least Squares Problems}
+
+Each case lacks one property, existence or uniqueness, and a minimization problem restores it:
+\begin{equation}
+  \text{overdetermined:}\quad \min_{\vec{x}} \norm{A\vec{x} - \vec{b}}, \qquad\qquad \text{underdetermined:}\quad \min_{\vec{x} \,:\, A\vec{x} = \vec{b}} \norm{\vec{x}}.
+\end{equation}
+In the overdetermined case we look for the $\vec{x}$ that comes closest to satisfying the equations; in the underdetermined case we pick the ``smallest'' of all solutions.
+
+\subsection{Which Norm?}
+
+There are many choices, depending on the application. In linear regression, for instance, the norm in the overdetermined case says how we measure the \emph{fitting error}, and in the underdetermined case how we measure the \emph{complexity of the model}.
+
+The key fact is that \emph{the solution depends linearly on $\vec{b}$ only when the norm is induced by an inner product}, $\norm{\cdot} = \sqrt{\ip{\cdot}{\cdot}}$. This gives the \emph{least squares problem}, which can be solved with the tools of linear algebra.
+
+\begin{example}[Mean Versus Median]
+  Let $A = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^\T$, so that $\min_x \norm{Ax - \vec{b}}$ fits a single number to $b_1, b_2, b_3$. In the $2$-norm the answer is the mean $\frac{1}{3}(b_1 + b_2 + b_3)$, which is linear in $\vec{b}$. In the $1$-norm the answer is the median, which is not a linear function of $\vec{b}$.
+\end{example}
+
+\section{The Geometry of Least Squares}
+
+For $m = n$, solving $A\vec{x} = \vec{b}$ means finding a linear combination of the columns of $A$ that equals $\vec{b}$ exactly:
+\begin{equation}
+  A\vec{x} = x_1\vec{a}_1 + x_2\vec{a}_2 + \cdots + x_n\vec{a}_n = \vec{b}.
+\end{equation}
+For $m > n$, consider
+\begin{equation}
+  \min_{\vec{x}} \norm{A\vec{x} - \vec{b}}_2^2.
+\end{equation}
+The columns of $A$ span only an $n$-dimensional subspace $\range(A)$ of $\K^m$, and $\vec{b}$ generally does not lie in it. As $\vec{x}$ varies, $A\vec{x}$ ranges over this subspace, and the point closest to $\vec{b}$ is the \emph{orthogonal projection} of $\vec{b}$ onto $\range(A)$: dropping a perpendicular from $\vec{b}$ to the subspace, its foot is the optimal $A\vec{x}$, and the residual $A\vec{x} - \vec{b}$ is orthogonal to the whole subspace.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.1]
+  \fill[black!6] (0,0) -- (5,0) -- (6.2,1.6) -- (1.2,1.6) -- cycle;
+  \node at (5.3,0.3) {$\range(A)$};
+  \coordinate (O) at (1.2,0.4);
+  \coordinate (P) at (4,0.9);
+  \coordinate (B) at (4,3);
+  \draw[-{Latex},thick] (O) -- (B) node[above left] {$\vec{b}$};
+  \draw[-{Latex},thick] (O) -- (P) node[below right] {$A\vec{x}$};
+  \draw[dashed] (P) -- (B) node[midway,right] {$\vec{b} - A\vec{x}$};
+  \draw (4,1.15) -- (3.78,1.1) -- (3.78,0.86);
+\end{tikzpicture}
+\end{center}
+
+Writing ``the residual is orthogonal to every column of $A$'' as an equation gives the \emph{normal equations}:
+\begin{equation}
+  A^\ast(A\vec{x} - \vec{b}) = \zerovec \quad\iff\quad A^\ast A\vec{x} = A^\ast\vec{b}. \label{eq:normal}
+\end{equation}
+
+\subsection{Orthonormal Columns}
+
+If the columns of $A$ are orthonormal ($A^\ast A = I$), the solution is particularly simple:
+\begin{equation}
+  \vec{x} = A^\ast\vec{b}.
+\end{equation}
+Intuitively, $x_i = \ip{\vec{a}_i}{\vec{b}}$ measures the ``length'' of $\vec{b}$ in the ``direction'' of the $i$-th column. Since the columns are mutually orthogonal, the component along each direction can be computed \emph{independently of the others} and the results simply added.
+
+\begin{example}[Projection onto a Coordinate Plane]
+  For
+  \begin{equation}
+    A = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \end{bmatrix},
+  \end{equation}
+  we get $A^\ast\vec{b} = (b_1, b_2)^\T$, the coordinates of the projection of $\vec{b}$ onto the $xy$-plane; the discarded component $b_3$ is the residual.
+\end{example}
+
+\section{Orthogonalization: The QR Factorization}
+
+What if the columns of $A$ are not orthonormal? The idea is to find an \emph{orthonormal basis} of the space spanned by the columns of $A$ and to transfer the problem to that basis. In matrix form,
+\begin{equation}
+  A = QR,
+\end{equation}
+where $Q \in \K^{m \times n}$ has orthonormal columns and $R \in \K^{n \times n}$ is invertible (it will turn out to be upper triangular). The least squares solution is then
+\begin{equation}
+  \vec{x} = R^{-1}Q^\ast\vec{b}.
+\end{equation}
+Both steps have a clear meaning:
+\begin{itemize}
+  \item $Q^\ast\vec{b}$ expresses $\vec{b}$ in terms of the columns of $Q$ (the coordinates of the projection, exactly as in the orthonormal case);
+  \item $A = QR$ says that $R$ expresses the columns of $A$ as combinations of the columns of $Q$, so $R^{-1}$ converts coefficients with respect to $Q$ back into coefficients with respect to $A$.
+\end{itemize}
+Algebraically, in the normal equations \eqref{eq:normal} we have $A^\ast A = R^\ast Q^\ast QR = R^\ast R$ and $A^\ast\vec{b} = R^\ast Q^\ast\vec{b}$; cancelling the invertible $R^\ast$ leaves $R\vec{x} = Q^\ast\vec{b}$.
+
+\section{Classical Gram--Schmidt}
+
+\begin{algorithm}[H]
+  \caption{Classical Gram--Schmidt (CGS).}
+  \label{alg:cgs}
+  \begin{algorithmic}[1]
+    \For{$j = 1, \dots, n$}
+      \State $\hat{\vec{q}}_j \gets \vec{a}_j$
+      \For{$i = 1, \dots, j - 1$}
+        \State $r_{ij} \gets \ip{\vec{q}_i}{\vec{a}_j}$ \Comment{inner product with the \emph{original} column}
+        \State $\hat{\vec{q}}_j \gets \hat{\vec{q}}_j - r_{ij}\vec{q}_i$
+      \EndFor
+      \State $r_{jj} \gets \norm{\hat{\vec{q}}_j}_2$
+      \State $\vec{q}_j \gets \hat{\vec{q}}_j / r_{jj}$
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+From $\vec{a}_j$ we subtract its projections onto the already computed $\vec{q}_1, \dots, \vec{q}_{j-1}$ and normalize what is left. The coefficients $r_{ij}$ form an upper triangular matrix $R$, because
+\begin{equation}
+  \vec{a}_j = r_{jj}\vec{q}_j + \sum_{i=1}^{j-1} r_{ij}\vec{q}_i.
+\end{equation}
+
+\begin{theorem}[Gram--Schmidt]
+  \label{thm:gs}
+  Let $\vec{a}_1, \dots, \vec{a}_n \in \K^m$ ($m \ge n$) be linearly independent. Then the vectors $\vec{q}_1, \dots, \vec{q}_n$ produced by \Cref{alg:cgs} form an orthonormal basis of $\spn(\vec{a}_1, \dots, \vec{a}_n)$, and $\spn(\vec{q}_1, \dots, \vec{q}_j) = \spn(\vec{a}_1, \dots, \vec{a}_j)$ for every $j$.
+\end{theorem}
+
+\begin{proof}
+  By induction. By construction, $\hat{\vec{q}}_j, \vec{q}_j \in \spn(\vec{a}_1, \dots, \vec{a}_j)$. Suppose $\vec{q}_1, \dots, \vec{q}_j$ are orthonormal. For every $k \le j$,
+  \begin{equation}
+    \ip{\vec{q}_k}{\vec{a}_{j+1} - \sum_{i=1}^{j}\ip{\vec{q}_i}{\vec{a}_{j+1}}\vec{q}_i} = \ip{\vec{q}_k}{\vec{a}_{j+1}} - \ip{\vec{q}_k}{\vec{a}_{j+1}} = 0,
+  \end{equation}
+  using $\ip{\vec{q}_k}{\vec{q}_i} = \delta_{ki}$, so that only the term $i = k$ survives in the sum. Hence $\hat{\vec{q}}_{j+1}$ is orthogonal to $\vec{q}_1, \dots, \vec{q}_j$. Moreover $\vec{a}_{j+1} \notin \spn(\vec{a}_1, \dots, \vec{a}_j) = \spn(\vec{q}_1, \dots, \vec{q}_j)$, so $\hat{\vec{q}}_{j+1} \ne \zerovec$ and can be normalized. Thus $\vec{q}_1, \dots, \vec{q}_{j+1}$ are orthonormal. They are $j + 1$ linearly independent vectors in the $(j + 1)$-dimensional space $\spn(\vec{a}_1, \dots, \vec{a}_{j+1})$, so they form a basis of it.
+\end{proof}
+
+\begin{example}[CGS Loses Orthogonality]
+  \label{ex:cgs-lauchli}
+  Consider the matrix
+  \begin{equation}
+    A = \begin{bmatrix} 1 & 1 & 1 \\ \eps & 0 & 0 \\ 0 & \eps & 0 \\ 0 & 0 & \eps \end{bmatrix},
+  \end{equation}
+  with $\eps$ small enough that $1 + \eps^2 = 1$ in floating point, i.e., $\eps < \sqrt{\epsm}$, for example $\eps = 10^{-10}$.
+
+  \emph{Step 1.} $\hat{\vec{q}}_1 = (1, \eps, 0, 0)^\T$ and $\vec{q}_1 = (1 + \eps^2)^{-1/2}(1, \eps, 0, 0)^\T$, which in floating point is $(1, \eps, 0, 0)^\T$.
+
+  \emph{Step 2.} $r_{12} = \ip{\vec{q}_1}{\vec{a}_2} = 1$, so
+  \begin{equation}
+    \hat{\vec{q}}_2 = \begin{bmatrix} 1 \\ 0 \\ \eps \\ 0 \end{bmatrix} - \begin{bmatrix} 1 \\ \eps \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ -\eps \\ \eps \\ 0 \end{bmatrix}, \qquad
+    \vec{q}_2 = \frac{1}{\sqrt{2}\,\eps}\hat{\vec{q}}_2 = \begin{bmatrix} 0 \\ -1/\sqrt{2} \\ 1/\sqrt{2} \\ 0 \end{bmatrix}.
+  \end{equation}
+
+  \emph{Step 3.} $r_{13} = \ip{\vec{q}_1}{\vec{a}_3} = 1$ and $r_{23} = \ip{\vec{q}_2}{\vec{a}_3} = 0$, so
+  \begin{equation}
+    \hat{\vec{q}}_3 = \begin{bmatrix} 1 \\ 0 \\ 0 \\ \eps \end{bmatrix} - \begin{bmatrix} 1 \\ \eps \\ 0 \\ 0 \end{bmatrix} - 0 \cdot \vec{q}_2 = \begin{bmatrix} 0 \\ -\eps \\ 0 \\ \eps \end{bmatrix}, \qquad
+    \vec{q}_3 = \begin{bmatrix} 0 \\ -1/\sqrt{2} \\ 0 \\ 1/\sqrt{2} \end{bmatrix}.
+  \end{equation}
+  The result
+  \begin{equation}
+    Q = \begin{bmatrix} 1 & 0 & 0 \\ \eps & -1/\sqrt{2} & -1/\sqrt{2} \\ 0 & 1/\sqrt{2} & 0 \\ 0 & 0 & 1/\sqrt{2} \end{bmatrix}
+  \end{equation}
+  is \emph{far from orthogonal}: $\ip{\vec{q}_2}{\vec{q}_3} = \frac{1}{2}$, so the angle between them is $60^\circ$ rather than $90^\circ$.
+\end{example}
+
+\section{Modified Gram--Schmidt}
+
+\paragraph{What went wrong.} Subtracting $\vec{q}_1$ from $\vec{a}_3$ subtracts two $O(1)$ vectors and leaves only an $O(\eps)$ remainder: severe cancellation, so the \emph{relative error} of the result is large. More precisely, the computed $\vec{q}_1$ and $\vec{q}_2$ are not exactly orthogonal: $\ip{\vec{q}_1}{\vec{q}_2} = -\eps/\sqrt{2}$. This is tiny in absolute terms, but $\vec{a}_3 - \vec{q}_1$ is itself only $O(\eps)$, and relative to it the deviation is $O(1)$.
+
+CGS computes $r_{23}$ as the inner product of $\vec{q}_2$ with the \emph{original} $\vec{a}_3$. In exact arithmetic $\ip{\vec{q}_2}{\vec{a}_3} = \ip{\vec{q}_2}{\vec{a}_3 - r_{13}\vec{q}_1}$, because $\vec{q}_2 \perp \vec{q}_1$, so there is no difference; in floating point this identity no longer holds. What we actually want is
+\begin{equation}
+  \vec{q}_2 \perp \vec{a}_3 - \vec{q}_1 \qquad \text{rather than} \qquad \vec{q}_2 \perp \vec{a}_3.
+\end{equation}
+
+\paragraph{The fix.} Change a single line: compute $r_{ij}$ from the \emph{partially orthogonalized} $\hat{\vec{q}}_j$ instead of the original $\vec{a}_j$.
+
+\begin{algorithm}[H]
+  \caption{Modified Gram--Schmidt (MGS).}
+  \label{alg:mgs}
+  \begin{algorithmic}[1]
+    \For{$j = 1, \dots, n$}
+      \State $\hat{\vec{q}}_j \gets \vec{a}_j$
+      \For{$i = 1, \dots, j - 1$}
+        \State $r_{ij} \gets \ip{\vec{q}_i}{\hat{\vec{q}}_j}$ \Comment{inner product with the \emph{updated} vector}
+        \State $\hat{\vec{q}}_j \gets \hat{\vec{q}}_j - r_{ij}\vec{q}_i$
+      \EndFor
+      \State $r_{jj} \gets \norm{\hat{\vec{q}}_j}_2$
+      \State $\vec{q}_j \gets \hat{\vec{q}}_j / r_{jj}$
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+In exact arithmetic CGS and MGS are identical. They differ only in floating point: MGS projects out each direction from \emph{what is left after the previous projections}, so errors made in earlier steps are corrected by later ones.
+
+\begin{remark}[Orthogonality Is Fragile]
+  Arguments based on orthogonality are often fragile in floating-point arithmetic. The identity $\ip{\vec{q}_i}{\vec{q}_k} = 0$ holds only approximately, and any manipulation that relies on it can fail as soon as cancellation occurs.
+\end{remark}
+
+\begin{example}[MGS on the Same Matrix]
+  For the matrix of \Cref{ex:cgs-lauchli}, $\vec{q}_1$ and $\vec{q}_2$ are computed exactly as in CGS. Step 3 now projects in two stages:
+  \begin{equation}
+    \hat{\vec{q}}_3^{(1)} = \begin{bmatrix} 1 \\ 0 \\ 0 \\ \eps \end{bmatrix} - \begin{bmatrix} 1 \\ \eps \\ 0 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ -\eps \\ 0 \\ \eps \end{bmatrix}.
+  \end{equation}
+  Now $r_{23} = \ip{\vec{q}_2}{\hat{\vec{q}}_3^{(1)}} = \eps/\sqrt{2}$ is no longer zero, and
+  \begin{equation}
+    \hat{\vec{q}}_3^{(2)} = \begin{bmatrix} 0 \\ -\eps \\ 0 \\ \eps \end{bmatrix} - \frac{\eps}{\sqrt{2}}\begin{bmatrix} 0 \\ -1/\sqrt{2} \\ 1/\sqrt{2} \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ -\eps/2 \\ -\eps/2 \\ \eps \end{bmatrix}, \qquad
+    \vec{q}_3 = \frac{\hat{\vec{q}}_3^{(2)}}{\eps\sqrt{3/2}} = \begin{bmatrix} 0 \\ -1/\sqrt{6} \\ -1/\sqrt{6} \\ \sqrt{2/3} \end{bmatrix}.
+  \end{equation}
+  The result is
+  \begin{equation}
+    Q = \begin{bmatrix} 1 & 0 & 0 \\ \eps & -1/\sqrt{2} & -1/\sqrt{6} \\ 0 & 1/\sqrt{2} & -1/\sqrt{6} \\ 0 & 0 & \sqrt{2/3} \end{bmatrix}.
+  \end{equation}
+  Now $\ip{\vec{q}_2}{\vec{q}_3} = \frac{1}{\sqrt{12}} - \frac{1}{\sqrt{12}} = 0$, and the remaining inner products $\ip{\vec{q}_1}{\vec{q}_2} = -\eps/\sqrt{2}$ and $\ip{\vec{q}_1}{\vec{q}_3} = -\eps/\sqrt{6}$ are $O(\eps)$: the columns are \emph{nearly orthogonal}.
+\end{example}
+
+\section{(SUPPLEMENT) Further Topics}
+
+\paragraph{Gram--Schmidt in a first linear algebra course.} The usual textbook formula, with unnormalized vectors,
+\begin{equation}
+  \vec{v}_3 = \vec{x}_3 - \frac{\vec{x}_3 \cdot \vec{v}_1}{\vec{v}_1 \cdot \vec{v}_1}\vec{v}_1 - \frac{\vec{x}_3 \cdot \vec{v}_2}{\vec{v}_2 \cdot \vec{v}_2}\vec{v}_2,
+\end{equation}
+takes both inner products with the \emph{original} $\vec{x}_3$, so it is classical Gram--Schmidt. The modified version proceeds in two stages,
+\begin{equation}
+  \vec{v}_3^{(1)} = \vec{x}_3 - \frac{\vec{x}_3 \cdot \vec{v}_1}{\vec{v}_1 \cdot \vec{v}_1}\vec{v}_1, \qquad \vec{v}_3 = \vec{v}_3^{(1)} - \frac{\vec{v}_3^{(1)} \cdot \vec{v}_2}{\vec{v}_2 \cdot \vec{v}_2}\vec{v}_2,
+\end{equation}
+and the two agree in exact arithmetic because $\vec{v}_3^{(1)} \cdot \vec{v}_2 = \vec{x}_3 \cdot \vec{v}_2$ when $\vec{v}_1 \cdot \vec{v}_2 = 0$. A course working in exact arithmetic loses nothing by writing CGS, but the step uses $\vec{v}_1 \cdot \vec{v}_2 = 0$, which is exactly what fails in \Cref{ex:cgs-lauchli}. For $\vec{v}_2$ only one projection is subtracted, so CGS and MGS differ only from the third vector on.
+
+\paragraph{Quantifying the loss of orthogonality.} A result of Bj\"orck states that MGS produces $Q$ with $\norm{I - Q^\ast Q} \approx \epsm\kappa(A)$, while for CGS the loss can be as bad as $\epsm\kappa(A)^2$. The matrix of \Cref{ex:cgs-lauchli} (the L\"auchli matrix) has $\kappa(A) \approx \sqrt{3}/\eps$, so MGS loses about $\epsm/\eps \sim \eps$ when $\eps \approx \sqrt{\epsm}$, in agreement with $\ip{\vec{q}_1}{\vec{q}_2} = O(\eps)$; CGS loses everything.
+
+\paragraph{Why not solve the normal equations?} Solving $A^\ast A\vec{x} = A^\ast\vec{b}$ looks most direct, but $\kappa(A^\ast A) = \kappa(A)^2$~\cite[Lecture 11]{TB}. For the matrix of \Cref{ex:cgs-lauchli},
+\begin{equation}
+  A^\ast A = \begin{bmatrix} 1 + \eps^2 & 1 & 1 \\ 1 & 1 + \eps^2 & 1 \\ 1 & 1 & 1 + \eps^2 \end{bmatrix},
+\end{equation}
+and in floating point $1 + \eps^2 = 1$, so the computed $A^\ast A$ is the singular all-ones matrix and all information is lost. Forming $A^\ast A$ discards information that is still present in $A$; QR works on $A$ directly~\cite[\S3.3]{Demmel}.
+
+\paragraph{Householder QR and reorthogonalization.} Even for MGS, the orthogonality of $Q$ depends on $\kappa(A)$. In practice QR is usually computed with Householder reflections (\Cref{ch:householder}), whose $Q$ is orthogonal to working precision independently of $\kappa(A)$. Another common remedy is to run CGS twice (``twice is enough''), which parallelizes better than MGS because the inner products of CGS can be computed at once as a matrix--vector product $Q^\ast\vec{a}_j$.

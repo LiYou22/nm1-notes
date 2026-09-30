@@ -1,0 +1,179 @@
+\chapter{Gaussian Elimination and the LU Factorization}
+\label{ch:lu}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 20 and 21.
+  \item \cite{Demmel} Section 2.3.
+\end{itemize}
+
+\section{Recap: From Triangular Systems to Elimination}
+
+The lecture opens with a recap of \Cref{ch:performance}: matrices are stored column by column, memory access costs far more than arithmetic, and the loop order and tiling of an algorithm should match the storage. It then returns to linear systems. Triangular systems are solved by forward or back substitution in $O(m^2)$ flops, and Gaussian elimination reduces a general system to a triangular one: by \Cref{thm:elim}, applying elementary lower triangular matrices $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ for $k = 1, \dots, m - 1$ gives
+\begin{equation}
+  U \doteq L_{m-1} \cdots L_1 A \ \text{ upper triangular}, \qquad L \doteq (L_{m-1} \cdots L_1)^{-1}, \qquad A = LU.
+\end{equation}
+This lecture answers the two questions left open: \emph{is $L$ lower triangular, and can we compute it cheaply?} Answering them requires a little algebra of lower triangular matrices.
+
+\section{The Algebra of Lower Triangular Matrices}
+
+\begin{proposition}[Closure Properties]
+  \label{prop:lower-closure}
+  The lower triangular matrices in $\K^{m \times m}$ are closed under
+  \begin{enumerate}
+    \item addition,
+    \item scalar multiplication,
+    \item matrix multiplication, and
+    \item inversion (of invertible ones).
+  \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+  Items 1 and 2 are clear. For item 3, let $L$ and $\tilde{L}$ be lower triangular, so $(L\tilde{L})_{ij} = \sum_k L_{ik}\tilde{L}_{kj}$. A term $L_{ik}\tilde{L}_{kj}$ can be nonzero only if $i \ge k$ and $k \ge j$, hence $i \ge j$. So every term vanishes when $i < j$, and $L\tilde{L}$ is lower triangular. Item 4 is proved below for the matrices arising in LU, using \Cref{thm:elem-inverse}; the general case is in \Cref{sec:lu-supp}.
+\end{proof}
+
+\begin{theorem}[Inverses and Products of Elementary Lower Triangular Matrices]
+  \label{thm:elem-inverse}
+  Let $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ be as in \Cref{thm:elim}. Then:
+  \begin{enumerate}
+    \item $L_k^{-1} = I + \vec{\ell}_k\vec{e}_k^{\,\ast}$, i.e., inversion just \emph{flips the signs} of the multipliers;
+    \item the product of the inverses, \emph{in this order}, places every multiplier in its own position:
+    \begin{equation}
+      L_1^{-1} L_2^{-1} \cdots L_{m-1}^{-1} =
+      \begin{bmatrix}
+        1 & & & \\
+        \ell_{21} & 1 & & \\
+        \vdots & \ddots & \ddots & \\
+        \ell_{m1} & \cdots & \ell_{m,m-1} & 1
+      \end{bmatrix}.
+    \end{equation}
+  \end{enumerate}
+\end{theorem}
+
+The order in item 2 matters: in the reverse order $L_{m-1}^{-1} \cdots L_1^{-1}$ the multipliers would contaminate each other. Both items rest on one observation: the first $k$ entries of $\vec{\ell}_k$ vanish, so $\vec{e}_p^{\,\ast}\vec{\ell}_k = 0$ for all $p \le k$.
+
+\begin{proof}
+  For item 1, since $\vec{e}_k^{\,\ast}\vec{\ell}_k = 0$,
+  \begin{equation}
+    (I + \vec{\ell}_k\vec{e}_k^{\,\ast})(I - \vec{\ell}_k\vec{e}_k^{\,\ast}) = I + \vec{\ell}_k\vec{e}_k^{\,\ast} - \vec{\ell}_k\vec{e}_k^{\,\ast} - \vec{\ell}_k(\vec{e}_k^{\,\ast}\vec{\ell}_k)\vec{e}_k^{\,\ast} = I.
+  \end{equation}
+  For item 2, compute each entry directly:
+  \begin{equation}
+    (L_1^{-1} \cdots L_{m-1}^{-1})_{ij} = \vec{e}_i^{\,\ast}(I + \vec{\ell}_1\vec{e}_1^{\,\ast}) \cdots (I + \vec{\ell}_{m-1}\vec{e}_{m-1}^{\,\ast})\vec{e}_j.
+  \end{equation}
+  Simplify from the right. For $p > j$, $\vec{e}_p^{\,\ast}\vec{e}_j = 0$, so $(I + \vec{\ell}_p\vec{e}_p^{\,\ast})\vec{e}_j = \vec{e}_j$ and those factors disappear; the $j$-th factor gives $(I + \vec{\ell}_j\vec{e}_j^{\,\ast})\vec{e}_j = \vec{e}_j + \vec{\ell}_j$:
+  \begin{equation}
+    = \vec{e}_i^{\,\ast}(I + \vec{\ell}_1\vec{e}_1^{\,\ast}) \cdots (I + \vec{\ell}_{j-1}\vec{e}_{j-1}^{\,\ast})(\vec{e}_j + \vec{\ell}_j).
+  \end{equation}
+  The part $\vec{e}_j$ passes through the remaining factors unchanged for the same reason, and so does $\vec{\ell}_j$, because $\vec{e}_p^{\,\ast}\vec{\ell}_j = 0$ for $p < j$. Hence the entry equals $\vec{e}_i^{\,\ast}\vec{\ell}_j + \vec{e}_i^{\,\ast}\vec{e}_j$, which is $1$ on the diagonal, $\ell_{ij}$ for $i > j$, and $0$ for $i < j$.
+\end{proof}
+
+\section{Answering the Two Questions}
+
+\paragraph{$L$ is lower triangular.} We have
+\begin{equation}
+  L = (L_{m-1} \cdots L_1)^{-1} = L_1^{-1} \cdots L_{m-1}^{-1}.
+\end{equation}
+Each $L_k^{-1}$ is lower triangular by item 1 of \Cref{thm:elem-inverse}, and so is their product by item 3 of \Cref{prop:lower-closure}.
+
+\paragraph{$L$ can be written down directly.} By item 2 of \Cref{thm:elem-inverse}, $L$ is unit lower triangular, with the multipliers $\ell_{ik}$ used during elimination sitting untouched in position $(i, k)$. No $L_k$ ever needs to be formed and no matrix product or inverse needs to be computed.
+
+\section{The In-Place Algorithm}
+
+Computing the LU factorization therefore amounts to \emph{transforming $A$ into $U$ while recording the multipliers}. The unit diagonal of $L$ need not be stored, and the strictly lower part of $L$ fits exactly into the zeros created in $U$. Hence $A$ can be overwritten by $L$ and $U$ with no extra storage.
+
+\begin{algorithm}[H]
+  \caption{LU factorization without pivoting, in place.}
+  \label{alg:lu}
+  \begin{algorithmic}[1]
+    \For{$k = 1, \dots, m - 1$}
+      \For{$i = k + 1, \dots, m$}
+        \State $A_{ik} \gets A_{ik} / A_{kk}$ \Comment{multiplier $\ell_{ik}$, stored in place}
+      \EndFor
+      \For{$j = k + 1, \dots, m$}
+        \For{$i = k + 1, \dots, m$}
+          \State $A_{ij} \gets A_{ij} - A_{ik}A_{kj}$ \Comment{update the trailing block}
+        \EndFor
+      \EndFor
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+On exit, the upper triangle of $A$ (including the diagonal) holds $U$ and the strictly lower triangle holds the multipliers of $L$. The innermost loop runs over $i$, i.e., down a column, matching the column-major storage as recommended in \Cref{ch:performance}.
+
+\section{Zero Pivots}
+
+The algorithm divides by $A_{kk}$, the $k$-th \emph{pivot}. If a pivot is zero, it cannot proceed.
+
+\begin{example}[An Invertible Matrix with No LU Factorization]
+  The matrix
+  \begin{equation}
+    A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+  \end{equation}
+  is invertible, but $A_{11} = 0$ is a zero pivot, so the very first step divides by zero and $A = LU$ does not exist. \emph{Invertibility does not imply the existence of an LU factorization.}
+\end{example}
+
+\begin{theorem}[Zero Pivots and Leading Principal Submatrices]
+  \label{thm:lu-exists}
+  If the $k$-th pivot of the LU factorization of $A$ is zero, then the leading principal submatrix $A[1{:}k, 1{:}k]$ is singular. All pivots of the LU factorization are nonzero if and only if every leading principal submatrix of $A$ is nonsingular.
+\end{theorem}
+
+\begin{proof}
+  From $A = LU$, look at the first $k$ rows and columns:
+  \begin{equation}
+    A[1{:}k, 1{:}k] = L[1{:}k, :]\,U[:, 1{:}k] = L[1{:}k, 1{:}k]\,U[1{:}k, 1{:}k].
+  \end{equation}
+  The second equality holds because $L$ is lower triangular, so $L[1{:}k, k{+}1{:}m] = 0$ and the rows of $U$ below row $k$ do not contribute. The matrix $L[1{:}k, 1{:}k]$ is unit lower triangular, hence nonsingular. The matrix $U[1{:}k, 1{:}k]$ is upper triangular with determinant equal to the product of the first $k$ pivots. Thus $A[1{:}k, 1{:}k]$ is nonsingular if and only if the first $k$ pivots are nonzero. When elimination reaches step $k$, the first $k$ rows and columns already satisfy the identity above, so the argument applies even halfway through the algorithm.
+\end{proof}
+
+\section{Small Pivots Are Also Dangerous}
+
+Exactly zero pivots are unlikely in practice. Is it then enough that no pivot is exactly zero? Consider a small $\eps > 0$:
+\begin{equation}
+  A = \begin{bmatrix} \eps & 1 \\ 1 & 1 \end{bmatrix}, \qquad
+  L = \begin{bmatrix} 1 & 0 \\ \eps^{-1} & 1 \end{bmatrix}, \qquad
+  U = \begin{bmatrix} \eps & 1 \\ 0 & 1 - \eps^{-1} \end{bmatrix}.
+\end{equation}
+This is mathematically correct. In floating-point arithmetic, however, $\eps^{-1}$ is huge and $1 - \eps^{-1}$ rounds to $-\eps^{-1}$. The computed factors then give
+\begin{equation}
+  \tilde{L}\tilde{U} = \begin{bmatrix} \eps & 1 \\ 1 & \eps^{-1} - \eps^{-1} \end{bmatrix} = \begin{bmatrix} \eps & 1 \\ 1 & 0 \end{bmatrix} \approx \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix},
+\end{equation}
+which is nothing like $A$. The small pivot produces a huge multiplier, and rounding wipes out all information in $A_{22}$.
+
+\section{Error Analysis of the LU Factorization}
+
+\begin{theorem}[Backward Error of LU]
+  \label{thm:lu-backward-preview}
+  Let $\epsm$ be the machine epsilon. If the LU factorization runs to completion in floating-point arithmetic without encountering a zero pivot, the computed factors $L$, $U$ satisfy
+  \begin{equation}
+    A = LU + E, \qquad \abs{E} \le \epsm\, m\abs{L}\abs{U},
+  \end{equation}
+  where $\abs{\cdot}$ takes entrywise absolute values and the inequality holds entrywise.
+\end{theorem}
+
+The proof is given in \Cref{ch:pivoting}. The theorem says that the computed factorization is the exact factorization of a nearby matrix, with a perturbation controlled by $\abs{L}\abs{U}$. If $\abs{L}\abs{U}$ is comparable to $\abs{A}$, the error is at the level of machine precision. If $L$ or $U$ contains huge entries, the bound is useless. In the example above, $L$ contains $\eps^{-1}$ and $U$ contains $1 - \eps^{-1}$, so $\abs{L}\abs{U}$ has entries of size $\eps^{-1}$ and the error can be as large as $A$ itself.
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:lu-supp}
+
+\paragraph{Inverses of general lower triangular matrices.} The lecture proves item 4 of \Cref{prop:lower-closure} only for matrices of the form $(L_{m-1} \cdots L_1)^{-1}$. It holds for every invertible lower triangular $T$. Invertibility forces the diagonal entries to be nonzero; let $D = \diag(T)$, so that $D^{-1}T$ is unit lower triangular. By item 2 of \Cref{thm:elem-inverse}, every unit lower triangular matrix can be written as $L_1^{-1} \cdots L_{m-1}^{-1}$ (take its strictly lower entries as the multipliers), so its inverse $L_{m-1} \cdots L_1$ is lower triangular. Therefore $T^{-1} = (D^{-1}T)^{-1}D^{-1}$ is a product of lower triangular matrices and is lower triangular.
+
+\paragraph{A shorter proof of item 2 of \Cref{thm:elem-inverse}~\cite[Lecture 20]{TB}.} For $k < j$ we have $\vec{e}_k^{\,\ast}\vec{\ell}_j = 0$, so
+\begin{equation}
+  (I + \vec{\ell}_k\vec{e}_k^{\,\ast})(I + \vec{\ell}_j\vec{e}_j^{\,\ast}) = I + \vec{\ell}_k\vec{e}_k^{\,\ast} + \vec{\ell}_j\vec{e}_j^{\,\ast},
+\end{equation}
+and induction gives $L_1^{-1} \cdots L_{m-1}^{-1} = I + \sum_{k=1}^{m-1}\vec{\ell}_k\vec{e}_k^{\,\ast}$.
+
+\paragraph{Cost, and solving with LU.} Step $k$ of \Cref{alg:lu} updates an $(m - k) \times (m - k)$ block with one multiplication and one subtraction per entry, so the total is
+\begin{equation}
+  \sum_{k=1}^{m-1} 2(m - k)^2 \approx \frac{2}{3}m^3 \text{ flops.}
+\end{equation}
+Solving $A\vec{x} = \vec{b}$ splits into three steps: factor $A = LU$ ($\tfrac{2}{3}m^3$), solve $L\vec{y} = \vec{b}$ by forward substitution ($m^2$), and solve $U\vec{x} = \vec{y}$ by back substitution ($m^2$). The factorization is done once, and each additional right-hand side costs only $2m^2$. This is the reason not to form $A^{-1}$. The two inner loops form a rank-one update, a Level 2 operation; see \Cref{sec:blocked-lu} for the blocked version.
+
+\paragraph{The pivots as ratios of minors~\cite[\S2.3]{Demmel}.} Taking determinants in the proof of \Cref{thm:lu-exists} gives
+\begin{equation}
+  U_{kk} = \frac{\det A[1{:}k, 1{:}k]}{\det A[1{:}k{-}1, 1{:}k{-}1]},
+\end{equation}
+and $A = LU$ with $L$ unit lower triangular exists and is unique if and only if $A[1{:}k, 1{:}k]$ is nonsingular for every $k = 1, \dots, m - 1$.
+
+\paragraph{Pivoting, preview.} In the $\eps$ example, swapping the two rows first gives $\begin{bmatrix} 1 & 1 \\ \eps & 1 \end{bmatrix}$, whose only multiplier is $\eps$, and the problem disappears. This is the idea of \emph{pivoting}: at each step, move the entry of largest absolute value in the current column to the pivot position, obtaining $PA = LU$ with $\abs{\ell_{ik}} \le 1$, which controls $\abs{L}$ in the error bound. It is the subject of \Cref{ch:pivoting}.

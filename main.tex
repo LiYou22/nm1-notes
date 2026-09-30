@@ -1,0 +1,48 @@
+\documentclass[11pt,oneside]{report}
+\usepackage{nm1notes}
+
+\begin{document}
+
+\begin{titlepage}
+  \raggedright
+  \vspace*{2in}
+  {\Huge\bfseries CSCI-GA 2420 / MATH-GA 2010\par}
+  \vspace{8pt}
+  {\LARGE Numerical Methods I\par}
+  \vspace{8pt}
+  {\LARGE Course Notes\par}
+  \vspace{8pt}
+  {\Large Fall 2026\par}
+  \vspace{24pt}
+  {\large Instructor: Prof.\ Florian Schaefer\par}
+  \vspace{4pt}
+  {\large Notes by You Li\par}
+\end{titlepage}
+
+\thispagestyle{fancy}
+\markright{}
+{\Large\bfseries Acknowledgements\par}
+\vspace{6pt}
+These notes follow the Fall 2026 lectures of CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at the Courant Institute, taught by Prof.\ Florian Schaefer. Each chapter follows one lecture. Sections marked (SUPPLEMENT) go beyond the blackboard and draw on Trefethen and Bau~\cite{TB}, Demmel~\cite{Demmel}, and Golub and Van Loan~\cite{GVL}.
+
+\paragraph{Notation.} Throughout, $\K$ denotes either $\R$ or $\C$. Vectors carry an arrow, $\vec{x} \in \K^n$; for $A \in \K^{m \times n}$, $A^\ast$ is the conjugate transpose (equal to $A^\T$ when $\K = \R$), $\range(A)$ is the range (column space), and $\nullsp(A)$ is the null space. The symbol $\defeq$ means ``is defined as''. Unless stated otherwise, $\norm{\cdot}$ is the Euclidean norm on vectors and the induced $2$-norm on matrices. Absolute values and inequalities between matrices, such as $\abs{E} \le \abs{L}\abs{U}$, are taken entrywise.
+
+\tableofcontents
+
+\include{chapters/ch1-floating-point}
+\include{chapters/ch2-performance}
+\include{chapters/ch3-lu}
+\include{chapters/ch4-pivoting}
+\include{chapters/ch5-least-squares}
+\include{chapters/ch6-householder}
+\include{chapters/ch7-qr}
+
+\begin{thebibliography}{9}
+\bibitem{TB} L.~N. Trefethen and D.~Bau III. \emph{Numerical Linear Algebra}. SIAM, 1997.
+\bibitem{Demmel} J.~W. Demmel. \emph{Applied Numerical Linear Algebra}. SIAM, 1997.
+\bibitem{GVL} G.~H. Golub and C.~F. Van Loan. \emph{Matrix Computations}, 3rd edition. Johns Hopkins University Press, 1996.
+\bibitem{Overton} M.~L. Overton. \emph{Numerical Computing with IEEE Floating Point Arithmetic}. SIAM, 2001.
+\bibitem{Higham} N.~J. Higham. \emph{Accuracy and Stability of Numerical Algorithms}, 2nd edition. SIAM, 2002.
+\end{thebibliography}
+
+\end{document}

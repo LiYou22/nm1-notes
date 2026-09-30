@@ -1,0 +1,345 @@
+\chapter{Factorizations as Products and Householder Triangularization}
+\label{ch:householder}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 8, 10, and 16.
+  \item \cite{Demmel} Section 3.4.
+\end{itemize}
+
+\section{Why Write Algorithms as Matrix Products?}
+
+The LU factorization and Gram--Schmidt were described in \Cref{ch:lu,ch:ls} as row-by-row or vector-by-vector operations, and the error analysis of \Cref{ch:pivoting} worked entry by entry ($\abs{E} \le m\epsm\abs{L}\abs{U}$). Such an analysis must be redone for every algorithm, and it hardly reveals \emph{why} different algorithms differ in stability.
+
+This lecture takes a different angle: write every factorization algorithm as a \emph{product of a sequence of matrices}, and look only at the properties of the matrix applied at each step. Stability then reduces to one simple quantity, the condition number of these transformation matrices.
+
+\section{The Product Form of Gram--Schmidt}
+
+\subsection{The Analogy with LU}
+
+LU \emph{left}-multiplies by a sequence of lower triangular matrices in order to reach an \emph{upper triangular} matrix:
+\begin{equation}
+  L_{m-1} \cdots L_1 A = U.
+\end{equation}
+Each $L_k$ performs row operations that zero column $k$ below the diagonal. Gram--Schmidt does the opposite: it \emph{right}-multiplies by a sequence of upper triangular matrices in order to reach \emph{orthonormal columns}:
+\begin{equation}
+  AR_1R_2 \cdots R_n = \hat{Q}.
+\end{equation}
+Right multiplication performs column operations, and column operations are exactly what Gram--Schmidt does: normalize one column, then subtract its component from the other columns.
+
+\subsection{The Step Matrices}
+
+Write $\vec{a}_j^{(k-1)}$ for the $j$-th column after $k - 1$ steps, i.e., $\vec{a}_j$ with its components along $\vec{q}_1, \dots, \vec{q}_{k-1}$ removed, and $\vec{a}_j^{(0)} = \vec{a}_j$. At the start of step $k$ the matrix is
+\begin{equation}
+  \begin{bmatrix} \vec{q}_1 & \cdots & \vec{q}_{k-1} & \vec{a}_k^{(k-1)} & \cdots & \vec{a}_n^{(k-1)} \end{bmatrix}:
+\end{equation}
+the first $k - 1$ columns are orthonormal and the remaining columns are orthogonal to them, but not yet to each other. Let
+\begin{equation}
+  r_{kk} \doteq \norm{\vec{a}_k^{(k-1)}}, \qquad \vec{q}_k \doteq \vec{a}_k^{(k-1)}/r_{kk}, \qquad r_{kj} \doteq \ip{\vec{q}_k}{\vec{a}_j^{(k-1)}} \quad (j > k).
+\end{equation}
+The matrix $R_k$ equals the identity except in row $k$:
+\begin{equation}
+  R_k = \begin{bmatrix}
+    1 & & & & & \\
+    & \ddots & & & & \\
+    & & \frac{1}{r_{kk}} & -\frac{r_{k,k+1}}{r_{kk}} & \cdots & -\frac{r_{kn}}{r_{kk}} \\
+    & & & 1 & & \\
+    & & & & \ddots & \\
+    & & & & & 1
+  \end{bmatrix},
+\end{equation}
+and right multiplication by it gives
+\begin{equation}
+  \begin{bmatrix} \vec{q}_1 & \cdots & \vec{q}_{k-1} & \vec{a}_k^{(k-1)} & \cdots & \vec{a}_n^{(k-1)} \end{bmatrix}R_k = \begin{bmatrix} \vec{q}_1 & \cdots & \vec{q}_k & \vec{a}_{k+1}^{(k)} & \cdots & \vec{a}_n^{(k)} \end{bmatrix},
+\end{equation}
+with $\vec{a}_j^{(k)} = \vec{a}_j^{(k-1)} - r_{kj}\vec{q}_k$. Indeed, column $k$ of the product is $\vec{a}_k^{(k-1)}/r_{kk} = \vec{q}_k$, and column $j > k$ is $\vec{a}_j^{(k-1)} - \vec{a}_k^{(k-1)}\,r_{kj}/r_{kk} = \vec{a}_j^{(k-1)} - r_{kj}\vec{q}_k$. Note the factor $1/r_{kk}$ in the off-diagonal entries: the coefficient multiplies the \emph{unnormalized} column $\vec{a}_k^{(k-1)}$, not $\vec{q}_k$. For $k = 1$,
+\begin{equation}
+  (R_1)_{1j} = -\frac{\ip{\vec{q}_1}{\vec{a}_j}}{\norm{\vec{a}_1}} = -\frac{\ip{\vec{a}_1}{\vec{a}_j}}{\norm{\vec{a}_1}^2}.
+\end{equation}
+
+\subsection{The Product Form Is Modified Gram--Schmidt}
+
+Whether an algorithm is CGS or MGS is decided by the inner product defining the projection coefficients: CGS uses $\ip{\vec{q}_k}{\vec{a}_j}$ with the original column, MGS uses $\ip{\vec{q}_k}{\vec{a}_j^{(k-1)}}$ with the updated one. The product form uses $\vec{a}_j^{(k-1)}$, so it is \emph{MGS}. Structurally it cannot be anything else: $R_k$ acts on the \emph{current} matrix, whose $j$-th column is already $\vec{a}_j^{(k-1)}$, the original $\vec{a}_j$ having been overwritten. Each step normalizes column $k$ and immediately removes its component from all columns to the right, which is the row-oriented loop order of MGS.
+
+\subsection{The Reduced QR Factorization}
+
+Each $R_k$ is upper triangular, and so is their product:
+\begin{equation}
+  R_1R_2 \cdots R_n = \hat{R}^{-1} \quad\Longrightarrow\quad A = \hat{Q}\hat{R}.
+\end{equation}
+Here $\hat{Q} \in \K^{m \times n}$ is the factor of the \emph{reduced QR factorization}: it has only $n$ orthonormal columns, $\hat{Q}^\ast\hat{Q} = I_n$, but $\hat{Q}\hat{Q}^\ast \ne I_m$ (it is the orthogonal projector onto $\range(A)$). The factor $\hat{R} \in \K^{n \times n}$ is upper triangular and invertible.
+
+In complete analogy with LU, $R_k^{-1}$ is also nontrivial only in row $k$, and that row is simply
+\begin{equation}
+  \begin{bmatrix} r_{kk} & r_{k,k+1} & \cdots & r_{kn} \end{bmatrix},
+\end{equation}
+with no reciprocals and no minus signs. Consequently
+\begin{equation}
+  \hat{R} = R_n^{-1} \cdots R_1^{-1} = \begin{bmatrix} r_{11} & r_{12} & \cdots & r_{1n} \\ & r_{22} & \cdots & r_{2n} \\ & & \ddots & \vdots \\ & & & r_{nn} \end{bmatrix}
+\end{equation}
+is obtained by stacking the $k$-th rows of the $R_k^{-1}$, just as $L = L_1^{-1} \cdots L_{m-1}^{-1}$ collects the multipliers column by column (\Cref{thm:elem-inverse}).
+
+\section{Error Amplification in Products}
+
+Consider algorithms of the form
+\begin{equation}
+  A_k = X_kA_{k-1}, \qquad A_0 = A.
+\end{equation}
+LU ($X_k = L_k$) and Householder QR ($X_k$ orthogonal, below) are of this type; Gram--Schmidt multiplies from the right and is analyzed symmetrically. Every step incurs rounding errors. How stable is such an algorithm?
+
+\subsection{Forward Error of One Step}
+
+One can show that floating-point matrix multiplication satisfies
+\begin{equation}
+  \fl(XA) = XA + E + O(\epsm^2), \qquad \norm{E}_2 \le O(\epsm)\norm{X}_2\norm{A}_2.
+\end{equation}
+The error $E$ is proportional to $\norm{X}\norm{A}$, \emph{not} to $\norm{XA}$. If $X$ and $A$ are both large but their product is small because of cancellation, the error is still measured against the large quantities and can be large relative to the result. This is the same phenomenon as the error of LU being governed by $\abs{L}\abs{U}$ rather than $\abs{A}$. The $O(\epsm)$ hides a dimension-dependent constant, and $O(\epsm^2)$ signals a first-order analysis.
+
+\subsection{Rewriting as a Backward Error}
+
+If $X$ is invertible, we can factor $X$ out of $E = X \cdot X^{-1}E$:
+\begin{equation}
+  \fl(XA) = X(A + F) + O(\epsm^2), \qquad F \doteq X^{-1}E.
+\end{equation}
+The computed result is the \emph{exact product with a perturbed input $A + F$}; the error has been pushed back onto the input, which is the backward-error viewpoint. The perturbation satisfies
+\begin{equation}
+  \norm{F}_2 \le \norm{X^{-1}}_2\norm{E}_2 \le O(\epsm)\,\kappa(X)\,\norm{A}_2,
+\end{equation}
+i.e., the relative backward error is $\norm{F}_2/\norm{A}_2 \le O(\epsm)\kappa(X)$.
+
+\begin{theorem}[The Transformation Determines the Backward Error]
+  \label{thm:product-error}
+  For one step $A \mapsto XA$ of a product-form algorithm with invertible $X$, the computed result equals $X(A + F)$ with
+  \begin{equation}
+    \frac{\norm{F}_2}{\norm{A}_2} \le O(\epsm)\,\kappa(X).
+  \end{equation}
+\end{theorem}
+
+Two condition numbers must be kept apart:
+\begin{itemize}
+  \item $\kappa(X)$ is the condition number of the transformation chosen by the \emph{algorithm}. It determines the backward error, i.e., whether the algorithm itself is stable, and the algorithm designer controls it.
+  \item $\kappa(A)$ is the condition number of the \emph{problem}. It is fixed by the input and determines how much the backward error is amplified into forward error (forward error $\lesssim \kappa(A) \times$ backward error).
+\end{itemize}
+The design principle follows: choose transformations with small condition numbers. Orthogonal matrices have $\kappa = 1$, the best possible.
+
+\section{Lower Triangularization: The Case of LU}
+
+Apply the framework to LU. After $k$ steps of elimination the accumulated transformation is $X = L_k \cdots L_1$, and its inverse is the unit lower triangular matrix of multipliers,
+\begin{equation}
+  L = X^{-1} = \begin{bmatrix} 1 & & & \\ \ell_{21} & 1 & & \\ \vdots & \ddots & \ddots & \\ \ell_{m1} & \cdots & \ell_{m,m-1} & 1 \end{bmatrix}.
+\end{equation}
+Since $\kappa(X) = \kappa(X^{-1}) = \kappa(L)$, \Cref{thm:product-error} gives a backward error of about $O(\epsm)\kappa(L)\norm{A}_2$. The stability of LU thus comes down to the condition number of $L$. Partial pivoting chooses the largest entry of each column as pivot and so guarantees $\abs{\ell_{ij}} \le 1$.
+
+\subsection{$\norm{L}$ Is Under Control}
+
+All entries of $L$ have absolute value at most $1$, so its norm is only polynomial in $m$:
+\begin{equation}
+  \norm{L}_2 \le \norm{L}_F \le \sqrt{\frac{m(m+1)}{2}} \le m.
+\end{equation}
+
+\subsection{$\norm{L^{-1}}$ Is Not}
+
+Controlling $\kappa(L) = \norm{L}_2\norm{L^{-1}}_2$ also requires $\norm{L^{-1}}$ to be moderate, and $\abs{\ell_{ij}} \le 1$ does \emph{not} imply this. Inverting $L$ (forward substitution) uses the results of all previous rows in every row, so values pile up and the entries of $L^{-1}$ can grow exponentially.
+
+\begin{example}[Exponential Growth of $L^{-1}$]
+  \label{ex:linv}
+  The factor $L$ of \Cref{ex:growth} has $-1$ everywhere below the diagonal, so $\abs{\ell_{ij}} \le 1$, yet
+  \begin{equation}
+    L = \begin{bmatrix} 1 & & & \\ -1 & 1 & & \\ -1 & -1 & 1 & \\ -1 & -1 & -1 & 1 \end{bmatrix}, \qquad
+    L^{-1} = \begin{bmatrix} 1 & & & \\ 1 & 1 & & \\ 2 & 1 & 1 & \\ 4 & 2 & 1 & 1 \end{bmatrix}.
+  \end{equation}
+  For general $m$, $(L^{-1})_{ij} = 2^{i-j-1}$ for $i > j$, and the bottom-left entry is $2^{m-2}$, so
+  \begin{equation}
+    \norm{L^{-1}}_2 \ge 2^{m-2}, \qquad \kappa(L) \ge 2^{m-2}.
+  \end{equation}
+  To see where the doubling comes from, note that computing $L^{-1}$ means solving $L\vec{x} = \vec{b}$. By forward substitution, the $i$-th equation $x_i - x_1 - \cdots - x_{i-1} = b_i$ gives
+  \begin{equation}
+    x_i = b_i + (x_1 + \cdots + x_{i-1}).
+  \end{equation}
+  For the first column, $\vec{b} = \vec{e}_1$: $x_1 = 1$, $x_2 = 1$, $x_3 = 1 + 1 = 2$, $x_4 = 1 + 1 + 2 = 4$, and so on. Each entry is the sum of all previous ones, so from the second entry on they double, $x_i = 2^{i-2}$. The other columns are the same pattern shifted down.
+\end{example}
+
+\subsection{Large $L^{-1}$ Causes Large $U$}
+
+From $A = LU$,
+\begin{equation}
+  U = L^{-1}A,
+\end{equation}
+so a large $\norm{L^{-1}}$ can produce a large $U$: \emph{large $U$ comes from large $L^{-1}$}. This connects the condition-number viewpoint with the growth factor of \Cref{ch:pivoting,ch:ls}; they describe the same thing. In \Cref{ex:growth} the last column of $A$ is all ones, so the last column of $U$ is $L^{-1}$ times the all-ones vector, i.e., the row sums of $L^{-1}$:
+\begin{equation}
+  1 + \sum_{j=1}^{i-1}2^{i-j-1} = 1 + (2^{i-1} - 1) = 2^{i-1},
+\end{equation}
+which is exactly the last column $1, 2, 4, 8, \dots$ of $U$.
+
+Partial pivoting thus solves only half of the problem: it controls $\norm{L}$ but not $\norm{L^{-1}}$, and in the worst case LU with partial pivoting can still be unstable. Such matrices are extremely rare, so in practice it is used as a stable algorithm; but to \emph{guarantee} well-conditioned transformations we must switch to orthogonal ones.
+
+\section{Gram--Schmidt Is Also a Lower Triangularization}
+
+The upper triangular $R_k$ is nontrivial only in row $k$, so its transpose $L_k^\T \doteq R_k$ has $L_k$ nontrivial only in column $k$: an elementary lower triangular matrix (with diagonal entry $1/r_{kk}$ instead of $1$). Then $AR_1 \cdots R_n = \hat{Q}$ reads $AL_1^\T \cdots L_n^\T = \hat{Q}$, and transposing,
+\begin{equation}
+  L_n \cdots L_1A^\T = \hat{Q}^\T.
+\end{equation}
+Gram--Schmidt on $A$ is therefore the same as left-multiplying $A^\T$ by a sequence of lower triangular matrices. It too falls into the error-amplification framework, and its stability is likewise governed by the condition numbers of these triangular factors.
+
+\section{Householder Triangularization}
+
+\subsection{Idea: Multiply by Orthogonal Matrices}
+
+LU and Gram--Schmidt suffer from the same defect: each step applies a triangular matrix, whose condition number is not under control. Following the principle ``choose well-conditioned transformations'', the most direct remedy is to make every transformation orthogonal.
+
+Householder triangularization, like LU, multiplies from the \emph{left} and aims for an \emph{upper triangular} matrix; the difference is that it applies unitary matrices $Q_k$. Each step zeros one column below the diagonal:
+\begin{equation}
+  \begin{bmatrix} \times & \times & \times \\ \times & \times & \times \\ \times & \times & \times \\ \times & \times & \times \\ \times & \times & \times \end{bmatrix}
+  \xrightarrow{Q_1}
+  \begin{bmatrix} \times & \times & \times \\ 0 & \times & \times \\ 0 & \times & \times \\ 0 & \times & \times \\ 0 & \times & \times \end{bmatrix}
+  \xrightarrow{Q_2}
+  \begin{bmatrix} \times & \times & \times \\ 0 & \times & \times \\ 0 & 0 & \times \\ 0 & 0 & \times \\ 0 & 0 & \times \end{bmatrix}
+  \xrightarrow{Q_3}
+  \begin{bmatrix} \times & \times & \times \\ 0 & \times & \times \\ 0 & 0 & \times \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}.
+\end{equation}
+After $n$ steps,
+\begin{equation}
+  Q_n \cdots Q_1A = R \quad\iff\quad A = \underbrace{(Q_n \cdots Q_1)^{-1}}_{Q}R = Q_1^\ast \cdots Q_n^\ast R.
+\end{equation}
+This is the \emph{full QR factorization}: $Q \in \K^{m \times m}$ is a square unitary matrix and $R \in \K^{m \times n}$ has $m - n$ zero rows at the bottom. Taking the first $n$ columns of $Q$ and the first $n$ rows of $R$ recovers the reduced QR factorization. In short, Gram--Schmidt uses triangular matrices to \emph{produce} an orthogonal matrix, whereas Householder uses orthogonal matrices to \emph{produce} a triangular one. It remains to choose the $Q_k$.
+
+\subsection{The Householder Reflector}
+
+$Q_1$ must map the first column $\vec{a}_1$ to a multiple of $\vec{e}_1$. Unitary maps preserve the $2$-norm, so there are only two possible targets,
+\begin{equation}
+  Q_1\vec{a}_1 = \pm\norm{\vec{a}_1}\vec{e}_1.
+\end{equation}
+Take the $+$ sign first. Since $\vec{a}_1$ and $\norm{\vec{a}_1}\vec{e}_1$ have the same length, they are mirror images across the perpendicular bisector of the segment joining them. This bisector is the hyperplane through the origin with normal vector
+\begin{equation}
+  \vec{v} = \vec{a}_1 - \norm{\vec{a}_1}\vec{e}_1,
+\end{equation}
+and \emph{reflecting} across it sends $\vec{a}_1$ to $\norm{\vec{a}_1}\vec{e}_1$.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.4]
+  \draw[-{Latex}] (-0.3,0) -- (3.4,0) node[right] {$\vec{e}_1$};
+  \coordinate (O) at (0,0);
+  \coordinate (X) at ({3*cos(50)},{3*sin(50)});
+  \coordinate (E) at (3,0);
+  \draw[dashed] (O) -- ({3.4*cos(25)},{3.4*sin(25)}) node[right] {$H$};
+  \draw[-{Latex},thick] (O) -- (X) node[above] {$\vec{x}$};
+  \draw[-{Latex},thick] (O) -- (E) node[below] {$\norm{\vec{x}}\vec{e}_1$};
+  \draw[-{Latex},thick,red!70!black] (X) -- (E) node[midway,right] {$\norm{\vec{x}}\vec{e}_1 - \vec{x}$};
+\end{tikzpicture}
+\end{center}
+
+\begin{definition}[Householder Reflector]
+  For a nonzero $\vec{v} \in \K^m$, the \emph{Householder reflector} is
+  \begin{equation}
+    F = I - 2\frac{\vec{v}\vec{v}^\ast}{\vec{v}^\ast\vec{v}}.
+  \end{equation}
+\end{definition}
+
+$F$ flips the component of a vector along $\vec{v}$ and leaves the component orthogonal to $\vec{v}$ unchanged:
+\begin{itemize}
+  \item $\vec{u} \perp \vec{v} \implies F\vec{u} = \vec{u}$: vectors in the hyperplane stay fixed;
+  \item $\vec{u} \parallel \vec{v} \implies F\vec{u} = -\vec{u}$: the normal direction is flipped.
+\end{itemize}
+Clearly $F$ is Hermitian, and reflecting twice returns every vector to where it started, $F^2 = I$. Hence $F^\ast F = F^2 = I$: $F$ is unitary and is its own inverse.
+
+We verify $Q_1\vec{a}_1 = \norm{\vec{a}_1}\vec{e}_1$ in the real case, with $Q_1 = I - 2\vec{v}\vec{v}^\ast/(\vec{v}^\ast\vec{v})$:
+\begin{equation}
+  \vec{v}^\ast\vec{v} = 2\norm{\vec{a}_1}^2 - 2\norm{\vec{a}_1}a_{11}, \qquad \vec{v}^\ast\vec{a}_1 = \norm{\vec{a}_1}^2 - \norm{\vec{a}_1}a_{11} = \tfrac{1}{2}\vec{v}^\ast\vec{v},
+\end{equation}
+so
+\begin{equation}
+  Q_1\vec{a}_1 = \vec{a}_1 - 2\vec{v}\frac{\vec{v}^\ast\vec{a}_1}{\vec{v}^\ast\vec{v}} = \vec{a}_1 - \vec{v} = \norm{\vec{a}_1}\vec{e}_1.
+\end{equation}
+
+\subsection{Choosing the Sign}
+
+The targets $+\norm{\vec{a}_1}\vec{e}_1$ and $-\norm{\vec{a}_1}\vec{e}_1$ correspond to two different (mutually perpendicular) reflection hyperplanes. Mathematically either one works, but in finite precision one should choose the target \emph{farther from $\vec{a}_1$}:
+\begin{equation}
+  Q_1\vec{a}_1 = -\sign(a_{11})\norm{\vec{a}_1}\vec{e}_1 \quad\implies\quad \vec{v} \propto \sign(a_{11})\norm{\vec{a}_1}\vec{e}_1 + \vec{a}_1.
+\end{equation}
+The reason is cancellation. Suppose $\vec{a}_1$ is nearly parallel to $\vec{e}_1$ with $a_{11} > 0$. With the $+$ sign,
+\begin{equation}
+  \norm{\vec{v}_+} = \norm{\norm{\vec{a}_1}\vec{e}_1 - \vec{a}_1} \ll \norm{\vec{a}_1},
+\end{equation}
+so $\vec{v}_+$ is the difference of two nearly equal vectors and its first entry $\norm{\vec{a}_1} - a_{11}$ suffers catastrophic cancellation. The computed $\norm{\vec{a}_1}$ carries a relative error $O(\epsm)$, i.e., an absolute error of about $\epsm\norm{\vec{a}_1}$, which is large relative to the small $\norm{\vec{v}_+}$; the direction of $\vec{v}$, and with it the reflection, becomes inaccurate. With $-\sign(a_{11})$, the first entry of $\vec{v}$ is $a_{11} + \sign(a_{11})\norm{\vec{a}_1}$, a sum of two numbers of the same sign with no cancellation, and $\abs{v_1} \ge \norm{\vec{a}_1}$, so $\norm{\vec{v}}$ is never smaller than $\norm{\vec{a}_1}$. We take $\sign(0) = 1$.
+
+\subsection{Step $k$: The Block Form}
+
+For $k > 1$, the first $k - 1$ rows and columns are finished and must not change. So we take
+\begin{equation}
+  Q_k = \begin{bmatrix} I_{k-1} & 0 \\ 0 & F_k \end{bmatrix},
+\end{equation}
+where $F_k$ is the $(m - k + 1) \times (m - k + 1)$ Householder reflector built as in step $1$ from the first column $\vec{x} = A[k{:}m, k]$ of the trailing submatrix $A[k{:}m, k{:}n]$. Earlier results are preserved: the block $I_{k-1}$ leaves the first $k - 1$ rows untouched, and the first $k - 1$ columns are already zero from row $k$ down, and $F_k$ maps zero vectors to zero. The matrix $Q_k$ is itself a Householder reflector, with normal vector $\vec{v}$ padded by $k - 1$ leading zeros, and is unitary.
+
+\begin{algorithm}[H]
+  \caption{Householder QR, in place.}
+  \label{alg:householder}
+  \begin{algorithmic}[1]
+    \For{$k = 1, \dots, n$}
+      \State $\vec{x} \gets A[k{:}m, k]$
+      \State $\vec{v} \gets \sign(x_1)\norm{\vec{x}}_2\vec{e}_1 + \vec{x}$
+      \State $\vec{v} \gets \vec{v}/v_1$ \Comment{scale so that $v_1 = 1$}
+      \State $A[k{:}m, k{:}n] \gets A[k{:}m, k{:}n] - 2\vec{v}\left(\vec{v}^\ast A[k{:}m, k{:}n]\right)/(\vec{v}^\ast\vec{v})$
+      \State $A[k{+}1{:}m, k] \gets \vec{v}[2{:}\mathrm{end}]$ \Comment{store $\vec{v}$ below the diagonal}
+    \EndFor
+    \State \Return $A$ \Comment{upper triangle: $R$; strictly lower triangle: the vectors $\vec{v}$}
+  \end{algorithmic}
+\end{algorithm}
+
+Some remarks:
+\begin{itemize}
+  \item \emph{$F_k$ is never formed.} Following the parentheses, first compute the row vector $\vec{v}^\ast A[k{:}m, k{:}n]$, then perform a rank-one update. Each step costs $O((m - k)(n - k))$; forming $\vec{v}\vec{v}^\ast$ first would cost an order of magnitude more.
+  \item \emph{Scaling $\vec{v}$ by $1/v_1$} makes its first entry $1$. The reflector depends only on the direction of $\vec{v}$, so scaling does not change $F_k$. Since $\abs{v_1} \ge \norm{\vec{x}} > 0$ (for $\vec{x} \ne \zerovec$), this never divides by zero.
+  \item \emph{Storage.} After the update, $A[k{+}1{:}m, k]$ should be zero, which frees exactly enough room for the remaining $m - k$ entries of $\vec{v}$; the leading $v_1 = 1$ is implicit.
+  \item On exit the upper triangle of $A$ is $R$, with diagonal entries $r_{kk} = -\sign(x_1)\norm{\vec{x}}$. The matrix $Q$ is never formed explicitly; it is stored implicitly through the vectors $\vec{v}$ (see \Cref{ch:qr}).
+  \item $\sign(0)$ must be taken as $1$; otherwise $x_1 = 0$ gives $\vec{v} = \vec{x}$, which is wrong.
+\end{itemize}
+
+\subsection{Back into the Framework}
+
+Each $X_k = Q_k$ is unitary, so $\norm{Q_k}_2 = \norm{Q_k^{-1}}_2 = 1$ and $\kappa(Q_k) = 1$. By \Cref{thm:product-error},
+\begin{equation}
+  \norm{F}_2 \le O(\epsm)\,\kappa(Q_k)\,\norm{A}_2 = O(\epsm)\norm{A}_2:
+\end{equation}
+the transformation does not amplify the error at all. Moreover, unitary matrices preserve the $2$-norm, so the intermediate matrices $A_k$ all have norm $\norm{A}_2$, and there is no element growth as in LU. Accumulating over all steps (see \Cref{sec:hh-supp}), the total backward error grows only linearly with the number of steps: Householder QR is backward stable. This presumes that the $Q_k$ are computed accurately, i.e., that the direction of $\vec{v}$ is accurate, which is exactly what the sign choice ensures.
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:hh-supp}
+
+\paragraph{Three factorizations as products.}
+\begin{center}
+\begin{tabular}{lllll}
+  \toprule
+  & Side & Transformation & Target & Condition of transformation \\
+  \midrule
+  LU & left & lower triangular $L_k$ & upper triangular $U$ & can be large \\
+  Gram--Schmidt & right & upper triangular $R_k$ & orthonormal $\hat{Q}$ & depends on $A$ \\
+  Householder & left & unitary $Q_k$ & upper triangular $R$ & $1$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+Trefethen and Bau call Gram--Schmidt \emph{triangular orthogonalization} and Householder \emph{orthogonal triangularization}~\cite[Lectures 8 and 10]{TB}.
+
+\paragraph{The condition of the Gram--Schmidt transformation.} The accumulated transformation of Gram--Schmidt is $R_1 \cdots R_n = \hat{R}^{-1}$. Since $A = \hat{Q}\hat{R}$ with $\hat{Q}$ having orthonormal columns, $A$ and $\hat{R}$ have the same singular values, so $\kappa(\hat{R}) = \kappa(A)$. The triangular transformations of Gram--Schmidt are thus exactly as ill-conditioned as the problem: the more ill-conditioned $A$, the more the error is amplified. This matches the loss of orthogonality $\approx \epsm\kappa(A)$ of MGS from \Cref{ch:ls}.
+
+\paragraph{Backward error over many steps.} Writing each step as $\tilde{A}_k = X_k(\tilde{A}_{k-1} + F_k)$ and pulling every perturbation back to the original input,
+\begin{equation}
+  \tilde{A}_n = X_n \cdots X_1\left(A + \sum_{k=1}^{n}(X_{k-1} \cdots X_1)^{-1}F_k\right) + O(\epsm^2).
+\end{equation}
+When every $X_k$ is unitary, so is $(X_{k-1} \cdots X_1)^{-1}$, which does not change the norm of $F_k$; moreover $\norm{\tilde{A}_{k-1}}_2 = \norm{A}_2$ to first order, so each $\norm{F_k}_2 \le O(\epsm)\norm{A}_2$ and
+\begin{equation}
+  \norm{F_{\mathrm{total}}}_2 \lesssim O(n\epsm)\norm{A}_2.
+\end{equation}
+This is the argument behind Demmel's Lemma 3.1 and Theorem 3.5~\cite[\S3.4.3]{Demmel}, and Trefethen and Bau state the result as $\tilde{Q}\tilde{R} = A + \delta A$ with $\norm{\delta A}/\norm{A} = O(\epsm)$~\cite[Theorem 16.1]{TB}, where $\tilde{Q}$ is the \emph{exactly} unitary product of the reflectors defined by the computed vectors $\tilde{\vec{v}}_k$.
+
+\paragraph{Orthogonality of $Q$.} The $\hat{Q}$ computed by MGS loses orthogonality by about $O(\epsm\kappa(A))$, whereas the $Q$ given implicitly by Householder is orthogonal up to $O(\epsm)$, independently of $\kappa(A)$, consistent with the table above.
+
+\paragraph{Operation counts.} MGS costs about $2mn^2$ flops. Householder QR costs about $2mn^2 - \frac{2}{3}n^3$ flops: step $k$ updates an $(m - k + 1) \times (n - k + 1)$ block with about $4$ flops per entry, and
+\begin{equation}
+  \sum_{k=1}^{n}4(m - k + 1)(n - k + 1) \approx 4\int_0^n (m - t)(n - t)\,\mathrm{d}t = 2mn^2 - \frac{2}{3}n^3.
+\end{equation}
+For $m = n$ Householder costs $\frac{4}{3}n^3$, twice as much as LU ($\frac{2}{3}n^3$); this is the price of stability.
+
+\paragraph{Using $Q$ implicitly for least squares.} To solve $\min_{\vec{x}}\norm{A\vec{x} - \vec{b}}_2$, we never form $Q$; we apply the stored $\vec{v}_k$ to $\vec{b}$ in turn to obtain $Q^\ast\vec{b}$, then solve $\hat{R}\vec{x} = (Q^\ast\vec{b})[1{:}n]$ by back substitution. The norm of the remaining part $(Q^\ast\vec{b})[n{+}1{:}m]$ is the minimal residual. Details are in \Cref{ch:qr}.
+
+\paragraph{The complex case.} For complex data $\vec{v}^\ast\vec{a}_1$ is in general not real, so the verification above does not carry over verbatim. One takes $\sign(x_1) \doteq x_1/\abs{x_1}$ (and $1$ if $x_1 = 0$) and $\vec{v} = \sign(x_1)\norm{\vec{x}}\vec{e}_1 + \vec{x}$. Then the first entry of $\vec{v}$ adds two numbers with the same phase, again avoiding cancellation; one checks $\vec{v}^\ast\vec{x} = \norm{\vec{x}}\abs{x_1} + \norm{\vec{x}}^2 = \frac{1}{2}\vec{v}^\ast\vec{v}$, so $F\vec{x} = \vec{x} - \vec{v} = -\sign(x_1)\norm{\vec{x}}\vec{e}_1$.

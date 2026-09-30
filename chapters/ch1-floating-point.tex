@@ -1,0 +1,347 @@
+\chapter{Floating-Point Arithmetic, Conditioning, and Stability}
+\label{ch:fp}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 12, 13, and 14.
+  \item \cite{Demmel} Sections 1.3--1.5.
+  \item \cite{GVL} Section 2.4.
+\end{itemize}
+
+\section{Why Exact Linear Algebra Is Not Enough}
+
+In a linear algebra course, $\R$ is a field: addition is associative, multiplication distributes over addition, and $x$ and $(x + a) - a$ are the same number. Every derivation in that course relies on these facts.
+
+A computer, however, has no $\R$. Its native objects are bits, $\B \doteq \{0, 1\}$, and any number system it offers must be built from finitely many of them. Approximating an uncountable set by a finite one causes two kinds of trouble:
+\begin{enumerate}
+  \item \emph{Representation error}: the number $x$ itself cannot be stored, so we store a nearby $\hat{x}$ instead.
+  \item \emph{Propagated error}: even if the inputs are exact, the result of every operation has to be pushed back into the finite set.
+\end{enumerate}
+The second kind has a consequence that is worse than it first appears: \emph{floating-point addition is not associative}. Two algorithms that are mathematically equivalent can therefore return completely different answers on a computer. The question ``is this algorithm correct?'' splits off from the question ``is this algorithm numerically good?'', and this lecture builds the language for the second one. The \emph{condition number} measures how sensitive the problem itself is, and \emph{stability} measures whether an algorithm amplifies errors beyond that.
+
+The topics of the semester are: numerical representation of vectors and matrices; solving linear systems by Gaussian elimination; solving least squares problems by orthogonalization; eigendecompositions; low-rank approximation; iterative methods; and structured matrices.
+
+\section{Vectors and Matrices}
+
+We write $\K$ for either $\R$ or $\C$, so that every result only needs to be stated once. A \emph{vector} $\vec{v} \in \K^m$ is an $m$-tuple of elements of $\K$, representing a position or direction in an $m$-dimensional coordinate system. A \emph{matrix} $A \in \K^{m \times n}$ is an $m \times n$ array of elements of $\K$, which may be thought of as $n$ positions in an $m$-dimensional coordinate system. We identify $\K^{m \times 1} \cong \K^m$, so a column vector is a matrix with one column:
+\begin{equation}
+  A = \begin{bmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \\ A_{31} & A_{32} \end{bmatrix} = \begin{bmatrix} \vec{a}_1 & \vec{a}_2 \end{bmatrix}.
+\end{equation}
+Scalar multiplication and addition act entrywise. For $A \in \K^{m \times n}$, $\vec{v} \in \K^n$, and $B \in \K^{n \times \ell}$,
+\begin{equation}
+  (A\vec{v})_i = \sum_{k} A_{ik} v_k, \qquad (AB)_{ij} = \sum_k A_{ik} B_{kj},
+\end{equation}
+so $A$ is a linear map $\K^n \to \K^m$ and $\K^{n \times \ell} \to \K^{m \times \ell}$: it carries a region, together with the vectors $\vec{x}$ in it, to the image vectors $A\vec{x}$.
+
+The entrywise formula is rarely the most useful way to think. Numerical linear algebra relies much more on the \emph{column view}:
+\begin{equation}
+  A\vec{v} = \sum_{j=1}^{n} v_j \vec{a}_j,
+\end{equation}
+that is, $A\vec{v}$ is the linear combination of the columns of $A$ with coefficients given by the entries of $\vec{v}$. This view appears throughout the course. The column space $\range(A)$ decides whether $A\vec{x} = \vec{b}$ is solvable, the QR factorization orthogonalizes the columns, and low-rank approximation asks how few directions suffice to approximately span them. Likewise, the $j$-th column of $AB$ is $A$ applied to the $j$-th column of $B$, so a matrix--matrix product is $\ell$ matrix--vector products done at once.
+
+\section{Representing Real Numbers}
+
+We build up to floating-point numbers in four steps, each fixing a shortcoming of the previous one.
+
+\subsection{Unsigned and Signed Integers}
+
+A string $d \in \B^b$ represents the integers $0$ through $2^b - 1$ via
+\begin{equation}
+  \operatorname{UInt}(d) \doteq \sum_{i=1}^{b} d_i 2^{i-1}.
+\end{equation}
+To represent negative numbers, we use an offset and give the highest bit a negative weight:
+\begin{equation}
+  \operatorname{Int}(d) \doteq \sum_{i=1}^{b-1} d_i 2^{i-1} - d_b 2^{b-1},
+\end{equation}
+which covers $-2^{b-1}$ through $2^{b-1} - 1$. This is \emph{two's complement}. Nonnegative numbers keep their unsigned encoding and the adder circuit is shared with unsigned integers. The price is an asymmetric range: the most negative number, such as \texttt{typemin(Int8)} $= -128$, has no positive counterpart, so $-x$ can overflow back to $x$. (A different kind of offset, the \emph{biased} encoding that stores $x + K$, is used for floating-point exponents; see \Cref{sec:ieee}.)
+
+\subsection{Fixed-Point Numbers}
+
+Fixing the position of the binary point and using $f = \lfloor b/c \rfloor$ of the bits as fractional digits gives
+\begin{equation}
+  \operatorname{Fixed}(d) \doteq \operatorname{Int}(d) \cdot 2^{-f}.
+\end{equation}
+Fixed-point numbers have \emph{constant absolute spacing} $2^{-f}$ over the whole range. To represent numbers of size $s$ and $s^{-1}$ at the same time, one needs about $\log_2(s)$ bits, so precision and dynamic range are tied together and the cost grows \emph{linearly} in the dynamic range. Physical simulations routinely span a dozen orders of magnitude, which quickly breaks fixed-point arithmetic.
+
+\subsection{Floating-Point Numbers}
+
+The idea of floating point is to store the order of magnitude separately as an exponent. Given $(p, e) \in \B^{b_p} \times \B^{b_e}$, define
+\begin{equation}
+  \operatorname{Float}(p, e) \doteq (-1)^{p_1} \left(1 + \sum_{i=2}^{b_p} p_i 2^{-(i-1)}\right) 2^{\operatorname{Int}(e)}.
+\end{equation}
+The three parts are the sign bit $p_1$, the \emph{significand} (or \emph{mantissa}) in $[1, 2)$, and the power of two. The leading $1$ of the significand is \emph{implicit} and takes no storage. The decimal analogue is $\pm 1.123 \cdot 10^{-4}$.
+
+The key benefit is that covering the range from $s^{-1}$ to $s$ only needs about $\log_2(\log_2(s))$ exponent bits. Fixed point pays a linear price; floating point pays a doubly logarithmic one. This is why floating point dominates scientific computing. A complex number $z \in \C$ is stored as two floating-point numbers. For details, the lecture recommends \cite{Overton}.
+
+\section{The Geometry of Floating-Point Numbers}
+
+Plotting all floating-point numbers on the real line shows that they are \emph{not equally spaced}. Within each \emph{binade} $[2^E, 2^{E+1})$ they are equally spaced, but crossing a power of two doubles the spacing: if the spacing near $1$ is $\eps \doteq 2^{-(b_p - 1)}$, it is $2\eps$ near $2$ and $4\eps$ near $4$.
+
+\begin{center}
+\begin{tikzpicture}[x=1.6cm]
+  \draw[-{Latex}] (0.8,0) -- (8.6,0);
+  \foreach \x in {1,1.25,...,2} \draw (\x,0.12) -- (\x,-0.12);
+  \foreach \x in {2,2.5,...,4} \draw (\x,0.12) -- (\x,-0.12);
+  \foreach \x in {4,5,...,8} \draw (\x,0.12) -- (\x,-0.12);
+  \node[below] at (1,-0.15) {$1$};
+  \node[below] at (2,-0.15) {$2$};
+  \node[below] at (4,-0.15) {$4$};
+  \node[below] at (8,-0.15) {$8$};
+  \draw[decorate,decoration={brace,amplitude=4pt}] (1,0.2) -- (1.25,0.2) node[midway,above=4pt] {$\eps$};
+  \draw[decorate,decoration={brace,amplitude=4pt}] (2,0.2) -- (2.5,0.2) node[midway,above=4pt] {$2\eps$};
+  \draw[decorate,decoration={brace,amplitude=4pt}] (4,0.2) -- (5,0.2) node[midway,above=4pt] {$4\eps$};
+\end{tikzpicture}
+\end{center}
+
+So although the absolute spacing changes, the \emph{relative spacing is nearly constant}: within one binade it lies between $\eps/2$ and $\eps$. This determines the philosophy behind floating point: it aims for \emph{relative} accuracy, on the premise that every quantity carries an uncertainty proportional to its own size.
+
+\begin{example}[Floating-Point Addition Is Not Associative]
+  \label{ex:nonassoc}
+  Let $\eps$ be the spacing at $1$ and suppose ties are rounded up. Evaluate $(1 + \eps) + 1 + 2$ in two ways.
+  \begin{itemize}
+    \item Left to right: $(1 + \eps) + 1 = 2 + \eps$ lies exactly halfway between $2$ and $2 + 2\eps$ and rounds up to $2 + 2\eps$. Adding $2$ gives $4 + 2\eps$, halfway between $4$ and $4 + 4\eps$, which rounds up to $4 + 4\eps$.
+    \item Last two terms first: $1 + 2 = 3$ exactly, and $(1 + \eps) + 3 = 4 + \eps$ rounds down to $4$.
+  \end{itemize}
+  The same expression yields $4$ or $4 + 4\eps$. Multiplication is not associative either, and the distributive law fails as well; commutativity of addition and of multiplication does hold.
+\end{example}
+
+The practical consequences are that a parallel reduction depends on the number of threads, that compiler flags such as \texttt{-ffast-math} may reorder sums and change the result, and that bitwise reproducibility across machines takes deliberate effort.
+
+\section{Cancellation}
+
+\begin{example}[Cancellation Exposes Existing Error]
+  \label{ex:cancel}
+  Suppose $10^6 + 1$ already carries a relative error $\eps$, and we subtract $10^6$:
+  \begin{equation}
+    (10^6 + 1)(1 + \eps) - 10^6 = 1 + 10^6 \eps.
+  \end{equation}
+  The exact answer is $1$ and the error is $10^6\eps$. The absolute error is unchanged, but the result is six orders of magnitude smaller than the operands, so the relative error has grown by a factor of $10^6$.
+\end{example}
+
+The subtraction itself is innocent: it introduces only $O(\eps)$ new error, and when the operands are close it introduces none at all (see Sterbenz's lemma in \Cref{sec:fp-further}). Cancellation merely \emph{exposes} error that was already present. A more accurate version of the slogan ``avoid cancellation'' is therefore: do not compute a small result as the difference of two large numbers.
+
+\section{Conditioning}
+\label{sec:conditioning}
+
+How do errors \emph{propagate}? Consider computing $y = f(x)$ for $f : \R \to \R$. Since the input is rounded before anything else happens, the best we can hope for is $\hat{y} = f(\hat{x})$ with $\abs{\hat{x} - x}/\abs{x} < \eps$. Comparing relative errors,
+\begin{equation}
+  \frac{\abs{\hat{y} - y}/\abs{y}}{\abs{\hat{x} - x}/\abs{x}} = \frac{\abs{f(\hat{x}) - f(x)}}{\abs{\hat{x} - x}} \cdot \frac{\abs{x}}{\abs{f(x)}} \xrightarrow[\eps \to 0]{} \frac{\abs{x}\abs{f'(x)}}{\abs{f(x)}}.
+\end{equation}
+
+\begin{definition}[Condition Number]
+  \label{def:cond}
+  The (relative) \emph{condition number} of $f$ at $x$ is
+  \begin{equation}
+    \kappa_f(x) \doteq \frac{\abs{x}\abs{f'(x)}}{\abs{f(x)}}.
+  \end{equation}
+  The problem is \emph{well-conditioned} at $x$ if $\kappa_f(x) \approx 1$ and \emph{ill-conditioned} if $\kappa_f(x) \gg 1$.
+\end{definition}
+
+The condition number depends only on the problem and the input, not on the algorithm. This is the most important point of the lecture: no algorithm can rescue an ill-conditioned problem, because the difficulty is intrinsic.
+
+\begin{example}[Conditioning of Subtraction]
+  Let $f(x) = x - 10^6$ at $x = 10^6 + 1$. Then
+  \begin{equation}
+    \kappa_f(10^6 + 1) = \frac{\abs{10^6 + 1} \cdot 1}{1} \approx 10^6 \gg 1.
+  \end{equation}
+  Cancellation is thus a conditioning phenomenon, not a defect of floating point. Even an algorithm with infinite precision turns a relative uncertainty of $10^{-16}$ in $x$ into a relative uncertainty of $10^{-10}$ in the output.
+\end{example}
+
+\section{Stability}
+\label{sec:stability}
+
+Conditioning is about the problem; stability is about the algorithm. Let $\hat{f}$ be the floating-point algorithm we actually run: it acts on $\hat{x}$ and rounds at every internal step.
+
+\begin{definition}[Stability]
+  An algorithm $\hat{f}$ for $f$ is \emph{stable} if
+  \begin{equation}
+    \frac{\abs{\hat{f}(\hat{x}) - y}/\abs{y}}{\abs{\hat{x} - x}/\abs{x}} \lesssim \kappa_f(x),
+  \end{equation}
+  that is, if it does not amplify input perturbations more than the problem itself does. Otherwise $\hat{f}$ is \emph{unstable}.
+\end{definition}
+
+\begin{example}[An Unstable Algorithm for the Identity]
+  \label{ex:unstable-identity}
+  Let $f(x) = x$ and $\hat{f}(x) = (x + 10^6) - 10^6$. Mathematically $\hat{f} = f$, and the identity has $\kappa_f \equiv 1$, the best possible conditioning. But $\hat{f}$ first adds $x$ to $10^6$, which pushes the low-order bits of $x$ out of the significand for good, and then subtracts $10^6$ again. For $x = 1$ the relative error is $O(10^6 \eps)$ instead of $O(\eps)$.
+
+  The diagnosis: \emph{the algorithm splits a well-conditioned problem into ill-conditioned intermediate steps}. Writing $\hat{f} = g_2 \circ g_1$ with $g_1(x) = x + 10^6$ and $g_2(z) = z - 10^6$, the step $g_1$ is well-conditioned but $g_2$ has condition number about $10^6$ at $z \approx 10^6$. A small overall condition number does not mean every step is well-conditioned, and the algorithm's error accumulates step by step. This view in terms of intermediate condition numbers will return when we compare Gram--Schmidt with the normal equations.
+\end{example}
+
+``Unstable'' and ``ill-conditioned'' are different diagnoses with different remedies: the former calls for a different algorithm, the latter for a different formulation of the problem (reparametrization, regularization, or higher precision).
+
+\section{(SUPPLEMENT) IEEE 754 Formats}
+\label{sec:ieee}
+
+The formats in common use are listed below; $b_p$ counts the implicit bit, so a significand field with $b_p - 1$ stored bits provides $b_p$ bits of precision.
+\begin{center}
+\begin{tabular}{lcccccc}
+  \toprule
+  Format & Total bits & Exponent bits & Stored significand bits & $b_p$ & Bias & Decimal digits \\
+  \midrule
+  Float64 & 64 & 11 & 52 & 53 & 1023 & $\approx 15.9$ \\
+  Float32 & 32 & 8 & 23 & 24 & 127 & $\approx 7.2$ \\
+  Float16 & 16 & 5 & 10 & 11 & 15 & $\approx 3.3$ \\
+  BFloat16 & 16 & 8 & 7 & 8 & 127 & $\approx 2.4$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+The exponent field uses a biased encoding, and its two extreme values are reserved:
+\begin{itemize}
+  \item An all-zeros exponent encodes $\pm 0$ (if the significand is also zero) or a \emph{subnormal} number, which drops the implicit leading $1$ and uses $0.f \times 2^{E_{\min}}$. Subnormals provide \emph{gradual underflow}, which guarantees $x \ne y \implies x - y \ne 0$.
+  \item An all-ones exponent encodes $\pm\infty$ (zero significand) or \texttt{NaN} (nonzero significand).
+\end{itemize}
+The normal range of Float64 is therefore roughly $2.2 \times 10^{-308}$ to $1.8 \times 10^{308}$. IEEE defines five exceptions (invalid, division by zero, overflow, underflow, inexact), and specifies that $\infty$ and \texttt{NaN} propagate through arithmetic instead of halting it. Demmel~\cite[\S1.5]{Demmel} stresses the value of this: an algorithm can run to completion and check its result at the end, instead of branching at every step. Note that \texttt{NaN != NaN} is always true, so one must test with \texttt{isnan}.
+
+\section{(SUPPLEMENT) Machine Epsilon and the Model of Arithmetic}
+
+\subsection{Two Conventions for Machine Epsilon}
+
+Two different quantities are both called ``machine epsilon'' in the literature, and they differ by a factor of $2$.
+
+\begin{definition}[Machine Epsilon and Unit Roundoff]
+  \label{def:eps}
+  Let $b_p$ be the precision of a floating-point format.
+  \begin{itemize}
+    \item The \emph{machine epsilon} $\eps = \epsm \doteq 2^{-(b_p - 1)}$ is the distance from $1$ to the next larger floating-point number. For Float64, $\eps = 2^{-52} \approx 2.22 \times 10^{-16}$. This is the convention of the lecture, of Julia's \texttt{eps(Float64)}, and of C's \texttt{DBL\_EPSILON}.
+    \item The \emph{unit roundoff} $u \doteq 2^{-b_p} = \eps/2$ is the largest relative rounding error, i.e., half a spacing. For Float64, $u = 2^{-53} \approx 1.11 \times 10^{-16}$. Trefethen and Bau~\cite{TB} call this quantity $\epsilon_{\text{machine}}$, and Golub and Van Loan~\cite{GVL} call it the unit roundoff.
+  \end{itemize}
+\end{definition}
+
+Any statement of the form $O(\eps)$ is unaffected by the choice, but constants copied from different textbooks must be read with care.
+
+The IEEE default rounding mode is \emph{round to nearest, ties to even}, under which both orders in \Cref{ex:nonassoc} give $4$. Non-associativity does not depend on the rounding mode, however. With ties to even,
+\begin{equation}
+  (1 + u) + u = 1 \qquad \text{but} \qquad 1 + (u + u) = 1 + \eps,
+\end{equation}
+since on the left each intermediate result is a tie that rounds back to $1$, while on the right $u + u = \eps$ and $1 + \eps$ are both exact.
+
+\subsection{The Fundamental Axiom}
+
+Error analysis needs rounding to be captured by a rule we can reason with. Let $\fl(x)$ denote the floating-point number nearest to $x$. Because the relative spacing is bounded, every $x$ in the normal range satisfies
+\begin{equation}
+  \fl(x) = x(1 + \delta), \qquad \abs{\delta} \le u. \label{eq:fl}
+\end{equation}
+IEEE requires $+$, $-$, $\times$, $\div$, and $\sqrt{\cdot}$ to be \emph{correctly rounded}: the exact result is computed in infinite precision and then rounded once. This gives the following model, stated in the same form in \cite[Lecture 13]{TB}, \cite[\S2.4]{GVL}, and \cite[\S1.5]{Demmel}.
+
+\begin{theorem}[Fundamental Axiom of Floating-Point Arithmetic]
+  \label{thm:axiom}
+  For all floating-point numbers $x, y$ and $\circledast \in \{+, -, \times, \div\}$,
+  \begin{equation}
+    \fl(x \circledast y) = (x \circledast y)(1 + \delta), \qquad \abs{\delta} \le u.
+  \end{equation}
+\end{theorem}
+
+The axiom has an immediate \emph{backward} reading. For addition,
+\begin{equation}
+  \fl(x + y) = (x + y)(1 + \delta) = x(1 + \delta) + y(1 + \delta),
+\end{equation}
+so the computed sum is \emph{exactly} the sum of two slightly perturbed inputs. Pushing errors back onto the inputs in this way is the main thread of error analysis in this course; see \Cref{sec:backward}.
+
+\subsection{Accumulation of Errors}
+
+A single operation incurs an error of size $O(u)$. For $n$ operations, Golub and Van Loan write
+\begin{equation}
+  \gamma_n \doteq \frac{nu}{1 - nu} \approx nu \qquad (nu \ll 1).
+\end{equation}
+
+\begin{proposition}[Error in Inner Products]
+  \label{prop:dot}
+  For $\vec{x}, \vec{y} \in \R^n$,
+  \begin{equation}
+    \abs{\fl(\vec{x}^\T \vec{y}) - \vec{x}^\T \vec{y}} \le \gamma_n \sum_{i=1}^{n} \abs{x_i}\abs{y_i} = \gamma_n \abs{\vec{x}}^\T \abs{\vec{y}}.
+  \end{equation}
+  Similarly, for matrices, $\abs{\fl(AB) - AB} \le \gamma_n \abs{A}\abs{B}$ entrywise.
+\end{proposition}
+
+The \emph{shape} of this bound matters much more than its constant. The right-hand side involves $\abs{\vec{x}}^\T\abs{\vec{y}}$, not $\abs{\vec{x}^\T\vec{y}}$. If all terms have the same sign, the two agree and the relative error is $O(nu)$, which is fine. If instead $\vec{x}^\T\vec{y}$ is a small number obtained by cancelling many terms of both signs, then $\abs{\vec{x}}^\T\abs{\vec{y}} \gg \abs{\vec{x}^\T\vec{y}}$ and the relative error can be arbitrarily bad. The linear factor $n$ is almost never the real issue (it is a very pessimistic worst case, and random errors grow more like $\sqrt{n}$). The real issue is always \emph{cancellation}.
+
+\section{(SUPPLEMENT) Backward Stability}
+\label{sec:backward}
+
+The textbooks~\cite[Lecture 14]{TB} mostly use a stronger notion than the stability of \Cref{sec:stability}.
+
+\begin{definition}[Backward Stability]
+  \label{def:backward-stable}
+  An algorithm $\hat{f}$ for $f$ is \emph{backward stable} if for every $x$ there exists $\tilde{x}$ with
+  \begin{equation}
+    \hat{f}(x) = f(\tilde{x}) \qquad \text{and} \qquad \frac{\abs{\tilde{x} - x}}{\abs{x}} = O(u).
+  \end{equation}
+\end{definition}
+
+In words: \emph{the computed answer is the exact answer to a nearby problem}. The backward reading of \Cref{thm:axiom} is the simplest example. Backward stability is the gold standard of numerical linear algebra because it cleanly separates the problem from the algorithm, and it yields the classical rule of thumb
+\begin{equation}
+  \text{forward relative error} \lesssim \kappa_f(x) \cdot u,
+\end{equation}
+or, in a form that is easier to remember,
+\begin{equation}
+  \text{accuracy} \approx \text{condition number (problem)} \times \text{backward error (algorithm)}.
+\end{equation}
+A backward stable algorithm still returns inaccurate answers for ill-conditioned problems, and this is \emph{not the algorithm's fault}; it cannot be improved upon. Conversely, when a result is inaccurate, the first step should be to estimate the condition number, not to suspect the code.
+
+\begin{center}
+\begin{tabular}{l p{0.2\textwidth} p{0.34\textwidth} l}
+  \toprule
+  Concept & Belongs to & Question it answers & Measure \\
+  \midrule
+  Conditioning & problem $f$ and input $x$ & how much input perturbations are intrinsically amplified & $\kappa_f(x)$ \\
+  Stability & algorithm $\hat{f}$ & whether the implementation amplifies errors further & backward error $O(u)$ \\
+  Accuracy & final result & whether the computed number is right & $\lesssim \kappa \cdot u$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Some common condition numbers:
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  Problem & $\kappa$ & Remark \\
+  \midrule
+  $f(x) = \sqrt{x}$ & $1/2$ & always well-conditioned; even shrinks errors \\
+  $f(x) = x^n$ & $n$ & grows linearly with the power \\
+  $f(x) = e^x$ & $\abs{x}$ & ill-conditioned for large $\abs{x}$ \\
+  $f(x_1, x_2) = x_1 - x_2$ & $\dfrac{\abs{x_1} + \abs{x_2}}{\abs{x_1 - x_2}}$ & cancellation (componentwise perturbations) \\
+  $\vec{x} \mapsto A\vec{x}$ & $\dfrac{\norm{A}\norm{\vec{x}}}{\norm{A\vec{x}}} \le \kappa(A)$ & depends on the direction of $\vec{x}$ \\
+  solve $A\vec{x} = \vec{b}$ & $\kappa(A) = \norm{A}\norm{A^{-1}}$ & \\
+  polynomial roots & can be enormous & Wilkinson's polynomial \\
+  \bottomrule
+\end{tabular}
+\end{center}
+For $f : \R^n \to \R^m$ one replaces $f'$ by the Jacobian $J(\vec{x})$: the absolute condition number is $\hat{\kappa} = \norm{J(\vec{x})}$ and the relative condition number is $\kappa = \norm{J(\vec{x})}\norm{\vec{x}}/\norm{f(\vec{x})}$~\cite[Lecture 12]{TB}.
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:fp-further}
+
+\begin{strategy}[Rewriting to Avoid Cancellation]
+  Common traps and their fixes:
+  \begin{itemize}
+    \item The root $\frac{-b + \sqrt{b^2 - 4ac}}{2a}$ of a quadratic cancels when $b^2 \gg 4ac$; compute the other root first and recover this one from Vieta's relation $x_1 x_2 = c/a$.
+    \item The variance formula ``mean of squares minus square of mean'' cancels; use a two-pass algorithm or Welford's recurrence.
+    \item $1 - \cos x$, $\sqrt{x + 1} - \sqrt{x}$, and $\log(1 + x)$ cancel as $x \to 0$; use a half-angle identity, rationalize, or call \texttt{log1p} and \texttt{expm1}.
+  \end{itemize}
+\end{strategy}
+
+\begin{lemma}[Sterbenz]
+  If $x, y$ are floating-point numbers with $y/2 \le x \le 2y$, then $x - y$ is a floating-point number, so $\fl(x - y) = x - y$ exactly.
+\end{lemma}
+This confirms again that cancellation does not lose new precision; it only exposes old errors.
+
+\paragraph{Useful techniques.}
+\begin{itemize}
+  \item \emph{Kahan compensated summation} carries an extra variable that tracks the low-order bits lost in each rounding, reducing the error bound for a sum from $O(nu)$ to $O(u)$, independent of $n$. It costs four times as many operations, and \texttt{-ffast-math} may optimize it away.
+  \item \emph{Fused multiply-add} (FMA) computes $a \cdot b + c$ with one rounding instead of two. It is a basic instruction on modern CPUs and GPUs, and it is why two mathematically equivalent expressions, or even \texttt{a*b - a*b}, may give different results.
+  \item \texttt{-ffast-math} (or Julia's \texttt{@fastmath}) lets the compiler pretend that floating point is associative and distributive, trading correctness for speed. It should usually stay off in numerical code.
+\end{itemize}
+
+\paragraph{Low-precision formats.} Float16 and BFloat16 both use $16$ bits, but BFloat16 spends them on the exponent: it has $8$ exponent bits, the same range as Float32, and only $8$ bits of precision. This is the right trade-off for deep learning, where the first failure in training is usually overflow or underflow of gradients (a range problem) rather than lack of precision. Float16 has only $5$ exponent bits and a largest value of about $65504$, so training in Float16 requires loss scaling while BFloat16 does not. The accumulation bound $\gamma_n\abs{A}\abs{B}$ of \Cref{prop:dot} explains another convention, \emph{multiply in low precision, accumulate in high precision}: the factor $n$ comes from the length of the summation chain, and reduction dimensions of thousands are common, so tensor cores take BFloat16 or FP8 inputs but accumulate in Float32.
+
+\paragraph{Experiments in Julia.}
+\begin{lstlisting}
+bitstring(1.0)                    # sign, exponent, and significand fields
+eps(Float64), eps(1.0), eps(2.0)  # last two differ by 2: spacing doubles
+nextfloat(1.0) - 1.0              # == eps(Float64) == 2^-52
+0.1 + 0.2 == 0.3                  # false
+(1.0 + eps()/2) + eps()/2 == 1.0 + (eps()/2 + eps()/2)   # false: not associative
+1e16 + 1.0 - 1e16                 # compare with 1e6 + 1.0 - 1e6
+Float16(65504), Float16(65520)    # the second overflows to Inf
+nextfloat(Float64(0))             # smallest subnormal, about 5e-324
+\end{lstlisting}

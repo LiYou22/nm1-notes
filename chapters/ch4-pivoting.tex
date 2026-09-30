@@ -1,0 +1,221 @@
+\chapter{Error Analysis of LU and Pivoting}
+\label{ch:pivoting}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 21 and 22.
+  \item \cite{Demmel} Sections 2.3 and 2.4.
+  \item \cite{Higham} Chapter 9.
+\end{itemize}
+
+\section{Backward Error of the LU Factorization}
+
+Recall from \Cref{ch:lu} that Gaussian elimination computes $A = LU$ in place, with the multipliers stored below the diagonal and $U$ on and above it, and that it fails on a zero pivot even when $A$ is nonsingular (for example $\begin{bmatrix} 0 & 1 \\ 1 & 1 \end{bmatrix}$). \Cref{ch:lu} ended with an example in which a tiny pivot destroys the LU factorization of the well-conditioned matrix
+\begin{equation}
+  A = \begin{bmatrix} \eps & 1 \\ 1 & 1 \end{bmatrix}, \qquad \kappa(A) \approx 2.6 \text{ as } \eps \to 0.
+\end{equation}
+Here $\eps$ is just a small number, smaller than $\epsm$; it is not the machine epsilon. The problem is well-conditioned, so the failure lies with the algorithm. The following theorem explains exactly where it comes from.
+
+\begin{theorem}[Backward Error of LU]
+  \label{thm:lu-backward}
+  Suppose the LU factorization of $A \in \K^{m \times m}$ runs to completion in floating-point arithmetic without encountering a zero pivot, producing $\tilde{L}$ and $\tilde{U}$. Then, to first order in $\epsm$,
+  \begin{equation}
+    A = \tilde{L}\tilde{U} + E, \qquad \abs{E} \le m\epsm\abs{\tilde{L}}\abs{\tilde{U}}.
+  \end{equation}
+\end{theorem}
+
+In other words, the computed $\tilde{L}$ and $\tilde{U}$ are the exact LU factors of the perturbed matrix $A - E$, and the perturbation is controlled by $\abs{\tilde{L}}\abs{\tilde{U}}$. The analysis ignores terms of order $O(\epsm^2)$.
+
+\subsection{Entrywise Formulas}
+
+From $A = LU$ and $L_{ii} = 1$ we have $A_{ik} = \sum_{j=1}^{\min(i,k)} L_{ij}U_{jk}$. Solving for the entries of $L$ and $U$ gives formulas that produce the same numbers as Gaussian elimination, only in a different order of operations:
+\begin{align}
+  U_{ik} &= A_{ik} - \sum_{j=1}^{i-1} L_{ij}U_{jk}, & i &\le k, \label{eq:lu-u} \\
+  L_{ik} &= \frac{1}{U_{kk}}\left(A_{ik} - \sum_{j=1}^{k-1} L_{ij}U_{jk}\right), & i &> k. \label{eq:lu-l}
+\end{align}
+
+\subsection{Proof of \Cref{thm:lu-backward}}
+
+We use the following fact about inner products (see Homework 2 and \Cref{prop:dot}): an inner product of length $m$ computed in floating point satisfies
+\begin{equation}
+  \fl\left(\sum_{i=1}^{m} x_iy_i\right) = \sum_{i=1}^{m} x_iy_i(1 + \delta_i), \qquad \abs{\delta_i} \lesssim m\epsm,
+\end{equation}
+so each term carries its own relative perturbation, proportional to the number of terms summed.
+
+\begin{proof}
+  \emph{The $U$ part ($i \le k$).} Computing \eqref{eq:lu-u} in floating point gives
+  \begin{equation}
+    \tilde{U}_{ik} = \left(A_{ik} - \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\right)(1 + \delta'), \qquad \abs{\delta_j} \le (i - 1)\epsm, \quad \abs{\delta'} \le \epsm,
+  \end{equation}
+  where $\delta'$ comes from the final subtraction. Solving for $A_{ik}$ and using $\tilde{L}_{ii} = 1$,
+  \begin{equation}
+    A_{ik} = \frac{1}{1 + \delta'}\tilde{L}_{ii}\tilde{U}_{ik} + \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j).
+  \end{equation}
+  Setting $1 + \delta_i \doteq (1 + \delta')^{-1}$, so that $\abs{\delta_i} \lesssim \epsm$ to first order, the $i$-th term joins the sum:
+  \begin{equation}
+    A_{ik} = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk} + \underbrace{\sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}\delta_j}_{\doteq\, E_{ik}}.
+  \end{equation}
+  All $\abs{\delta_j} \le m\epsm$, so
+  \begin{equation}
+    \abs{E_{ik}} \le \sum_{j=1}^{i}\abs{\tilde{L}_{ij}}\abs{\tilde{U}_{jk}}\,m\epsm = m\epsm\left(\abs{\tilde{L}}\abs{\tilde{U}}\right)_{ik},
+  \end{equation}
+  where the last step uses that $\tilde{L}$ is lower triangular, so the terms with $j > i$ vanish and summing to $i$ is the same as summing to $m$.
+
+  \emph{The $L$ part ($i > k$).} Similarly, computing \eqref{eq:lu-l} in floating point gives
+  \begin{equation}
+    \tilde{L}_{ik} = (1 + \delta'')\,\frac{(1 + \delta')\left(A_{ik} - \sum_{j=1}^{k-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\right)}{\tilde{U}_{kk}}, \qquad \abs{\delta''} \le \epsm,
+  \end{equation}
+  with $\delta'$ from the subtraction and $\delta''$ from the division. Solving for $A_{ik}$ and setting $1 + \delta_k \doteq \left((1 + \delta')(1 + \delta'')\right)^{-1}$, so that $\abs{\delta_k} \lesssim 2\epsm \le m\epsm$, we get
+  \begin{equation}
+    A_{ik} = \sum_{j=1}^{k}\tilde{L}_{ij}\tilde{U}_{jk} + E_{ik}, \qquad \abs{E_{ik}} \le m\epsm\left(\abs{\tilde{L}}\abs{\tilde{U}}\right)_{ik}.
+  \end{equation}
+  The two cases together prove the theorem.
+\end{proof}
+
+\subsection{What the Bound Says}
+
+If $\abs{\tilde{L}}\abs{\tilde{U}}$ is of the same order as $\abs{A}$, then $E$ is a relative perturbation of size $O(m\epsm)$ and the algorithm is backward stable. But $\abs{\tilde{L}}\abs{\tilde{U}}$ can be far larger than $\abs{A}$. In the example above,
+\begin{equation}
+  \abs{L}\abs{U} = \begin{bmatrix} 1 & 0 \\ \eps^{-1} & 1 \end{bmatrix}\begin{bmatrix} \eps & 1 \\ 0 & \eps^{-1} - 1 \end{bmatrix} = \begin{bmatrix} \eps & 1 \\ 1 & 2\eps^{-1} - 1 \end{bmatrix}.
+\end{equation}
+The bottom-right entry is about $2\eps^{-1}$; multiplied by $\epsm$, the error can be $O(1)$ or larger, exactly as observed. The question becomes: \emph{how can we keep $\abs{L}\abs{U}$ small?}
+
+\section{Pivots and the Growth of Products}
+
+Look at the storage after $k - 1$ steps of elimination: the first $k - 1$ rows already hold $U$, the first $k - 1$ columns below the diagonal hold $L$, and the trailing block $\tilde{A}$ is still being processed.
+\begin{equation}
+  \begin{bmatrix}
+    U_{11} & \cdots & & & \\
+    & \ddots & & & \\
+    & & U_{k-1,k-1} & U_{k-1,k} \ \cdots & U_{k-1,m} \\
+    & L & L_{k,k-1} & \tilde{A}_{kk} \ \cdots & \tilde{A}_{km} \\
+    & & \vdots & \vdots & \vdots \\
+    & & L_{m,k-1} & \tilde{A}_{mk} \ \cdots & \tilde{A}_{mm}
+  \end{bmatrix}
+\end{equation}
+Step $k$ turns row $k$ into a row of $U$ and column $k$ below the diagonal into a column of $L$, and updates the trailing $(m - k) \times (m - k)$ block:
+\begin{equation}
+  L_{ik} = \frac{\tilde{A}_{ik}}{\tilde{A}_{kk}}, \qquad U_{kj} = \tilde{A}_{kj}, \qquad \tilde{A}_{ij} \gets \tilde{A}_{ij} - L_{ik}U_{kj}.
+\end{equation}
+The entry $\tilde{A}_{kk}$ is the $k$-th \emph{pivot}. The largest product created in step $k$, which enters both the update and $\abs{L}\abs{U}$, is
+\begin{equation}
+  \max_{i,j}\abs{L_{ik}U_{kj}} = \max_{i,j}\frac{\abs{\tilde{A}_{ik}}\abs{\tilde{A}_{kj}}}{\abs{\tilde{A}_{kk}}}.
+\end{equation}
+The numerator is determined by column $k$ and row $k$. To keep this quantity small, we want the denominator, the pivot, to be as large as possible.
+
+\section{Partial Pivoting}
+
+We must pivot when $A_{kk} = 0$, since otherwise the algorithm cannot continue. Even when $A_{kk} \ne 0$, we want to avoid \emph{small} pivots, which make the products $L_{ik}U_{kj}$ explode.
+
+\begin{definition}[Partial (Row) Pivoting]
+  At step $k$ of Gaussian elimination, \emph{partial pivoting} chooses as pivot the entry of largest absolute value in column $k$, on or below the diagonal:
+  \begin{equation}
+    r = \operatorname*{argmax}_{i \ge k}\abs{\tilde{A}_{ik}}.
+  \end{equation}
+  It swaps rows $r$ and $k$ with a permutation matrix $P_k$ and then eliminates with $L_k$. The sequence $A \xrightarrow{L_k} \cdots$ becomes $A \xrightarrow{P_k} \cdot \xrightarrow{L_k} \cdots$.
+\end{definition}
+
+Because the pivot is the largest entry in its column, every multiplier satisfies
+\begin{equation}
+  \abs{L_{ik}} = \frac{\abs{\tilde{A}_{ik}}}{\abs{\tilde{A}_{kk}}} \le 1,
+\end{equation}
+so $\abs{L_{ik}U_{kj}} \le \abs{U_{kj}}$: no update exceeds the size of the current pivot row.
+
+\subsection{Moving the Permutations Together}
+
+With row swaps, elimination becomes
+\begin{equation}
+  L_{m-1}P_{m-1} \cdots L_2P_2L_1P_1A = U,
+\end{equation}
+where $L$'s and $P$'s alternate, so we cannot directly write $PA = LU$. We need to move all permutations to the right.
+
+\begin{proposition}[Commuting a Permutation Past an Elimination]
+  \label{prop:perm-swap}
+  Let $\ell > k$ and let $P_\ell$ swap rows $\ell$ and $i$ for some $i \ge \ell$, so that $P_\ell = P_\ell^{-1}$. Then
+  \begin{equation}
+    P_\ell L_k = (P_\ell L_kP_\ell)P_\ell, \qquad P_\ell L_kP_\ell = I - (P_\ell\vec{\ell}_k)\vec{e}_k^{\,\ast},
+  \end{equation}
+  so $P_\ell L_kP_\ell$ is again an elementary lower triangular matrix, obtained from $L_k$ by swapping two of its multipliers.
+\end{proposition}
+
+\begin{proof}
+  The first identity is $P_\ell^2 = I$. Since $\ell, i > k$, the permutation $P_\ell$ fixes $\vec{e}_k$, so $\vec{e}_k^{\,\ast}P_\ell = \vec{e}_k^{\,\ast}$ and
+  \begin{equation}
+    P_\ell(I - \vec{\ell}_k\vec{e}_k^{\,\ast})P_\ell = I - (P_\ell\vec{\ell}_k)(\vec{e}_k^{\,\ast}P_\ell) = I - (P_\ell\vec{\ell}_k)\vec{e}_k^{\,\ast}.
+  \end{equation}
+  Geometrically, left multiplication by $P_\ell$ swaps two rows of $L_k$, moving two diagonal ones off the diagonal, and right multiplication swaps the corresponding columns, moving them back; the net effect is to swap the multipliers in rows $\ell$ and $i$ of column $k$.
+\end{proof}
+
+Using \Cref{prop:perm-swap} repeatedly to push every $P$ to the right,
+\begin{equation}
+  L_{m-1}P_{m-1} \cdots L_1P_1 = L'_{m-1} \cdots L'_1\,P_{m-1} \cdots P_1, \qquad L'_k \doteq P_{m-1} \cdots P_{k+1}L_kP_{k+1} \cdots P_{m-1},
+\end{equation}
+and each $L'_k$ is still elementary lower triangular. With $P \doteq P_{m-1} \cdots P_1$ and $L \doteq (L'_{m-1} \cdots L'_1)^{-1}$, we obtain
+\begin{equation}
+  PA = LU.
+\end{equation}
+
+\section{The In-Place Algorithm with Partial Pivoting}
+
+How do we compute this in place, up to the permutation? Suppose $k$ steps are done:
+\begin{equation}
+  L_k \cdots L_1PA = U_k,
+\end{equation}
+where the $L_j$ are already the ``permutation-adjusted'' versions and $U_k$ is the current working matrix. In storage, $U_k$ occupies the upper triangle and the trailing block, and the multipliers of $L_1, \dots, L_k$ sit in the strictly lower part of the first $k$ columns. Step $k + 1$ swaps rows and then eliminates:
+\begin{equation}
+  L_{k+1}P_{k+1}L_k \cdots L_1PA = L_{k+1}P_{k+1}U_k.
+\end{equation}
+Moving $P_{k+1}$ to the right,
+\begin{equation}
+  L_{k+1}\underbrace{L'_k \cdots L'_1}_{\text{multipliers permuted by } P_{k+1}}\underbrace{P_{k+1}P}_{P'}A = L_{k+1}\underbrace{P_{k+1}U_k}_{U'_k} = U_{k+1}.
+\end{equation}
+Reading term by term:
+\begin{itemize}
+  \item $L'_j = P_{k+1}L_jP_{k+1}$ only permutes the stored multipliers;
+  \item $P' = P_{k+1}P$ swaps the same two rows of the accumulated permutation;
+  \item $U'_k = P_{k+1}U_k$ swaps the same two rows of the working matrix.
+\end{itemize}
+Since the multipliers and $U_k$ live in the same array, \emph{swapping entire rows (columns $1$ through $m$)} performs all three updates at once, after which we eliminate as usual.
+
+\begin{algorithm}[H]
+  \caption{LU factorization with partial pivoting, in place.}
+  \label{alg:gepp}
+  \begin{algorithmic}[1]
+    \State $P \gets I$
+    \For{$k = 1, \dots, m - 1$}
+      \State $r \gets \operatorname{argmax}_{i \ge k}\abs{A_{ik}}$
+      \State swap rows $r$ and $k$ of $A$ (all columns $1, \dots, m$) and of $P$
+      \For{$i = k + 1, \dots, m$}
+        \State $A_{ik} \gets A_{ik}/A_{kk}$
+      \EndFor
+      \For{$j = k + 1, \dots, m$}
+        \For{$i = k + 1, \dots, m$}
+          \State $A_{ij} \gets A_{ij} - A_{ik}A_{kj}$
+        \EndFor
+      \EndFor
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+Some remarks:
+\begin{itemize}
+  \item In Julia, \texttt{argmax(abs.(A[k:end, k]))} returns an index into the subvector, so one adds $k - 1$ to recover the global row index.
+  \item The row swap runs over all columns $1, \dots, m$, not just $k, \dots, m$: the first $k - 1$ columns hold multipliers, and swapping them is exactly $L'_j = P_{k+1}L_jP_{k+1}$.
+  \item On exit the strictly lower part of $A$ holds $L$, the upper part holds $U$, and $PA = LU$.
+  \item In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (LAPACK's \texttt{ipiv}), so each swap exchanges two integers. The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops, although in column-major storage a row swap is a strided access whose cost is not negligible.
+\end{itemize}
+
+\section{(SUPPLEMENT) Growth Factor}
+
+\begin{definition}[Growth Factor]
+  The \emph{growth factor} of Gaussian elimination on $A$ is
+  \begin{equation}
+    \rho \doteq \frac{\max_{i,j}\abs{U_{ij}}}{\max_{i,j}\abs{A_{ij}}}.
+  \end{equation}
+\end{definition}
+
+With partial pivoting $\abs{L_{ij}} \le 1$, so $\abs{L}\abs{U}$ is governed by $U$, and the backward error is roughly $\norm{E} \lesssim m^2\rho\,\epsm\norm{A}$ (the constant depends on the norm). Since $\abs{L_{ik}} \le 1$ in each update $\tilde{A}_{ij} - L_{ik}U_{kj}$, each step can at most double an entry, so $\rho \le 2^{m-1}$. This worst case is attained~\cite[Lecture 22]{TB}; \Cref{ch:ls} opens with the example. Yet on matrices met in practice $\rho$ is almost always small, which is why partial pivoting is used as a stable algorithm in practice.
+
+\section{(SUPPLEMENT) Complete Pivoting}
+
+Complete pivoting chooses the entry of largest absolute value in the entire trailing block as the pivot and swaps both rows and columns, giving $PAQ = LU$. Its growth factor obeys a much better (subexponential) bound, but each step searches $O((m - k)^2)$ entries, adding $O(m^3)$ comparisons in total, so it is rarely used.
