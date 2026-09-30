@@ -1,0 +1,86 @@
+\chapter{Factorizations as Products and Householder Triangularization}
+
+\begin{question}[Why is $\kappa(X) = \norm{X}\norm{X^{-1}}$?]
+  \label{q:kappa}
+  In the analysis of one step $A \mapsto XA$, the relative backward error is bounded by $O(\epsm)\,\kappa(X)$ with $\kappa(X) = \norm{X}\norm{X^{-1}}$. Why is this product the condition number of $X$?
+\end{question}
+
+\begin{answer}
+  There are two separate points: why the product appears in the lecture's bound, and why the product deserves the name ``condition number''.
+
+  \paragraph{Where the product comes from in Lecture 6.} Each factor has its own source. Floating-point matrix multiplication has a forward error that scales with the sizes of both factors,
+  \begin{equation}
+    \fl(XA) = XA + E, \qquad \norm{E} \le O(\epsm)\,\norm{X}\norm{A},
+  \end{equation}
+  which is where $\norm{X}$ comes from. To turn this into a backward error, we pull $E$ back onto the input: $\fl(XA) = X(A + F)$ with $F = X^{-1}E$. Pulling back costs a factor of $\norm{X^{-1}}$:
+  \begin{equation}
+    \norm{F} = \norm{X^{-1}E} \le \norm{X^{-1}}\norm{E} \le O(\epsm)\,\norm{X}\norm{X^{-1}}\,\norm{A}.
+  \end{equation}
+  So $\norm{X}$ measures how much applying $X$ can enlarge the rounding error, and $\norm{X^{-1}}$ measures how much undoing $X$ can enlarge it again.
+
+  \paragraph{Why the product is a condition number.} Take the problem ``given $\vec{b}$, solve $X\vec{y} = \vec{b}$'', i.e., $f(\vec{b}) = X^{-1}\vec{b}$. This is linear, so its Jacobian is $X^{-1}$, and by the definition of the relative condition number from Lecture 1 (with the Jacobian in place of $f'$),
+  \begin{equation}
+    \kappa_f(\vec{b}) = \frac{\norm{X^{-1}}\,\norm{\vec{b}}}{\norm{X^{-1}\vec{b}}}.
+  \end{equation}
+  Writing $\vec{b} = X(X^{-1}\vec{b})$ gives $\norm{\vec{b}} \le \norm{X}\norm{X^{-1}\vec{b}}$, hence
+  \begin{equation}
+    \kappa_f(\vec{b}) \le \norm{X}\norm{X^{-1}} \qquad \text{for every } \vec{b} \ne \zerovec.
+  \end{equation}
+  Equality holds when $X^{-1}\vec{b}$ points in a direction $\vec{v}$ that $X$ stretches the most, i.e., $\norm{X\vec{v}} = \norm{X}\norm{\vec{v}}$; take $\vec{b} = X\vec{v}$. Therefore $\norm{X}\norm{X^{-1}}$ is exactly the \emph{worst-case} relative condition number of solving a linear system with $X$, over all right-hand sides. The same argument with the roles of $X$ and $X^{-1}$ swapped shows it is also the worst case of $\vec{x} \mapsto X\vec{x}$ (the row $\norm{A}\norm{\vec{x}}/\norm{A\vec{x}} \le \kappa(A)$ in the table of Lecture 1). This is why it is called the condition number \emph{of the matrix}: it is the condition number of the associated problems, maximized over the data.
+
+  \paragraph{Geometric picture (2-norm).} With the SVD $X = U\Sigma V^\ast$, $\norm{X}_2 = \sigma_{\max}$ and $\norm{X^{-1}}_2 = 1/\sigma_{\min}$, so
+  \begin{equation}
+    \kappa_2(X) = \frac{\sigma_{\max}}{\sigma_{\min}} = \frac{\max_{\norm{\vec{v}} = 1}\norm{X\vec{v}}}{\min_{\norm{\vec{v}} = 1}\norm{X\vec{v}}},
+  \end{equation}
+  the ratio of the longest to the shortest axis of the ellipsoid $X \cdot \{\norm{\vec{v}} = 1\}$. A large $\kappa$ means $X$ stretches some directions far more than others. An error in a strongly shrunk direction is tiny after applying $X$ but is blown up by $1/\sigma_{\min}$ when it is pulled back through $X^{-1}$.
+
+  \paragraph{Why a product, not just $\norm{X^{-1}}$.} Rescaling $X$ to $cX$ changes nothing about stability, since every entry of every error scales the same way; indeed $\kappa(cX) = \abs{c}\norm{X} \cdot \abs{c}^{-1}\norm{X^{-1}} = \kappa(X)$. Neither $\norm{X}$ nor $\norm{X^{-1}}$ alone has this invariance, so neither alone can measure a \emph{relative} error. The product is the natural scale-free combination.
+
+  \paragraph{Useful consequences.}
+  \begin{itemize}
+    \item $\kappa(X) \ge 1$, since $1 = \norm{I} = \norm{XX^{-1}} \le \norm{X}\norm{X^{-1}}$.
+    \item $\kappa(X) = \kappa(X^{-1})$, used in Lecture 6 to pass from $X = L_k \cdots L_1$ to $L = X^{-1}$.
+    \item In the 2-norm, $\kappa_2(X) = 1$ if and only if all singular values are equal, i.e., $X$ is a nonzero multiple of a unitary matrix. This is why orthogonal transformations (Householder, Givens) are optimal in the framework of Lecture 6.
+    \item $1/\kappa_2(X) = \min\left\{ \norm{\delta X}_2/\norm{X}_2 : X + \delta X \text{ singular} \right\}$, i.e., the reciprocal of the condition number is the relative distance from $X$ to the nearest singular matrix (the minimum is $\sigma_{\min}$, attained by the best rank-deficient approximation from the SVD).
+  \end{itemize}
+\end{answer}
+
+\begin{question}[Why is $\norm{L}$ under control while $\norm{L^{-1}}$ is not?]
+  \label{q:linv}
+  With partial pivoting all multipliers satisfy $\abs{\ell_{ij}} \le 1$, which bounds $\norm{L}$ by a polynomial in $m$, yet $\norm{L^{-1}}$ can grow like $2^m$. What is the fundamental reason for this asymmetry?
+\end{question}
+
+\begin{answer}
+  In one sentence: \emph{$L$ is the product of the elementary factors in the order where they do not interact, while $L^{-1}$ is the product in the opposite order, where every chain of multipliers contributes and their number grows exponentially.} Below are the precise version and two complementary viewpoints.
+
+  \paragraph{The two products.} By Lecture 3,
+  \begin{equation}
+    L = L_1^{-1}L_2^{-1}\cdots L_{m-1}^{-1} = I + \sum_{k}\vec{\ell}_k\vec{e}_k^{\,\ast}, \qquad L^{-1} = L_{m-1}\cdots L_2L_1.
+  \end{equation}
+  In the first order all cross terms vanish, because $\vec{e}_k^{\,\ast}\vec{\ell}_j = 0$ for $k < j$; the multipliers are simply placed side by side, so every entry of $L$ is a single multiplier, of size at most $1$. In the second order the cross terms do \emph{not} vanish: this is the ``contamination'' mentioned in Lecture 3. An entry of $L^{-1}$ collects contributions from many products of multipliers.
+
+  \paragraph{Counting the contributions.} Write $L = I + N$, where $N$ is strictly lower triangular with $N_{ij} = \ell_{ij}$. Then $N^m = 0$, and the Neumann series terminates:
+  \begin{equation}
+    L^{-1} = I - N + N^2 - \cdots + (-1)^{m-1}N^{m-1}.
+  \end{equation}
+  The entry $(N^p)_{ij}$ is a sum over all chains $i = k_0 > k_1 > \cdots > k_p = j$ of products $\ell_{k_0k_1}\ell_{k_1k_2}\cdots\ell_{k_{p-1}k_p}$. A chain from $i$ down to $j$ is determined by which of the $i - j - 1$ intermediate indices it visits, so there are $\binom{i-j-1}{p-1}$ chains of length $p$ and $2^{i-j-1}$ chains in total. Each product has absolute value at most $1$, so for $i > j$
+  \begin{equation}
+    \abs{(L^{-1})_{ij}} \le \sum_{p \ge 1}\binom{i-j-1}{p-1} = 2^{i-j-1}.
+  \end{equation}
+  The bound $\abs{\ell_{ij}} \le 1$ controls the size of each \emph{term}, but not the \emph{number} of terms. The bound is sharp: with all $\ell_{ij} = -1$, every term $(-1)^p\ell_{k_0k_1}\cdots\ell_{k_{p-1}k_p} = (-1)^p(-1)^p = 1$ has the same sign, nothing cancels, and $(L^{-1})_{ij} = 2^{i-j-1}$, exactly the example of Lecture 6. The same count describes forward substitution: $x_i = b_i - \sum_{j<i}\ell_{ij}x_j$ feeds every earlier unknown into every later one, so contributions travel along all chains and can pile up geometrically.
+
+  \paragraph{Largest stretch versus smallest stretch.} The two norms measure different things (see also \Cref{q:kappa}):
+  \begin{equation}
+    \norm{L}_2 = \max_{\norm{\vec{x}} = 1}\norm{L\vec{x}}, \qquad \frac{1}{\norm{L^{-1}}_2} = \min_{\norm{\vec{x}} = 1}\norm{L\vec{x}} = \sigma_{\min}(L).
+  \end{equation}
+  An upper bound on $\norm{L\vec{x}}$ follows from bounds on the entries alone: by the triangle inequality (or $\norm{L}_2 \le \norm{L}_F$), bounded entries cannot produce a long vector. A lower bound on $\norm{L\vec{x}}$ is a different kind of statement: it says that the columns of $L$ cannot be combined with \emph{cancellation} into a short vector, and entry bounds say nothing about cancellation. In the example, $\vec{x} = L^{-1}\vec{e}_1 = (1, 1, 2, 4, \dots, 2^{m-2})^\T$ has norm about $2^{m-2}$, yet $L\vec{x} = \vec{e}_1$ has norm $1$: huge coefficients combine the columns of $L$ into a unit vector. This is the cancellation phenomenon of Lecture 1, now at the level of whole columns.
+
+  \paragraph{Why determinants and eigenvalues give no warning.} Every unit lower triangular $L$ has $\det L = 1$ and all eigenvalues equal to $1$, no matter how large $\norm{L^{-1}}$ is. By HW1 Q3(c), eigenvalues only give $\kappa(L) \ge \abs{\lambda}_{\max}/\abs{\lambda}_{\min} = 1$, which is useless here. Distance to singularity is measured by $\sigma_{\min}$, not by $\det$ or $\lambda$.
+
+  \paragraph{Consequences.}
+  \begin{itemize}
+    \item Partial pivoting controls only half of $\kappa(L) = \norm{L}\norm{L^{-1}}$. Since $U = L^{-1}A$, a large $L^{-1}$ shows up as a large $U$, i.e., a large growth factor (Lectures 5 and 6).
+    \item Smaller multipliers help, but only by weakening the geometric growth: if $\abs{\ell_{ij}} \le \delta$, the same count gives $\abs{(L^{-1})_{ij}} \le \delta(1 + \delta)^{i-j-1}$.
+    \item The asymmetry disappears for unitary transformations: $Q^{-1} = Q^\ast$ has the same norm as $Q$, so $\kappa(Q) = 1$. This is the reason Lecture 6 moves on to Householder triangularization.
+  \end{itemize}
+\end{answer}

@@ -1,0 +1,39 @@
+\documentclass[11pt,oneside]{report}
+\usepackage{nm1notes}
+
+\renewcommand{\coursename}{NM1 Questions}
+\definecolor{qbg}{RGB}{235,247,235}
+\definecolor{qtitle}{RGB}{0,110,40}
+\NMboxed{question}{Question}{qbg}{qtitle}
+\crefname{question}{Question}{Questions}
+\newenvironment{answer}{\par\noindent\textit{Answer.}\ }{\par\medskip}
+% Placeholder for questions without an answer yet
+\newcommand{\unanswered}{\textit{(Open.)}}
+
+\begin{document}
+
+\begin{titlepage}
+  \raggedright
+  \vspace*{2in}
+  {\Huge\bfseries CSCI-GA 2420 / MATH-GA 2010\par}
+  \vspace{8pt}
+  {\LARGE Numerical Methods I\par}
+  \vspace{8pt}
+  {\LARGE Questions and Answers\par}
+  \vspace{8pt}
+  {\Large Fall 2026\par}
+  \vspace{24pt}
+  {\large You Li\par}
+\end{titlepage}
+
+\tableofcontents
+
+\include{lectures/lec01}
+\include{lectures/lec02}
+\include{lectures/lec03}
+\include{lectures/lec04}
+\include{lectures/lec05}
+\include{lectures/lec06}
+\include{lectures/lec07}
+
+\end{document}
