@@ -1,0 +1,187 @@
+\chapter{Norms and Unitary Matrices}
+\label{app:norms}
+
+This appendix collects facts about unitary matrices and matrix norms that are used throughout the course, starting from \Cref{ch:householder}. Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lectures 2, 3, and 5.
+  \item \cite{Demmel} Sections 3.2.3 and 3.4.
+\end{itemize}
+
+\section{Unitary Transformations}
+\label{sec:unitary}
+
+The error analysis of \Cref{ch:householder} uses one property of unitary matrices: they do not change the length of a vector. In this section we collect this and a few related facts, which we also use in \Cref{ch:ls,ch:qr}.
+
+\begin{definition}[Unitary and Orthogonal Matrices]
+  We say that a square matrix $Q \in \K^{m \times m}$ is \emph{unitary} if $Q^\ast Q = I$. When $\K = \R$, this condition reads $Q^\T Q = I$, and we call $Q$ \emph{orthogonal}. We say that a tall matrix $\hat{Q} \in \K^{m \times n}$ has \emph{orthonormal columns} if $\hat{Q}^\ast\hat{Q} = I_n$.
+\end{definition}
+
+The condition $Q^\ast Q = I$ just says that the columns of $Q$ are orthonormal. Since $Q$ is square, it also gives $Q^{-1} = Q^\ast$ and $QQ^\ast = I$. In particular, inverting a unitary matrix costs nothing: the solution of $Q\vec{x} = \vec{b}$ is $\vec{x} = Q^\ast\vec{b}$.
+
+\begin{theorem}[Unitary Matrices Preserve the $2$-Norm]
+  \label{thm:unitary}
+  Let $Q \in \K^{m \times m}$ be unitary. Then for all $\vec{x}, \vec{y} \in \K^m$,
+  \begin{equation}
+    \ip{Q\vec{x}}{Q\vec{y}} = \ip{\vec{x}}{\vec{y}}, \qquad \norm{Q\vec{x}}_2 = \norm{\vec{x}}_2.
+  \end{equation}
+  As a consequence, for any $A \in \K^{m \times n}$ and unitary $U \in \K^{m \times m}$, $V \in \K^{n \times n}$:
+  \begin{enumerate}
+    \item $\norm{UAV}_2 = \norm{A}_2$ and $\norm{UAV}_F = \norm{A}_F$.
+    \item $UAV$ has the same singular values as $A$. In particular, $\kappa_2(UAV) = \kappa_2(A)$.
+    \item $\norm{Q}_2 = \norm{Q^{-1}}_2 = 1$ and $\kappa_2(Q) = 1$. All singular values of $Q$ are $1$, every eigenvalue of $Q$ satisfies $\abs{\lambda} = 1$, and $\abs{\det Q} = 1$.
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  We have $\ip{Q\vec{x}}{Q\vec{y}} = \vec{x}^\ast Q^\ast Q\vec{y} = \vec{x}^\ast\vec{y}$. Taking $\vec{y} = \vec{x}$ gives $\norm{Q\vec{x}}_2 = \norm{\vec{x}}_2$.
+
+  For item 1, the norm identity gives $\norm{UA\vec{x}}_2 = \norm{A\vec{x}}_2$ for every $\vec{x}$, so $\norm{UA}_2 = \norm{A}_2$. For the right factor, note that $\vec{y} = V\vec{x}$ runs over all unit vectors as $\vec{x}$ does, so
+  \begin{equation}
+    \norm{AV}_2 = \sup_{\norm{\vec{x}}_2 = 1}\norm{AV\vec{x}}_2 = \sup_{\norm{\vec{y}}_2 = 1}\norm{A\vec{y}}_2 = \norm{A}_2.
+  \end{equation}
+  The statement for the Frobenius norm is item 1 of \Cref{prop:frobenius}.
+
+  For item 2, let $A = W\Sigma Z^\ast$ be an SVD. Then $UAV = (UW)\Sigma(V^\ast Z)^\ast$. Products of unitary matrices are unitary, so this is an SVD of $UAV$ with the same $\Sigma$.
+
+  For item 3, $Q = Q \cdot I \cdot I^\ast$ is an SVD with $\Sigma = I$. If $Q\vec{x} = \lambda\vec{x}$ with $\vec{x} \ne \zerovec$, then $\norm{\vec{x}}_2 = \norm{Q\vec{x}}_2 = \abs{\lambda}\norm{\vec{x}}_2$, so $\abs{\lambda} = 1$. Finally, $\abs{\det Q}^2 = \det(Q^\ast Q) = \det I = 1$.
+\end{proof}
+
+The converse is also true: if $\norm{Q\vec{x}}_2 = \norm{\vec{x}}_2$ for every $\vec{x}$, then $Q$ is unitary. (One recovers inner products from norms by the polarization identity.) In other words, unitary matrices are exactly the linear maps that preserve lengths. Geometrically, they are rotations and reflections.
+
+\subsection{Examples}
+
+Several matrices we have already seen are unitary.
+\begin{itemize}
+  \item \emph{Householder reflectors} $F = I - 2\vec{v}\vec{v}^\ast/(\vec{v}^\ast\vec{v})$. They are Hermitian, satisfy $F^2 = I$, and have $\det F = -1$.
+  \item \emph{Givens rotations} (\Cref{ch:qr}). They have $\det = 1$ and change only two coordinates.
+  \item \emph{Permutation matrices}. So the row swaps of partial pivoting (\Cref{ch:pivoting}) do not change any norms, and all of the instability of LU comes from the triangular factors.
+  \item \emph{Diagonal matrices} $D = \diag(d_1, \dots, d_m)$ with $\abs{d_i} = 1$. These describe exactly the freedom in the QR factorization, since $A = (QD)(D^\ast R)$. The condition $r_{jj} > 0$ removes this freedom (\Cref{thm:qr-unique}).
+\end{itemize}
+
+\subsection{Tall Matrices with Orthonormal Columns}
+
+Now let $\hat{Q} \in \K^{m \times n}$ with $m > n$ have orthonormal columns. The same one-line proof shows that $\norm{\hat{Q}\vec{x}}_2 = \norm{\vec{x}}_2$. However, $\hat{Q}^\ast$ does \emph{not} preserve lengths. The matrix $\hat{Q}\hat{Q}^\ast$ is not the identity; it is the orthogonal projector onto $\range(\hat{Q})$. So $\norm{\hat{Q}^\ast\vec{y}}_2 \le \norm{\vec{y}}_2$, with equality only if $\vec{y} \in \range(\hat{Q})$.
+
+This is exactly what makes QR useful for least squares. Take a full QR factorization $A = QR = \begin{bmatrix} \hat{Q} & \hat{Q}_\perp \end{bmatrix}\begin{bmatrix} \hat{R} \\ 0 \end{bmatrix}$. Since $Q^\ast$ preserves lengths, we can apply it inside the norm:
+\begin{equation}
+  \norm{A\vec{x} - \vec{b}}_2^2 = \norm{Q^\ast(A\vec{x} - \vec{b})}_2^2 = \norm{\hat{R}\vec{x} - \hat{Q}^\ast\vec{b}}_2^2 + \norm{\hat{Q}_\perp^\ast\vec{b}}_2^2.
+\end{equation}
+The second term does not depend on $\vec{x}$. So the minimizer solves $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$, and the minimal residual is $\norm{\hat{Q}_\perp^\ast\vec{b}}_2$ (compare \Cref{ch:ls}).
+
+\subsection{Why Unitary Transformations Are Good for Computation}
+
+\begin{enumerate}
+  \item \emph{One step does not amplify errors.} In \Cref{thm:product-error} we have $\kappa(Q_k) = 1$, so each step has relative backward error $O(\epsm)$ with no extra factor.
+  \item \emph{Many steps do not amplify errors.} A product of unitary matrices is unitary. So when we pull an error back through all the previous steps, its size does not change. The backward errors of $n$ steps add up to $O(n\epsm)$ instead of multiplying (see \Cref{sec:hh-supp}).
+  \item \emph{No element growth.} Every intermediate matrix has the same $2$-norm as $A$, so there is nothing like the growth factor of LU. Compare this with \Cref{ex:linv}: a triangular matrix with entries bounded by $1$ can still have an exponentially large inverse, while $\norm{Q^{-1}}_2 = \norm{Q}_2 = 1$ always.
+  \item \emph{Errors look the same before and after.} An error of size $\delta$ in $\vec{x}$ is an error of size $\delta$ in $Q\vec{x}$. So we can move errors between the input and the output without losing anything.
+\end{enumerate}
+
+Note that this invariance holds for the $2$-norm and the Frobenius norm, but not for other norms. For example, rotating $\vec{e}_1$ by $45^\circ$ gives $(1/\sqrt{2}, 1/\sqrt{2})^\T$, whose $\infty$-norm is $1/\sqrt{2}$ and whose $1$-norm is $\sqrt{2}$. This is why stability results for orthogonal methods are stated in the $2$-norm. In other norms they still hold, but with extra constants that depend on the dimension.
+
+As a final note, everything above assumes that the transformation is \emph{exactly} unitary. A matrix that we compute column by column, such as the $\hat{Q}$ of modified Gram--Schmidt, is only unitary up to $O(\epsm\kappa(A))$, and it loses these advantages to the same extent. Householder's $Q$ is different. Each reflector built from a computed vector $\tilde{\vec{v}}_k$ is exactly unitary, so rounding errors only change \emph{which} unitary matrix we get, not \emph{whether} it is unitary (\Cref{ch:qr}).
+
+\section{The $2$-Norm, Singular Values, and Condition Numbers}
+\label{sec:twonorm}
+
+Most error bounds in this course are stated in the $2$-norm. Here we record how it is expressed through the SVD; these facts are proved in Homework 1, Problem 3.
+
+\begin{definition}[Induced $2$-Norm]
+  The \emph{$2$-norm} of $A \in \K^{m \times n}$ is
+  \begin{equation}
+    \norm{A}_2 \doteq \sup_{\vec{x} \ne \zerovec}\frac{\norm{A\vec{x}}_2}{\norm{\vec{x}}_2}.
+  \end{equation}
+\end{definition}
+
+\begin{theorem}[The $2$-Norm Through the SVD]
+  \label{thm:twonorm}
+  Let $A \in \K^{m \times n}$ have singular values $\sigma_{\max} = \sigma_1 \ge \cdots \ge \sigma_{\min(m,n)} = \sigma_{\min}$. Then:
+  \begin{enumerate}
+    \item $\norm{A}_2 = \sigma_{\max}$.
+    \item If $m \ge n$, then $\norm{A\vec{x}}_2 \ge \sigma_{\min}\norm{\vec{x}}_2$ for all $\vec{x}$, with equality for the last right singular vector.
+    \item If $A$ is square and invertible, then $\norm{A^{-1}}_2 = 1/\sigma_{\min}$, and hence
+    \begin{equation}
+      \kappa_2(A) \doteq \norm{A}_2\norm{A^{-1}}_2 = \frac{\sigma_{\max}}{\sigma_{\min}}.
+    \end{equation}
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  Take an SVD $A = U\Sigma V^\ast$ and put $\vec{y} = V^\ast\vec{x}$. Since $U$ and $V$ are unitary (\Cref{thm:unitary}), $\norm{A\vec{x}}_2 = \norm{\Sigma\vec{y}}_2$ and $\norm{\vec{y}}_2 = \norm{\vec{x}}_2$. Now
+  \begin{equation}
+    \norm{\Sigma\vec{y}}_2^2 = \sum_{i}\sigma_i^2\abs{y_i}^2.
+  \end{equation}
+  This is at most $\sigma_{\max}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_1$, which gives item 1. If $m \ge n$, the sum runs over all $n$ entries of $\vec{y}$, so it is at least $\sigma_{\min}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_n$; this gives item 2. For item 3, $A^{-1} = V\Sigma^{-1}U^\ast$ is an SVD up to reordering, so the singular values of $A^{-1}$ are the $1/\sigma_i$, and the largest of them is $1/\sigma_{\min}$.
+\end{proof}
+
+For a tall matrix with full column rank we \emph{define} $\kappa_2(A) \doteq \sigma_{\max}/\sigma_{\min}$; this is the condition number that governs least squares (\Cref{ch:ls}). In both cases, $\kappa_2(A)$ is the worst-case condition number of the map $\vec{x} \mapsto A\vec{x}$ from \Cref{ch:fp}:
+\begin{equation}
+  \sup_{\vec{x} \ne \zerovec}\frac{\norm{A}_2\norm{\vec{x}}_2}{\norm{A\vec{x}}_2} = \frac{\sigma_{\max}}{\sigma_{\min}},
+\end{equation}
+since $\norm{A\vec{x}}_2/\norm{\vec{x}}_2$ is smallest, equal to $\sigma_{\min}$, for the last right singular vector. In words, $\kappa_2(A)$ is the ratio of the largest to the smallest stretching factor of $A$.
+
+\section{The Frobenius Norm}
+\label{sec:frobenius}
+
+In \Cref{ch:householder} we bounded $\norm{L}_2$ through the Frobenius norm. It is often the easiest matrix norm to compute and to estimate.
+
+\begin{definition}[Frobenius Norm]
+  The \emph{Frobenius norm} of $A \in \K^{m \times n}$ is
+  \begin{equation}
+    \norm{A}_F \doteq \left(\sum_{i=1}^{m}\sum_{j=1}^{n}\abs{A_{ij}}^2\right)^{1/2}.
+  \end{equation}
+\end{definition}
+
+In other words, $\norm{A}_F$ is the Euclidean norm of $A$ if we stack its columns into one long vector of length $mn$. Equivalently, $\norm{A}_F^2 = \sum_j\norm{\vec{a}_j}_2^2$ is the sum of the squared column norms. These squared column norms are exactly the diagonal entries of $A^\ast A$, so
+\begin{equation}
+  \norm{A}_F^2 = \operatorname{trace}(A^\ast A).
+\end{equation}
+
+\begin{proposition}[Properties of the Frobenius Norm]
+  \label{prop:frobenius}
+  Let $A \in \K^{m \times n}$ have rank $r$ and singular values $\sigma_1 \ge \cdots \ge \sigma_r > 0$. Then:
+  \begin{enumerate}
+    \item \emph{Unitary invariance.} $\norm{UAV}_F = \norm{A}_F$ for all unitary $U \in \K^{m \times m}$ and $V \in \K^{n \times n}$.
+    \item \emph{Singular values.} $\norm{A}_F = \left(\sigma_1^2 + \cdots + \sigma_r^2\right)^{1/2}$.
+    \item \emph{Comparison with the $2$-norm.} $\norm{A}_2 \le \norm{A}_F \le \sqrt{r}\,\norm{A}_2 \le \sqrt{\min(m, n)}\,\norm{A}_2$.
+    \item \emph{Compatibility and submultiplicativity.} $\norm{A\vec{x}}_2 \le \norm{A}_F\norm{\vec{x}}_2$, and $\norm{AB}_F \le \norm{A}_2\norm{B}_F \le \norm{A}_F\norm{B}_F$.
+    \item \emph{Only absolute values matter.} $\norm{A}_F = \norm{\abs{A}}_F$, and if $\abs{A} \le \abs{B}$ entrywise, then $\norm{A}_F \le \norm{B}_F$.
+  \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+  For item 1, using $U^\ast U = I$ and the cyclic property of the trace,
+  \begin{equation}
+    \norm{UAV}_F^2 = \operatorname{trace}(V^\ast A^\ast U^\ast UAV) = \operatorname{trace}(V^\ast A^\ast AV) = \operatorname{trace}(A^\ast A) = \norm{A}_F^2.
+  \end{equation}
+  For item 2, take an SVD $A = U\Sigma V^\ast$. By item 1, $\norm{A}_F = \norm{\Sigma}_F = (\sum_i\sigma_i^2)^{1/2}$.
+
+  For item 3, use item 2 and $\norm{A}_2 = \sigma_1$: we have $\sigma_1^2 \le \sum_i\sigma_i^2 \le r\sigma_1^2$.
+
+  For item 4, let $\vec{\alpha}_i^\ast$ be the $i$-th row of $A$. By the Cauchy--Schwarz inequality, $\abs{\vec{\alpha}_i^\ast\vec{x}}^2 \le \norm{\vec{\alpha}_i}_2^2\norm{\vec{x}}_2^2$. Summing over $i$ gives $\norm{A\vec{x}}_2^2 \le \norm{A}_F^2\norm{\vec{x}}_2^2$. For the product, apply $\norm{A\vec{b}_j}_2 \le \norm{A}_2\norm{\vec{b}_j}_2$ to each column $\vec{b}_j$ of $B$ and sum the squares. The last inequality then follows from $\norm{A}_2 \le \norm{A}_F$.
+
+  Item 5 follows directly from the definition.
+\end{proof}
+
+Note that the Frobenius norm is \emph{not} induced by any vector norm. Every induced norm satisfies $\norm{I} = \sup_{\vec{x} \ne \zerovec}\norm{\vec{x}}/\norm{\vec{x}} = 1$, but $\norm{I_n}_F = \sqrt{n}$. Still, by item 4 it is compatible with the Euclidean norm on vectors.
+
+\subsection{Why It Is Useful in Error Analysis}
+
+\begin{itemize}
+  \item \emph{It is cheap.} Computing $\norm{A}_F$ takes $O(mn)$ operations, while $\norm{A}_2 = \sigma_1$ requires the SVD (or an estimate of it). By item 3, the two norms differ by at most a factor of $\sqrt{\min(m, n)}$, and such dimension-dependent constants do not matter in $O(\epsm)$ statements.
+  \item \emph{It turns entrywise bounds into norm bounds.} The backward error of LU from \Cref{ch:pivoting} satisfies $\abs{E} \le m\epsm\abs{L}\abs{U}$. By items 5 and 4,
+  \begin{equation}
+    \norm{E}_F \le m\epsm\norm{\abs{L}\abs{U}}_F \le m\epsm\norm{L}_F\norm{U}_F.
+  \end{equation}
+  With partial pivoting, $\norm{L}_F \le m$ (\Cref{ch:householder}), so everything depends on $\norm{U}_F$, i.e., on the growth factor.
+  \item \emph{It is unitarily invariant.} Just like the $2$-norm, the Frobenius norm of an error does not change under orthogonal transformations such as Householder reflectors.
+\end{itemize}
+
+\subsection{Low-Rank Approximation}
+
+Since $\norm{A - B}_F^2 = \sum_{i,j}\abs{A_{ij} - B_{ij}}^2$ is a sum of squared entrywise errors, approximating a matrix in the Frobenius norm is a least squares problem. The Eckart--Young theorem also holds in this norm: the truncated SVD $A_k = \sum_{i \le k}\sigma_i\vec{u}_i\vec{v}_i^\ast$ satisfies
+\begin{equation}
+  \min_{\rank(B) \le k}\norm{A - B}_F = \norm{A - A_k}_F = \left(\sigma_{k+1}^2 + \cdots + \sigma_r^2\right)^{1/2}.
+\end{equation}
+In the $2$-norm, the corresponding error is $\norm{A - A_k}_2 = \sigma_{k+1}$~\cite[\S3.2.3]{Demmel}. We will come back to this when the course covers low-rank approximation.
+

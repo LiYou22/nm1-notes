@@ -136,6 +136,7 @@ All entries of $L$ have absolute value at most $1$, so its norm is only polynomi
 \begin{equation}
   \norm{L}_2 \le \norm{L}_F \le \sqrt{\frac{m(m+1)}{2}} \le m.
 \end{equation}
+Here $\norm{\cdot}_F$ is the Frobenius norm (see \Cref{sec:frobenius} in \Cref{app:norms}): $L$ has $m$ ones on the diagonal and $m(m-1)/2$ entries of absolute value at most $1$ below it, so $\norm{L}_F^2 \le m + m(m-1)/2 = m(m+1)/2$. The bound is loose, but all that matters is that it is polynomial rather than exponential in $m$.
 
 \subsection{$\norm{L^{-1}}$ Is Not}
 
@@ -263,6 +264,52 @@ The reason is cancellation. Suppose $\vec{a}_1$ is nearly parallel to $\vec{e}_1
 \end{equation}
 so $\vec{v}_+$ is the difference of two nearly equal vectors and its first entry $\norm{\vec{a}_1} - a_{11}$ suffers catastrophic cancellation. The computed $\norm{\vec{a}_1}$ carries a relative error $O(\epsm)$, i.e., an absolute error of about $\epsm\norm{\vec{a}_1}$, which is large relative to the small $\norm{\vec{v}_+}$; the direction of $\vec{v}$, and with it the reflection, becomes inaccurate. With $-\sign(a_{11})$, the first entry of $\vec{v}$ is $a_{11} + \sign(a_{11})\norm{\vec{a}_1}$, a sum of two numbers of the same sign with no cancellation, and $\abs{v_1} \ge \norm{\vec{a}_1}$, so $\norm{\vec{v}}$ is never smaller than $\norm{\vec{a}_1}$. We take $\sign(0) = 1$.
 
+
+\begin{center}
+\begin{minipage}[t]{0.36\textwidth}
+\centering
+\begin{tikzpicture}[scale=1.2]
+  \def\R{2.2}\def\th{24}\def\r{0.3}
+  \coordinate (O) at (0,0);
+  \coordinate (A) at ({\R*cos(\th)},{\R*sin(\th)});
+  \coordinate (T) at (\R,0);
+  \draw[-{Latex}] (-0.3,0) -- (3.1,0) node[right] {$\vec{e}_1$};
+  \draw[dashed] (O) -- ({3.0*cos(\th/2)},{3.0*sin(\th/2)}) node[right] {$H_+$};
+  \fill[red!15] (T) circle (\r);
+  \draw[-{Latex},thick] (O) -- (A) node[above left] {$\vec{a}_1$};
+  \draw[-{Latex},thick] (O) -- (T);
+  \node[below=4pt] at (T) {$\norm{\vec{a}_1}\vec{e}_1$};
+  \draw[-{Latex},thin,dashed,red!60!black] ($(T)+(0,\r)$) -- (A);
+  \draw[-{Latex},thin,dashed,red!60!black] ($(T)+(\r,0)$) -- (A);
+  \draw[-{Latex},thick,red!70!black] (T) -- (A);
+  \node[red!70!black] at (2.45,0.8) {$\vec{v}_+$};
+\end{tikzpicture}
+
+\small Reflecting onto $+\norm{\vec{a}_1}\vec{e}_1$: $\vec{v}_+$ is short, so its direction is unreliable.
+\end{minipage}\hfill
+\begin{minipage}[t]{0.58\textwidth}
+\centering
+\begin{tikzpicture}[scale=1.2]
+  \def\R{2.2}\def\th{24}\def\r{0.3}
+  \coordinate (O) at (0,0);
+  \coordinate (A) at ({\R*cos(\th)},{\R*sin(\th)});
+  \coordinate (T) at (-\R,0);
+  \draw[-{Latex}] (-2.8,0) -- (3.1,0) node[right] {$\vec{e}_1$};
+  \draw[dashed] ({-0.8*cos(90+\th/2)},{-0.8*sin(90+\th/2)}) -- ({1.3*cos(90+\th/2)},{1.3*sin(90+\th/2)}) node[above] {$H_-$};
+  \fill[red!15] (T) circle (\r);
+  \draw[-{Latex},thick] (O) -- (A) node[above right] {$\vec{a}_1$};
+  \draw[-{Latex},thick] (O) -- (T);
+  \node[below=4pt] at (T) {$-\norm{\vec{a}_1}\vec{e}_1$};
+  \draw[-{Latex},thin,dashed,red!60!black] ($(T)+(0,\r)$) -- (A);
+  \draw[-{Latex},thin,dashed,red!60!black] ($(T)+(\r,0)$) -- (A);
+  \draw[-{Latex},thick,red!70!black] (T) -- (A);
+  \node[red!70!black,above=3pt] at ($(T)!0.3!(A)$) {$\vec{v}$};
+\end{tikzpicture}
+
+\small Reflecting onto $-\norm{\vec{a}_1}\vec{e}_1$: $\vec{v}$ is long, so its direction is reliable.
+\end{minipage}
+\end{center}
+
 \subsection{Step $k$: The Block Form}
 
 For $k > 1$, the first $k - 1$ rows and columns are finished and must not change. So we take
@@ -301,7 +348,7 @@ Each $X_k = Q_k$ is unitary, so $\norm{Q_k}_2 = \norm{Q_k^{-1}}_2 = 1$ and $\kap
 \begin{equation}
   \norm{F}_2 \le O(\epsm)\,\kappa(Q_k)\,\norm{A}_2 = O(\epsm)\norm{A}_2:
 \end{equation}
-the transformation does not amplify the error at all. Moreover, unitary matrices preserve the $2$-norm, so the intermediate matrices $A_k$ all have norm $\norm{A}_2$, and there is no element growth as in LU. Accumulating over all steps (see \Cref{sec:hh-supp}), the total backward error grows only linearly with the number of steps: Householder QR is backward stable. This presumes that the $Q_k$ are computed accurately, i.e., that the direction of $\vec{v}$ is accurate, which is exactly what the sign choice ensures.
+the transformation does not amplify the error at all (see \Cref{app:norms} for the properties of unitary matrices used here). Moreover, unitary matrices preserve the $2$-norm, so the intermediate matrices $A_k$ all have norm $\norm{A}_2$, and there is no element growth as in LU. Accumulating over all steps (see \Cref{sec:hh-supp}), the total backward error grows only linearly with the number of steps: Householder QR is backward stable. This presumes that the $Q_k$ are computed accurately, i.e., that the direction of $\vec{v}$ is accurate, which is exactly what the sign choice ensures.
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:hh-supp}
