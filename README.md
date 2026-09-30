@@ -1,8 +1,8 @@
 # Numerical Methods I — Course Notes
 
-English LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I), NYU Courant, Fall 2026, taught by Prof. Florian Schaefer. Notes by You Li.
+LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I), NYU Courant, Fall 2026, taught by Prof. Florian Schaefer. Notes by You Li.
 
-Each chapter covers one lecture. Sections marked (SUPPLEMENT) draw on the textbooks: Trefethen & Bau, *Numerical Linear Algebra*; Demmel, *Applied Numerical Linear Algebra*; and Golub & Van Loan, *Matrix Computations*.
+Each chapter covers one lecture. Sections marked (SUPPLEMENT) are based on the textbooks: Trefethen & Bau, *Numerical Linear Algebra*; Demmel, *Applied Numerical Linear Algebra*; and Golub & Van Loan, *Matrix Computations*.
 
 ## Layout
 
