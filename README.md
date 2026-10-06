@@ -1,39 +1,39 @@
-# Numerical Methods I — Course Notes
+# Numerical Methods I Notes
 
-LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I), NYU Courant, Fall 2026, taught by Prof. Florian Schaefer. Notes by You Li.
+My LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at NYU Courant, Fall 2026, taught by Prof. Florian Schaefer.
 
-Each chapter covers one lecture; sections marked (SUPPLEMENT) extend that lecture, and background used throughout the course lives in the appendices. Supplements are based on the textbooks: Trefethen & Bau, *Numerical Linear Algebra*; Demmel, *Applied Numerical Linear Algebra*; and Golub & Van Loan, *Matrix Computations*.
+Each chapter is one lecture. Things that come up again and again (norms, the SVD, floating point) are collected in the appendices so I don't have to repeat them. Sections marked (SUPPLEMENT) go past what was said in class; for those I mostly used Trefethen & Bau, Demmel, and Golub & Van Loan.
 
-## Layout
+## Files
 
 ```
-main.tex          title page, notation, bibliography; includes the chapters
-nm1notes.sty      page layout, boxed theorem/definition environments, macros
+main.tex          title page, notation, bibliography
+nm1notes.sty      layout, the theorem/definition boxes, macros
 chapters/
-  ch1-floating-point.tex    Lecture 1: floating point, conditioning, stability
-  ch2-performance.tex       Lecture 2: storage, performance, Gaussian elimination
-  ch3-lu.tex                Lecture 3: the LU factorization
-  ch4-pivoting.tex          Lecture 4: error analysis of LU, partial pivoting
-  ch5-least-squares.tex     Lecture 5: least squares, Gram–Schmidt
-  ch6-householder.tex       Lecture 6: products of factors, Householder QR
-  ch7-qr.tex                Lecture 7: implicit Q, Givens, existence/uniqueness of QR
-  ch8-normal-equations.tex  Lecture 8: optimality conditions, normal equations, Gram matrices
-  ch9-cholesky.tex          Lecture 9: Cholesky factorization, Schur complements
+  ch1-floating-point.tex    L1: floating point, conditioning, stability
+  ch2-performance.tex       L2: storage, performance, Gaussian elimination
+  ch3-lu.tex                L3: LU factorization
+  ch4-pivoting.tex          L4: error analysis of LU, partial pivoting
+  ch5-least-squares.tex     L5: least squares, Gram–Schmidt
+  ch6-householder.tex       L6: Householder QR
+  ch7-qr.tex                L7: implicit Q, Givens rotations, existence and uniqueness of QR
+  ch8-normal-equations.tex  L8: normal equations, Gram matrices
+  ch9-cholesky.tex          L9: Cholesky, Schur complements
   appA-norms.tex            Appendix A: unitary matrices, 2-norm and SVD, Frobenius norm
-  appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, the fp model, backward stability
+  appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, backward stability
 ```
 
-## Build
+## Building
 
-Requires a TeX Live installation with `latexmk`.
+You need TeX Live with `latexmk`.
 
 ```sh
-latexmk -pdf main.tex   # produces main.pdf
-latexmk -c              # remove intermediate files
+latexmk -pdf main.tex   # builds main.pdf
+latexmk -c              # cleans up the aux files
 ```
 
-To add a lecture, create `chapters/chN-topic.tex` starting with `\chapter{...}` and add `\include{chapters/chN-topic}` to `main.tex`.
+For a new lecture, add `chapters/chN-topic.tex` (starting with `\chapter{...}`) and an `\include` line in `main.tex`.
 
 ## Questions
 
-`questions/` is a separate document collecting my questions about the course, one file per lecture (`questions/lectures/lecNN.tex`). Use the `question` and `answer` environments; write `\unanswered` inside `answer` for questions that are still open. Build it the same way from inside `questions/` (its `.latexmkrc` picks up `../nm1notes.sty`).
+`questions/` is a separate little document where I keep questions I have about the course, one file per lecture (`questions/lectures/lecNN.tex`). Each one goes in a `question` environment with an `answer` after it; if I haven't figured it out yet, the answer is just `\unanswered`. Build it the same way from inside `questions/`; its `.latexmkrc` points at `../nm1notes.sty`.
