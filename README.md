@@ -17,6 +17,8 @@ chapters/
   ch5-least-squares.tex     Lecture 5: least squares, Gram–Schmidt
   ch6-householder.tex       Lecture 6: products of factors, Householder QR
   ch7-qr.tex                Lecture 7: implicit Q, Givens, existence/uniqueness of QR
+  ch8-normal-equations.tex  Lecture 8: optimality conditions, normal equations, Gram matrices
+  ch9-cholesky.tex          Lecture 9: Cholesky factorization, Schur complements
   appA-norms.tex            Appendix A: unitary matrices, 2-norm and SVD, Frobenius norm
   appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, the fp model, backward stability
 ```

@@ -137,7 +137,39 @@ Upper triangular systems are solved in reverse order by \emph{back substitution}
   \end{algorithmic}
 \end{algorithm}
 
-For back substitution, the loops run over $i = m, \dots, 1$ and $j = i + 1, \dots, m$ (row form), or over $j = m, \dots, 1$ and $i = 1, \dots, j - 1$ (column form). In column-major storage the row form walks along rows (strided) and the column form walks down columns (contiguous); this is the matrix--vector discussion again.
+For upper triangular $A$, $x_m$ is the only unknown in the last equation, so back substitution starts from the bottom:
+\begin{equation}
+  x_m = \frac{b_m}{A_{mm}}, \qquad x_i = \frac{1}{A_{ii}}\left(b_i - \sum_{j=i+1}^{m} A_{ij}x_j\right), \quad i = m - 1, \dots, 1.
+\end{equation}
+The two implementations mirror those of forward substitution, with every loop over the unknowns reversed.
+
+\begin{algorithm}[H]
+  \caption{Back substitution, row-oriented (\texttt{dot} form).}
+  \begin{algorithmic}[1]
+    \For{$i = m, \dots, 1$}
+      \State $x_i \gets b_i$
+      \For{$j = i + 1, \dots, m$}
+        \State $x_i \gets x_i - A_{ij}x_j$
+      \EndFor
+      \State $x_i \gets x_i / A_{ii}$
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+  \caption{Back substitution, column-oriented (\texttt{axpy} form).}
+  \begin{algorithmic}[1]
+    \State $\vec{x} \gets \vec{b}$
+    \For{$j = m, \dots, 1$}
+      \State $x_j \gets x_j / A_{jj}$
+      \For{$i = 1, \dots, j - 1$}
+        \State $x_i \gets x_i - A_{ij}x_j$ \Comment{remove the contribution of $x_j$ at once}
+      \EndFor
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+In column-major storage the row forms walk along rows (strided) and the column forms walk down columns (contiguous); this is the matrix--vector discussion again.
 
 \section{Gaussian Elimination}
 

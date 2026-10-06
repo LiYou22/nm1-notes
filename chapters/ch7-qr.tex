@@ -96,16 +96,86 @@ In the $m \times m$ setting, the Givens rotation acting on rows $i$ and $j$ is t
 \begin{equation}
   G(i, j) = \begin{bmatrix} 1 & & & & \\ & c & & s & \\ & & \ddots & & \\ & -s & & c & \\ & & & & 1 \end{bmatrix},
 \end{equation}
-with $c$ in positions $(i, i)$ and $(j, j)$, $s$ in $(i, j)$, and $-s$ in $(j, i)$. Left multiplication by $G(i, j)$ changes only rows $i$ and $j$. To eliminate $A_{ji}$ ($j > i$), take
+with $c$ in positions $(i, i)$ and $(j, j)$, $s$ in $(i, j)$, and $-s$ in $(j, i)$. Left multiplication by $G(i, j)$ changes only rows $i$ and $j$: writing $\vec{r}_i^\T$ for the $i$-th row of $A$,
+\begin{equation}
+  \vec{r}_i^\T \gets c\,\vec{r}_i^\T + s\,\vec{r}_j^\T, \qquad \vec{r}_j^\T \gets -s\,\vec{r}_i^\T + c\,\vec{r}_j^\T,
+\end{equation}
+and every other row is left alone. To eliminate $A_{ji}$ ($j > i$), take
 \begin{equation}
   c = \frac{A_{ii}}{\sqrt{A_{ii}^2 + A_{ji}^2}}, \qquad s = \frac{A_{ji}}{\sqrt{A_{ii}^2 + A_{ji}^2}},
 \end{equation}
-which is the $2 \times 2$ case transplanted to rows $i$ and $j$.
+which is the $2 \times 2$ case transplanted to rows $i$ and $j$. Suppose the first $i - 1$ columns have already been reduced. Then one step gives the following picture.
 
-Existing zeros are preserved: when column $i$ is processed, the first $i - 1$ columns are already zero in both rows $i$ and $j$, and a linear combination of two zeros is zero. In column $i$ itself, row $i$ becomes $\sqrt{A_{ii}^2 + A_{ji}^2}$, row $j$ becomes $0$, and no other row changes. Eliminating the subdiagonal nonzeros one at a time until the matrix is upper triangular gives
+\begin{center}
+\begin{tikzpicture}[scale=0.62, every node/.style={font=\small}]
+  \colorlet{hl}{red!70!black}
+  % G(i,j): identity except for the four entries in rows/columns i and j
+  \draw (0,0) rectangle (4.6,-4.6);
+  \draw[densely dotted] (0.2,-0.2) -- (1.5,-1.5) (2.2,-2.2) -- (3.3,-3.3) (4.0,-4.0) -- (4.4,-4.4);
+  \draw[black!40, dashed] (1.85,-1.85) -- (3.65,-1.85) -- (3.65,-3.65) -- (1.85,-3.65) -- cycle;
+  \node[fill=white, inner sep=1pt] at (1.85,-1.85) {$c$};
+  \node[fill=white, inner sep=1pt] at (3.65,-1.85) {$s$};
+  \node[fill=white, inner sep=1pt] at (1.85,-3.65) {$-s$};
+  \node[fill=white, inner sep=1pt] at (3.65,-3.65) {$c$};
+  \node at (1.85,0.4) {$i$};
+  \node at (3.65,0.4) {$j$};
+  \node at (-0.4,-1.85) {$i$};
+  \node at (-0.4,-3.65) {$j$};
+  \node at (2.3,-5.2) {$G(i, j)$};
+  % A before and after the rotation
+  \foreach \x/\after/\lbl in {5.6/0/{$A$}, 11.2/1/{$G(i, j)A$}} {
+    \begin{scope}[xshift=\x cm]
+      \fill[black!12] (0,0) -- (4.4,0) -- (4.4,-1.6) -- (1.6,-1.6) -- cycle;
+      \fill[black!4] (1.6,-1.6) rectangle (4.4,-4.6);
+      \draw (0,0) -- (1.6,-1.6);
+      \node at (0.55,-2.75) {$0$};
+      \foreach \y in {1.6, 3.4} {
+        \fill[red!15] (1.6,-\y) rectangle (4.4,-\y-0.5);
+        \draw[hl] (1.6,-\y) rectangle (4.4,-\y-0.5);
+        \draw[black!50, dashed] (0,-\y) rectangle (1.6,-\y-0.5);
+        \node[font=\scriptsize] at (0.8,-\y-0.25) {$0\,\cdots\,0$};
+      }
+      \draw (0,0) rectangle (4.4,-4.6);
+      \node at (1.85,0.4) {$i$};
+      \ifnum\after=0
+        \node at (1.85,-1.85) {$\times$};
+        \node at (1.85,-3.65) {$\times$};
+        \node[font=\scriptsize] at (3.25,-1.85) {$\times\,\cdots\,\times$};
+        \node[font=\scriptsize] at (3.25,-3.65) {$\times\,\cdots\,\times$};
+      \else
+        \node[hl] at (1.85,-1.85) {$\times$};
+        \node[hl] at (1.85,-3.65) {$\bm{0}$};
+        \node[hl, font=\scriptsize] at (3.25,-1.85) {$\times\,\cdots\,\times$};
+        \node[hl, font=\scriptsize] at (3.25,-3.65) {$\times\,\cdots\,\times$};
+      \fi
+      \node at (2.2,-5.2) {\lbl};
+    \end{scope}
+  }
+  \node at (10.6,-2.3) {$=$};
+\end{tikzpicture}
+
+\small The dark gray rows are finished rows of $R$, and the light gray block is still to be reduced. Only rows $i$ and $j$ (outlined) change; in the first $i - 1$ columns both are zero, and in column $i$ the entry $A_{ji}$ is rotated into $A_{ii}$.
+\end{center}
+
+We see that existing zeros are preserved: in the first $i - 1$ columns rows $i$ and $j$ are both zero, and a linear combination of two zeros is zero. In column $i$ itself, row $i$ becomes $\sqrt{A_{ii}^2 + A_{ji}^2}$, row $j$ becomes $0$, and no other row changes. So we may sweep through the subdiagonal nonzeros column by column, left to right, and within column $i$ pair row $i$ with $j = i + 1, \dots, m$ in turn. For a $4 \times 3$ matrix this takes six rotations, one per subdiagonal entry. Below, $\times$ is a generic nonzero, red marks the entries that the current rotation changes, and the bold $\bm{0}$ is the entry it eliminates.
+\begingroup
+\newcommand*{\Xc}{\textcolor{red!70!black}{\times}}
+\newcommand*{\Zc}{\textcolor{red!70!black}{\bm{0}}}
+\begin{align*}
+  A = \begin{bmatrix} \times & \times & \times \\ \times & \times & \times \\ \times & \times & \times \\ \times & \times & \times \end{bmatrix}
+  &\xrightarrow{G(1, 2)} \begin{bmatrix} \Xc & \Xc & \Xc \\ \Zc & \Xc & \Xc \\ \times & \times & \times \\ \times & \times & \times \end{bmatrix}
+  \xrightarrow{G(1, 3)} \begin{bmatrix} \Xc & \Xc & \Xc \\ 0 & \times & \times \\ \Zc & \Xc & \Xc \\ \times & \times & \times \end{bmatrix}
+  \xrightarrow{G(1, 4)} \begin{bmatrix} \Xc & \Xc & \Xc \\ 0 & \times & \times \\ 0 & \times & \times \\ \Zc & \Xc & \Xc \end{bmatrix} \\
+  &\xrightarrow{G(2, 3)} \begin{bmatrix} \times & \times & \times \\ 0 & \Xc & \Xc \\ 0 & \Zc & \Xc \\ 0 & \times & \times \end{bmatrix}
+  \xrightarrow{G(2, 4)} \begin{bmatrix} \times & \times & \times \\ 0 & \Xc & \Xc \\ 0 & 0 & \times \\ 0 & \Zc & \Xc \end{bmatrix}
+  \xrightarrow{G(3, 4)} \begin{bmatrix} \times & \times & \times \\ 0 & \times & \times \\ 0 & 0 & \Xc \\ 0 & 0 & \Zc \end{bmatrix} = R.
+\end{align*}
+\endgroup
+Notice that $G(1, 3)$ does not touch row $2$, so the zero created by $G(1, 2)$ survives, and from $G(2, 3)$ on, the zeros in column $1$ are carried along as combinations of zeros. In general, labeling the rotations in the order they are applied gives
 \begin{equation}
-  G_N \cdots G_1A = R, \qquad Q = G_1^\ast \cdots G_N^\ast.
+  G_N \cdots G_1A = R, \qquad Q = G_1^\ast \cdots G_N^\ast,
 \end{equation}
+where $N$ is the number of subdiagonal nonzeros; for a dense $m \times n$ matrix, $N = \sum_{i=1}^{n}(m - i) = mn - \frac{n(n+1)}{2}$.
 As with Householder, $Q$ is not formed explicitly; one stores the pairs $(c, s)$ of the rotations and applies them in sequence when needed, just as in \Cref{alg:qtb,alg:qx}. Every $G$ is orthogonal with $\kappa = 1$, so by the error-amplification framework of \Cref{ch:householder}, Givens QR is backward stable as well.
 
 \subsection{Efficiency}
@@ -133,11 +203,77 @@ Let $A \in \K^{m \times n}$ with $m \ge n$.
   \end{equation}
 \end{definition}
 
-Gram--Schmidt produces a reduced factorization; Householder and Givens produce a full one. Splitting $Q = \begin{bmatrix} \hat{Q} & \hat{Q}_\perp \end{bmatrix}$ by columns,
+Gram--Schmidt produces a reduced factorization; Householder and Givens produce a full one. Drawing each factor to scale, this gives the following picture.
+
+\begin{center}
+\begin{minipage}[t]{0.4\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.8, every node/.style={font=\small}]
+  \def\m{3}\def\n{1.5}
+  \fill[black!12] (0,0) rectangle (\n,-\m);
+  \draw (0,0) rectangle (\n,-\m);
+  \node[left] at (0,-\m/2) {$m$};
+  \node[above] at (\n/2,0) {$n$};
+  \node at (\n/2,-\m-0.4) {$A$};
+  \node at (\n+0.4,-\m/2) {$=$};
+  \begin{scope}[xshift=2.3cm]
+    \fill[black!12] (0,0) rectangle (\n,-\m);
+    \draw (0,0) rectangle (\n,-\m);
+    \node[above] at (\n/2,0) {$n$};
+    \node at (\n/2,-\m-0.4) {$\hat{Q}$};
+  \end{scope}
+  \begin{scope}[xshift=4.1cm]
+    \fill[black!12] (0,0) -- (\n,0) -- (\n,-\n) -- cycle;
+    \draw (0,0) rectangle (\n,-\n);
+    \draw (0,0) -- (\n,-\n);
+    \node at (\n/2,-\n-0.4) {$\hat{R}$};
+  \end{scope}
+\end{tikzpicture}
+
+\small Reduced QR (Gram--Schmidt): $\hat{Q}$ has the same shape as $A$, and $\hat{R}$ is $n \times n$.
+\end{minipage}\hfill
+\begin{minipage}[t]{0.56\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.8, every node/.style={font=\small}]
+  \def\m{3}\def\n{1.5}
+  \fill[black!12] (0,0) rectangle (\n,-\m);
+  \draw (0,0) rectangle (\n,-\m);
+  \node[left] at (0,-\m/2) {$m$};
+  \node[above] at (\n/2,0) {$n$};
+  \node at (\n/2,-\m-0.4) {$A$};
+  \node at (\n+0.4,-\m/2) {$=$};
+  \begin{scope}[xshift=2.3cm]
+    \fill[black!12] (0,0) rectangle (\n,-\m);
+    \fill[red!15] (\n,0) rectangle (\m,-\m);
+    \draw (0,0) rectangle (\m,-\m);
+    \draw (\n,0) -- (\n,-\m);
+    \node at (\n/2,-\m/2) {$\hat{Q}$};
+    \node at (\n+\n/2,-\m/2) {$\hat{Q}_\perp$};
+    \node[above] at (\n/2,0) {$n$};
+    \node[above] at (\n+\n/2,0) {$m - n$};
+    \node at (\m/2,-\m-0.4) {$Q$};
+  \end{scope}
+  \begin{scope}[xshift=5.6cm]
+    \fill[black!12] (0,0) -- (\n,0) -- (\n,-\n) -- cycle;
+    \fill[red!15] (0,-\n) rectangle (\n,-\m);
+    \draw (0,0) rectangle (\n,-\m);
+    \draw (0,0) -- (\n,-\n);
+    \draw (0,-\n) -- (\n,-\n);
+    \node at (\n*0.68,-\n*0.32) {$\hat{R}$};
+    \node at (\n/2,-\n-\n/2) {$0$};
+    \node at (\n/2,-\m-0.4) {$R$};
+  \end{scope}
+\end{tikzpicture}
+
+\small Full QR (Householder, Givens): $Q$ is $m \times m$, and $R$ is $\hat{R}$ padded with $m - n$ zero rows.
+\end{minipage}
+\end{center}
+
+Splitting $Q = \begin{bmatrix} \hat{Q} & \hat{Q}_\perp \end{bmatrix}$ by columns,
 \begin{equation}
   QR = \begin{bmatrix} \hat{Q} & \hat{Q}_\perp \end{bmatrix}\begin{bmatrix} \hat{R} \\ 0 \end{bmatrix} = \hat{Q}\hat{R}.
 \end{equation}
-The extra $m - n$ columns $\hat{Q}_\perp$ multiply the zero block of $R$ and do not contribute to the product. Their role is to complete $\hat{Q}$ to an orthonormal basis of $\K^m$; when $A$ has full rank, the columns of $\hat{Q}_\perp$ span $\range(A)^\perp$.
+In the picture, the extra $m - n$ columns $\hat{Q}_\perp$ (red) multiply only the zero block of $R$ (also red) and do not contribute to the product. Their role is to complete $\hat{Q}$ to an orthonormal basis of $\K^m$; when $A$ has full rank, the columns of $\hat{Q}_\perp$ span $\range(A)^\perp$.
 
 \section{Existence}
 
