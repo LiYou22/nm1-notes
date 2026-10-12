@@ -19,6 +19,7 @@ chapters/
   ch7-qr.tex                L7: implicit Q, Givens rotations, existence and uniqueness of QR
   ch8-normal-equations.tex  L8: normal equations, Gram matrices
   ch9-cholesky.tex          L9: Cholesky, Schur complements
+  ch10-eigenvalues.tex      L10: eigenvalue problems, power/inverse/Rayleigh quotient iteration
   appA-norms.tex            Appendix A: unitary matrices, 2-norm and SVD, Frobenius norm
   appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, backward stability
 ```
@@ -28,7 +29,7 @@ chapters/
 You need TeX Live with `latexmk`.
 
 ```sh
-latexmk -pdf main.tex   # builds main.pdf
+latexmk -pdf main.tex   # builds nm1-notes.pdf
 latexmk -c              # cleans up the aux files
 ```
 

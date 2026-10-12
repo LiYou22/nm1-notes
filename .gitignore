@@ -16,7 +16,8 @@
 *.vrb
 
 # Build output (rebuild with latexmk)
-main.pdf
+nm1-notes.pdf
+nm1-questions.pdf
 
 # macOS
 .DS_Store

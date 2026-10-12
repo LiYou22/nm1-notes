@@ -401,6 +401,12 @@ Substituting into the third equation,
 
 The elimination of the previous sections is the special case of a $1 \times 1$ block $A_{11} = \alpha$, where $A_{11}^{-1}$ is division by a scalar. Strictly speaking, the Schur complement is $A_{22} - A_{21}A_{11}^{-1}A_{12}$, which happens to equal $L_{22}L_{22}^\ast$. The block equations say two things. First, $L_{22}$ is the Cholesky factor of the Schur complement, so the algorithm can recurse on blocks. Second, the Schur complement equals $L_{22}L_{22}^\ast$ with $L_{22}$ invertible, so it is s.p.d.; this is a second proof, besides the congruence argument, that the recursion never breaks down.
 
+The Schur complement is also what the elementwise elimination of \Cref{sec:chol-exists} computes, one column at a time. If $A_{11}$ is the leading $k \times k$ block, then after $k$ steps of symmetric elimination,
+\begin{equation}
+  L_k \cdots L_1AL_1^\ast \cdots L_k^\ast = \begin{bmatrix} \diag(d_1, \dots, d_k) & 0 \\ 0 & A/A_{11} \end{bmatrix},
+\end{equation}
+since both sides are obtained by eliminating the first $k$ columns and rows of $A$, and the block equations above show that the lower right block left over is $L_{22}L_{22}^\ast = A/A_{11}$.
+
 \subsection{The Inverse and the Schur Complement}
 
 \begin{lemma}[Blocks of the Inverse]
@@ -423,7 +429,10 @@ The elimination of the previous sections is the special case of a $1 \times 1$ b
   The second block row of the left factor is $\begin{bmatrix} 0 & I \end{bmatrix}$ and the second block column of the right factor is $\begin{bmatrix} 0 & I \end{bmatrix}^\T$, so the lower right block of the product is $S^{-1}$.
 \end{proof}
 
-The proof uses only that $A_{11}$ and $S$ are invertible; neither symmetry nor definiteness is needed.
+The proof uses only that $A_{11}$ and $S$ are invertible; neither symmetry nor definiteness is needed. In words, \emph{to get the Schur complement, invert, take the submatrix, and invert again}:
+\begin{equation}
+  A/A_{11} = \left((A^{-1})_{22}\right)^{-1}.
+\end{equation}
 
 \subsection{Proof of the Pivot Bound}
 
@@ -440,6 +449,35 @@ We now prove \eqref{eq:pivot-bound}.
   \end{equation}
   where the first inequality is the Rayleigh quotient bound $\vec{x}^\ast S'\vec{x} \ge \lambda_{\min}(S')\norm{\vec{x}}^2$. Finally $1/\norm{A^{-1}}_2 = \lambda_{\min}(A)$, again because $A$ is s.p.d.
 \end{proof}
+
+\section{Cholesky and QR}
+\label{sec:chol-qr}
+
+The Cholesky factorization and the QR factorization are two views of the same object. Let $B \in \K^{m \times n}$ have full column rank, so that $B^\ast B$ is s.p.d.\ (\Cref{thm:gram}).
+
+\begin{theorem}[QR of $B$ Is Cholesky of $B^\ast B$]
+  \label{thm:chol-qr}
+  Let $B \in \K^{m \times n}$ have full column rank.
+  \begin{enumerate}
+    \item If $B = \hat{Q}\hat{R}$ is a reduced QR factorization with $r_{jj} > 0$, then $B^\ast B = \hat{R}^\ast\hat{R}$ is the Cholesky factorization of $B^\ast B$.
+    \item Conversely, if $B^\ast B = R^\ast R$ is the Cholesky factorization, then $B = (BR^{-1})R$ is a reduced QR factorization: $BR^{-1}$ has orthonormal columns.
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  For item 1, $B^\ast B = \hat{R}^\ast\hat{Q}^\ast\hat{Q}\hat{R} = \hat{R}^\ast\hat{R}$, and $\hat{R}^\ast$ is lower triangular with positive diagonal, so by \Cref{cor:chol-unique} this is \emph{the} Cholesky factorization. For item 2, $R$ is invertible because its diagonal is positive, and
+  \begin{equation}
+    (BR^{-1})^\ast(BR^{-1}) = R^{-\ast}B^\ast BR^{-1} = R^{-\ast}R^\ast RR^{-1} = I,
+  \end{equation}
+  as desired.
+\end{proof}
+
+So the triangular factor of QR and the Cholesky factor of the Gram matrix coincide. Three consequences:
+\begin{itemize}
+  \item \emph{Uniqueness of QR.} The uniqueness of Cholesky (\Cref{cor:chol-unique}) gives the uniqueness of reduced QR with $r_{jj} > 0$ (\Cref{thm:qr-unique}): $\hat{R}$ is the Cholesky factor of $B^\ast B$, and $\hat{Q} = B\hat{R}^{-1}$.
+  \item \emph{Least squares.} Solving the normal equations with Cholesky computes the same $R$ as QR, but by way of $B^\ast B$, whose condition number is $\kappa_2(B)^2$. The two routes agree in exact arithmetic and differ in floating point.
+  \item \emph{CholeskyQR.} Item 2 is an algorithm: form $B^\ast B$, factor it, and set $\hat{Q} = BR^{-1}$. It is fast and rich in matrix multiplications, but for the same reason the computed $\hat{Q}$ loses orthogonality like $\epsm\kappa_2(B)^2$, worse than modified Gram--Schmidt.
+\end{itemize}
 
 \section{(SUPPLEMENT) Further Topics}
 
