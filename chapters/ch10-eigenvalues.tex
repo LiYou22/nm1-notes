@@ -8,17 +8,24 @@ Supplementary reading:
   \item \cite{GVL} Sections 7.3.1 and 8.2.
 \end{itemize}
 
-\section{From Elimination to Similarity Transformations}
+\section{Recap and Motivation}
 
-\Cref{ch:cholesky} factored an s.p.d.\ matrix as $A = LL^\ast$ by symmetric elimination $A \mapsto L_1AL_1^\ast$, showed that no pivoting is needed and that there is no element growth, and related the steps of elimination to Schur complements (\Cref{lem:schur-inverse}). In the board notation of this lecture, eigenvalues were written $\delta$; we write $\lambda$ throughout.
+Last lecture we factored an s.p.d.\ matrix as $A = LL^\ast$ by symmetric elimination $A \mapsto L_1AL_1^\ast$. We showed that no pivoting is needed, that there is no element growth, and that the steps of elimination compute Schur complements (\Cref{lem:schur-inverse}). Recall the precise statement, which is easy to get backwards: for $\Theta = A^{-1}$, the Schur complement $A_{22} - A_{21}A_{11}^{-1}A_{12}$ equals $\Theta_{22}^{-1}$, not $\Theta_{22}$.
 
-All factorizations so far rest on \emph{elimination} or \emph{projection}. LU and Cholesky are Gaussian elimination, which uses lower triangular matrices to zero out the entries below the pivots column by column. In QR, Gram--Schmidt subtracts from each column its projections onto the previous ones, and Householder uses reflections $I - 2\vec{v}\vec{v}^\ast$ to map a column onto the direction of $\vec{e}_1$. These factorizations share two features.
+\subsection{From Elimination to Similarity Transformations}
+
+So far we have seen LU, Cholesky, and QR. All of them are based on \emph{elimination} or \emph{projection}.
+\begin{itemize}
+  \item LU and Cholesky are Gaussian elimination: lower triangular matrices zero out the entries below the pivots, column by column.
+  \item QR uses projection: Gram--Schmidt subtracts from each column its projections onto the previous ones, and Householder reflects each column onto the direction of $\vec{e}_1$.
+\end{itemize}
+These factorizations have two things in common.
 \begin{enumerate}
-  \item Their purpose is to \emph{solve equations}. The transformations used are one-sided ($A \mapsto LA$, $A \mapsto Q^\ast A$) or congruences ($A \mapsto LAL^\ast$), and they do not preserve eigenvalues. This is why the pivots of Cholesky are not the eigenvalues: a congruence is not a similarity.
+  \item Their purpose is to \emph{solve equations}. The transformations they use are one-sided ($A \mapsto LA$, $A \mapsto Q^\ast A$) or congruences ($A \mapsto LAL^\ast$), and none of these preserve eigenvalues. This is why the pivots of Cholesky are not the eigenvalues: a congruence is not a similarity.
   \item They finish in finitely many steps, about $O(m^3)$, and are exact if there is no rounding.
 \end{enumerate}
 
-The four factorizations below are all closely tied to the \emph{eigenpairs} $(\lambda_i, \vec{x}_i)$ of a matrix. To expose the structure of $A$ as a linear map, we must use eigenvalue-preserving \emph{similarity transformations} $A \mapsto X^{-1}AX$.
+Starting with this lecture we study a second family: the eigen, polar, Schur, and singular value decompositions. These are all closely tied to the \emph{eigenpairs} $(\lambda_i, \vec{x}_i)$ of a matrix. To expose the structure of $A$ as a linear map, they use \emph{similarity transformations} $A \mapsto X^{-1}AX$, which preserve eigenvalues.
 
 \begin{center}
 \small
@@ -34,13 +41,24 @@ The four factorizations below are all closely tied to the \emph{eigenpairs} $(\l
 \end{tabular}
 \end{center}
 
-Only the eigendecomposition may fail to exist. The other three hold for every (square) matrix and use only unitary transformations, which have condition number $1$ and do not amplify errors. A \emph{normal} matrix ($A^\ast A = AA^\ast$, which includes Hermitian matrices) can be diagonalized by a unitary matrix, $A = Q\Lambda Q^\ast$.
+A few remarks on the table.
+\begin{itemize}
+  \item Only the eigendecomposition may fail to exist. The other three exist for every (square) matrix and use only unitary transformations, which have condition number $1$ and do not amplify errors.
+  \item A \emph{normal} matrix ($A^\ast A = AA^\ast$, which includes Hermitian matrices) can be diagonalized by a unitary matrix, $A = Q\Lambda Q^\ast$.
+  \item The polar decomposition (\Cref{thm:polar}) is the matrix version of $z = e^{i\theta}r$: $Q$ is a ``rotation or reflection'' and $P$ is a ``stretch''. It follows directly from the SVD,
+  \begin{equation}
+    A = U\Sigma V^\ast = (UV^\ast)(V\Sigma V^\ast), \qquad Q = UV^\ast, \quad P = V\Sigma V^\ast.
+  \end{equation}
+  The factor $Q$ is the unitary matrix closest to $A$ in the Frobenius norm (the orthogonal Procrustes problem).
+  \item The Schur \emph{decomposition} has nothing directly to do with the Schur \emph{complement} of \Cref{ch:cholesky}.
+\end{itemize}
 
-The polar decomposition (\Cref{thm:polar}) is the matrix version of $z = e^{i\theta}r$: $Q$ is a ``rotation or reflection'' and $P$ is a ``stretch''. It follows directly from the SVD,
-\begin{equation}
-  A = U\Sigma V^\ast = (UV^\ast)(V\Sigma V^\ast), \qquad Q = UV^\ast, \quad P = V\Sigma V^\ast.
-\end{equation}
-The factor $Q$ is the unitary matrix closest to $A$ in the Frobenius norm (the orthogonal Procrustes problem). Note that the Schur \emph{decomposition} has nothing directly to do with the Schur \emph{complement} of \Cref{ch:cholesky}.
+We start with the eigendecomposition of Hermitian matrices. Here is the plan for the lecture.
+\begin{enumerate}
+  \item Recall the basic facts about eigenpairs of Hermitian matrices and introduce the Rayleigh quotient.
+  \item Show that eigenvalues \emph{cannot} be computed exactly in finitely many steps, so every eigenvalue algorithm must be iterative.
+  \item Develop three iterative methods, each improving on the previous one: power iteration, inverse iteration, and Rayleigh quotient iteration.
+\end{enumerate}
 
 \section{Eigenpairs of Hermitian Matrices}
 
@@ -56,7 +74,13 @@ Recall that $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$ is conjugate-linear in
 \begin{equation}
   \lambda_i = \frac{\ip{\vec{x}_i}{A\vec{x}_i}}{\norm{\vec{x}_i}^2} = \frac{\ip{A\vec{x}_i}{\vec{x}_i}}{\norm{\vec{x}_i}^2} = \overline{\lambda_i}.
 \end{equation}
-The first equality is $\ip{\vec{x}_i}{\lambda_i\vec{x}_i} = \lambda_i\norm{\vec{x}_i}^2$; the second uses $A = A^\ast$; the third uses conjugate symmetry, $\ip{A\vec{x}_i}{\vec{x}_i} = \overline{\ip{\vec{x}_i}{A\vec{x}_i}}$. The first expression makes sense for any nonzero vector.
+Let us justify each step.
+\begin{itemize}
+  \item The first equality is $\ip{\vec{x}_i}{\lambda_i\vec{x}_i} = \lambda_i\norm{\vec{x}_i}^2$.
+  \item The second uses $A = A^\ast$.
+  \item The third uses conjugate symmetry, $\ip{A\vec{x}_i}{\vec{x}_i} = \overline{\ip{\vec{x}_i}{A\vec{x}_i}}$.
+\end{itemize}
+Notice that the first expression makes sense for \emph{any} nonzero vector, not just for eigenvectors. This motivates the following definition, which will be our main tool for estimating eigenvalues.
 
 \begin{definition}[Rayleigh Quotient]
   \label{def:rayleigh}
@@ -66,7 +90,7 @@ The first equality is $\ip{\vec{x}_i}{\lambda_i\vec{x}_i} = \lambda_i\norm{\vec{
   \end{equation}
 \end{definition}
 
-If $A$ is Hermitian, the Rayleigh quotient is always real, and at an eigenvector it equals the eigenvalue.
+If $A$ is Hermitian, the Rayleigh quotient is always real, and at an eigenvector it equals the eigenvalue. So if we have a good approximate eigenvector, its Rayleigh quotient is a natural guess for the eigenvalue. We will see that this guess is surprisingly accurate.
 
 \subsection{Orthogonality of Eigenvectors}
 
@@ -80,21 +104,24 @@ If $A$ is Hermitian, the Rayleigh quotient is always real, and at an eigenvector
   \begin{equation}
     \lambda_i\ip{\vec{x}_i}{\vec{x}_j} = \ip{A\vec{x}_i}{\vec{x}_j} = \ip{\vec{x}_i}{A\vec{x}_j} = \lambda_j\ip{\vec{x}_i}{\vec{x}_j}.
   \end{equation}
-  The first equality is $\ip{\lambda_i\vec{x}_i}{\vec{x}_j} = \overline{\lambda_i}\ip{\vec{x}_i}{\vec{x}_j}$ together with $\overline{\lambda_i} = \lambda_i$ (\Cref{prop:herm-eig}); the second uses $A = A^\ast$. Thus $(\lambda_i - \lambda_j)\ip{\vec{x}_i}{\vec{x}_j} = 0$, and since $\lambda_i \ne \lambda_j$, $\ip{\vec{x}_i}{\vec{x}_j} = 0$.
+  The first equality is $\ip{\lambda_i\vec{x}_i}{\vec{x}_j} = \overline{\lambda_i}\ip{\vec{x}_i}{\vec{x}_j}$ together with $\overline{\lambda_i} = \lambda_i$ (\Cref{prop:herm-eig}); the second uses $A = A^\ast$. Thus $(\lambda_i - \lambda_j)\ip{\vec{x}_i}{\vec{x}_j} = 0$, and since $\lambda_i \ne \lambda_j$, we get $\ip{\vec{x}_i}{\vec{x}_j} = 0$, as desired.
 \end{proof}
 
-The proof uses realness of the eigenvalues, so the two facts must be proved in this order. Within the eigenspace of a repeated eigenvalue we can orthonormalize by Gram--Schmidt, so orthogonality is never the problem. What has \emph{not} yet been proved is \emph{existence}: why a Hermitian matrix has $m$ linearly independent eigenvectors, i.e., the spectral theorem $A = Q\Lambda Q^\ast$. The standard route is to prove the Schur decomposition $A = QTQ^\ast$ for every square matrix, and then note that $T = Q^\ast AQ$ is both Hermitian and upper triangular, hence diagonal.
+Note that the proof uses that the eigenvalues are real, so the two facts must be proved in this order.
 
-\section{Eigenvalues Cannot Be Computed in Finitely Many Steps}
+Within the eigenspace of a repeated eigenvalue we can orthonormalize by Gram--Schmidt, so orthogonality is never the problem. What we have \emph{not} yet proved is \emph{existence}: why a Hermitian matrix has $m$ linearly independent eigenvectors, i.e., the spectral theorem $A = Q\Lambda Q^\ast$. The standard route is to prove the Schur decomposition $A = QTQ^\ast$ for every square matrix, and then note that $T = Q^\ast AQ$ is both Hermitian and upper triangular, hence diagonal. We will do this in \Cref{ch:schur}.
 
-LU and its relatives compute their results exactly in finitely many steps, if there is no rounding. Eigenvalues cannot be computed this way. The obstruction comes from algebra.
+\section{A Negative Result: Eigenvalues Cannot Be Computed in Finitely Many Steps}
+\label{sec:negative-result}
+
+LU and its relatives can be computed exactly (up to rounding) in $O(m^3)$ arithmetic operations. Can we do the same for eigenvalues? The answer is no, and the obstruction comes from algebra.
 
 \begin{theorem}[Abel--Ruffini]
   \label{thm:abel}
   For every $m \ge 5$, there is a polynomial of degree $m$ with rational coefficients whose roots cannot be expressed in terms of its coefficients using finitely many operations $+$, $-$, $\times$, $\div$, and $k$-th roots.
 \end{theorem}
 
-To carry this statement about polynomials over to matrices, we need a reduction: for every polynomial, a matrix whose eigenvalues are the roots of the polynomial.
+Why is this a problem for eigenvalues? Because we can turn any polynomial into a matrix whose eigenvalues are its roots. If we could compute eigenvalues exactly, we could then find the roots of any polynomial exactly, contradicting Abel. Let us make this precise.
 
 \begin{lemma}[Companion Matrix]
   \label{lem:companion}
@@ -113,14 +140,18 @@ To carry this statement about polynomials over to matrices, we need a reduction:
 \end{lemma}
 
 \begin{proof}
-  The first $m - 1$ rows of $A$ pick out the next entry of $\vec{x}$: $(A\vec{x})_i = x_{i+1} = z^i = z \cdot z^{i-1} = zx_i$ for $i = 1, \dots, m - 1$. The last row gives
-  \begin{equation}
-    (A\vec{x})_m = -\sum_{i=0}^{m-1}a_iz^i = z^m - \underbrace{p(z)}_{=0} = z \cdot z^{m-1} = zx_m.
-  \end{equation}
+  We check $A\vec{x} = z\vec{x}$ row by row.
+  \begin{itemize}
+    \item \emph{The first $m - 1$ rows.} Row $i$ of $A$ picks out the next entry of $\vec{x}$: $(A\vec{x})_i = x_{i+1} = z^i = z \cdot z^{i-1} = zx_i$.
+    \item \emph{The last row.} Using $p(z) = 0$,
+    \begin{equation}
+      (A\vec{x})_m = -\sum_{i=0}^{m-1}a_iz^i = z^m - \underbrace{p(z)}_{=0} = z \cdot z^{m-1} = zx_m.
+    \end{equation}
+  \end{itemize}
   Finally $\vec{x} \ne \zerovec$ since $x_1 = 1$.
 \end{proof}
 
-Expanding $\det(zI - A)$ along the last row shows more: $\det(zI - A) = p(z)$, so the eigenvalues of $A$ are exactly the roots of $p$, counted with multiplicity. If $p$ is not monic, divide by the leading coefficient $a_m$ first; the last row is then $-a_i/a_m$.
+Expanding $\det(zI - A)$ along the last row shows more: $\det(zI - A) = p(z)$, so the eigenvalues of $A$ are \emph{exactly} the roots of $p$, counted with multiplicity. If $p$ is not monic, divide by the leading coefficient $a_m$ first; the last row is then $-a_i/a_m$.
 
 \begin{theorem}[Eigenvalue Algorithms Must Be Iterative]
   \label{thm:eig-iterative}
@@ -128,45 +159,62 @@ Expanding $\det(zI - A)$ along the last row shows more: $\det(zI - A) = p(z)$, s
 \end{theorem}
 
 \begin{proof}
-  Suppose such an algorithm exists. Given any monic polynomial $p$ of degree $m$, form its companion matrix; this needs no arithmetic at all, since its entries are $0$, $1$, and the coefficients $-a_i$. By \Cref{lem:companion} and the remark after it, the algorithm applied to this matrix returns the roots of $p$ in finitely many operations. This contradicts \Cref{thm:abel}.
+  Suppose such an algorithm exists. Given any monic polynomial $p$ of degree $m$, form its companion matrix. This needs no arithmetic at all, since its entries are $0$, $1$, and the coefficients $-a_i$. By \Cref{lem:companion} and the remark after it, the algorithm applied to this matrix returns the roots of $p$ in finitely many operations. This contradicts \Cref{thm:abel}.
 \end{proof}
 
-So every eigenvalue algorithm must be \emph{iterative}: it can only produce a sequence converging to the eigenvalues.
+So every eigenvalue algorithm must be \emph{iterative}: it can only produce a sequence that converges to the eigenvalues.
 
-\paragraph{The direction of the reduction.} The familiar direction ``matrix $\to$ characteristic polynomial $\to$ roots'' only shows that the eigenvalue problem is no harder than root finding; it proves no impossibility. To show that the eigenvalue problem is \emph{at least as hard} as root finding, we need the opposite direction: every polynomial can be disguised as an eigenvalue problem. The disguise must also be free. The companion matrix is built from $0$, $1$, and the coefficients without any computation; using $\diag(z_1, \dots, z_m)$ instead would require knowing the roots, which is circular. The structure of the companion matrix comes from the linear map ``multiply by $z$'' on the quotient space $\C[z]/(p)$ in the basis $1, z, \dots, z^{m-1}$: the superdiagonal ones move each basis vector to the next, and the last row uses $p(z) = 0$ to rewrite the overflowing $z^m$ in terms of lower powers.
+\paragraph{The direction of the reduction.} It is worth being careful about which way the argument goes. The familiar direction ``matrix $\to$ characteristic polynomial $\to$ roots'' only shows that the eigenvalue problem is \emph{no harder} than root finding; it proves no impossibility. To show that the eigenvalue problem is \emph{at least as hard} as root finding, we need the opposite direction: every polynomial can be disguised as an eigenvalue problem. Moreover, the disguise must be free. The companion matrix is built from $0$, $1$, and the coefficients without any computation; using $\diag(z_1, \dots, z_m)$ instead would require knowing the roots, which is circular.
+
+Where does the companion matrix come from? It is the matrix of the linear map ``multiply by $z$'' on the quotient space $\C[z]/(p)$, in the basis $1, z, \dots, z^{m-1}$. The superdiagonal ones move each basis vector to the next, and the last row uses $p(z) = 0$ to rewrite the overflowing $z^m$ in terms of lower powers.
 
 The conclusion also holds for Hermitian matrices: for a polynomial whose roots are all real, a Sturm sequence (built with arithmetic operations and square roots) gives a real symmetric tridiagonal matrix with that characteristic polynomial.
 
-\paragraph{Iterative does not mean slow.} The standard approach has two phases. First, finitely many unitary similarity transformations reduce $A$ to Hessenberg form (tridiagonal if $A$ is Hermitian); this phase is a direct method. Then an iteration runs on the reduced matrix and converges very fast. The total cost is still $O(m^3)$. In the opposite direction, \texttt{roots} in MATLAB and NumPy finds the roots of a polynomial by forming its companion matrix and calling an eigenvalue solver.
+\paragraph{Iterative does not mean slow.} The standard approach has two phases.
+\begin{enumerate}
+  \item Finitely many unitary similarity transformations reduce $A$ to Hessenberg form (tridiagonal if $A$ is Hermitian). This phase is a direct method.
+  \item An iteration runs on the reduced matrix and converges very fast.
+\end{enumerate}
+The total cost is still $O(m^3)$. In the opposite direction, \texttt{roots} in MATLAB and NumPy finds the roots of a polynomial by forming its companion matrix and calling an eigenvalue solver: the reduction above is used in practice.
 
 \section{Power Iteration}
 
-\subsection{Multiplying by $A$ in the Eigenbasis}
+We cannot hope for exact computation. So how can we \emph{approximate} the eigenpairs of $A$? The simplest idea is to multiply a vector by $A$ over and over. To see why this works, let us first look at what multiplication by $A$ does in the eigenbasis.
+
+\subsection{Multiplying by \texorpdfstring{$A$}{A} in the Eigenbasis}
 
 Let $A = X\Lambda X^{-1}$ be diagonalizable. Write any vector as a combination of eigenvectors, $\vec{z} = X\vec{y} = \sum_i y_i\vec{x}_i$, where $\vec{y} = X^{-1}\vec{z}$ holds the coordinates of $\vec{z}$ in the eigenbasis. Then
 \begin{equation}
   A\vec{z} = X\Lambda\vec{y}, \qquad A^2\vec{z} = X\Lambda^2\vec{y}, \qquad A^k\vec{z} = X\Lambda^k\vec{y} = \sum_{i=1}^m \lambda_i^k y_i\vec{x}_i.
 \end{equation}
-In the eigenbasis, multiplication by $A$ multiplies each coordinate by its own eigenvalue, and the directions do not interact.
+In words: \emph{in the eigenbasis, multiplication by $A$ multiplies each coordinate by its own eigenvalue, and the directions do not interact.}
 
-Assume that the largest eigenvalue strictly dominates, $\abs{\lambda_1} > \abs{\lambda_2} \ge \cdots \ge \abs{\lambda_m}$. Factoring out $\lambda_1^k$,
+Now assume that the largest eigenvalue strictly dominates, $\abs{\lambda_1} > \abs{\lambda_2} \ge \cdots \ge \abs{\lambda_m}$. Factoring out $\lambda_1^k$,
 \begin{equation}
   \label{eq:power-expand}
   A^k\vec{z} = \lambda_1^k\left(y_1\vec{x}_1 + \sum_{i=2}^m \left(\frac{\lambda_i}{\lambda_1}\right)^k y_i\vec{x}_i\right).
 \end{equation}
-Since $(\lambda_i/\lambda_1)^k \to 0$, the \emph{direction} of $A^k\vec{z}$ approaches $\vec{x}_1$. The approximations $\Lambda^k \approx \lambda_1^k\diag(1, 0, \dots, 0)$ and $A^k\vec{z} \approx \lambda_1^ky_1\vec{x}_1$ hold in the relative sense, $\Lambda^k/\lambda_1^k \to \diag(1, 0, \dots, 0)$; the vector $A^k\vec{z}$ itself may blow up or vanish.
+Every ratio $\abs{\lambda_i/\lambda_1}$ with $i \ge 2$ is less than $1$, so $(\lambda_i/\lambda_1)^k \to 0$, and the \emph{direction} of $A^k\vec{z}$ approaches $\vec{x}_1$. Informally, $\Lambda^k \approx \lambda_1^k\diag(1, 0, \dots, 0)$ and $A^k\vec{z} \approx \lambda_1^ky_1\vec{x}_1$. These approximations hold in the relative sense, $\Lambda^k/\lambda_1^k \to \diag(1, 0, \dots, 0)$; the vector $A^k\vec{z}$ itself may blow up or vanish.
 
-\subsection{The Condition $y_1 \ne 0$}
+\subsection{The Condition \texorpdfstring{$y_1 \ne 0$}{y1 ≠ 0}}
+
+All of this needs $y_1 \ne 0$: if the starting vector has no component along $\vec{x}_1$, multiplying by $A$ will never create one. What does $y_1 \ne 0$ mean concretely?
 
 The coordinate $y_1$ is the inner product of the first row of $X^{-1}$ with $\vec{z}$. From $X^{-1}A = \Lambda X^{-1}$, the $i$-th row $\vec{w}_i^\ast$ of $X^{-1}$ satisfies $\vec{w}_i^\ast A = \lambda_i\vec{w}_i^\ast$; it is a \emph{left eigenvector}. Hence
 \begin{equation}
   y_1 \ne 0 \iff \ip{\vec{w}_1}{\vec{z}} \ne 0,
 \end{equation}
-i.e., the starting vector must not be orthogonal to the left eigenvector of $\lambda_1$. If $A$ is Hermitian, $X^{-1} = Q^\ast$, the left and right eigenvectors coincide, and the condition says that $\vec{z}$ is not orthogonal to $\vec{x}_1$.
+i.e., the starting vector must not be orthogonal to the left eigenvector of $\lambda_1$. If $A$ is Hermitian, then $X^{-1} = Q^\ast$, the left and right eigenvectors coincide, and the condition simply says that $\vec{z}$ is not orthogonal to $\vec{x}_1$.
 
-If $y_1 = 0$, then in exact arithmetic the direction $\vec{x}_1$ never appears, and the iteration converges to $\vec{x}_j$ for the first $j$ with $y_j \ne 0$, without noticing. In practice, a random starting vector lies on the hyperplane $\vec{w}_1^\perp$ with probability $0$; and even if it does, rounding errors introduce an $O(\epsm)$ component along $\vec{x}_1$, which is then amplified step by step.
+What if $y_1 = 0$ anyway? In exact arithmetic the direction $\vec{x}_1$ never appears, and the iteration converges to $\vec{x}_j$ for the first $j$ with $y_j \ne 0$, without noticing. In practice this is not a concern, for two reasons.
+\begin{itemize}
+  \item A random starting vector lies on the hyperplane $\vec{w}_1^\perp$ with probability $0$.
+  \item Even if it does, rounding errors introduce an $O(\epsm)$ component along $\vec{x}_1$, which is then amplified step by step.
+\end{itemize}
 
 \subsection{The Algorithm}
+
+The idea is to compute $\vec{z}_k = A^k\vec{z}/\norm{A^k\vec{z}}$ as an approximation to $\vec{x}_1$, and to use the Rayleigh quotient $\ip{\vec{z}_k}{A\vec{z}_k}$ as an approximation to $\lambda_1$. Choose $\vec{z} \sim N(0, I)$ to ensure $y_1 \ne 0$, and normalize at every step to avoid overflow.
 
 \begin{algorithm}[H]
   \caption{Power iteration.}
@@ -184,11 +232,19 @@ If $y_1 = 0$, then in exact arithmetic the direction $\vec{x}_1$ never appears, 
   \end{algorithmic}
 \end{algorithm}
 
-A standard normal vector has a rotation-invariant distribution, so after normalization it is uniformly distributed on the unit sphere and satisfies $y_1 \ne 0$ almost surely. Line 4 must come before line 8, because $\vec{z} = A\vec{q}$ belongs to the old $\vec{q}$. In the complex case the order $\vec{q}^\ast\vec{z}$ matters: $\vec{z}^\ast\vec{q} = \overline{\vec{q}^\ast A\vec{q}}$, which agrees only when $\vec{q}^\ast A\vec{q}$ is real. Each step costs one matrix-vector product, $O(m^2)$ for a dense matrix and $O(\mathrm{nnz})$ for a sparse one, so power iteration suits large matrices that we can only multiply by (PageRank, for example).
+Some details of the algorithm.
+\begin{itemize}
+  \item \emph{The random start.} A standard normal vector has a rotation-invariant distribution. After normalization it is uniformly distributed on the unit sphere, and satisfies $y_1 \ne 0$ almost surely.
+  \item \emph{The order of lines 4 and 8.} Line 4 must come before line 8, because $\vec{z} = A\vec{q}$ belongs to the old $\vec{q}$.
+  \item \emph{The order in $\vec{q}^\ast\vec{z}$.} In the complex case, $\vec{z}^\ast\vec{q} = \overline{\vec{q}^\ast A\vec{q}}$, which agrees with $\vec{q}^\ast\vec{z}$ only when $\vec{q}^\ast A\vec{q}$ is real. For real $A$ either order works.
+  \item \emph{Cost.} Each step costs one matrix-vector product: $O(m^2)$ for a dense matrix and $O(\mathrm{nnz})$ for a sparse one. So power iteration suits large matrices that we can only multiply by (PageRank, for example).
+\end{itemize}
 
-\paragraph{Why normalize.} $\norm{A^k\vec{z}}$ changes like $\abs{\lambda_1}^k$, while double precision covers roughly $10^{\pm 308}$. With $\abs{\lambda_1} = 10$ the iterates overflow to \texttt{Inf} after about $300$ steps; with $\abs{\lambda_1} = 0.1$ they underflow to $0$. The number of steps needed for convergence is governed by $\abs{\lambda_2/\lambda_1}$, independently of $\abs{\lambda_1}$, so overflow or underflow would almost always come first, and normalizing only at the end is too late. Normalization does not change the result: $A(c\vec{v}) = c \cdot A\vec{v}$, so scaling at each step does not affect later directions, and in exact arithmetic $\vec{q}^{(k)} = A^k\vec{q}^{(0)}/\norm{A^k\vec{q}^{(0)}}$. As a bonus, the Rayleigh quotient needs no division by $\norm{\vec{q}}^2$, and the stopping test is not affected by scaling.
+\paragraph{Why normalize.} The length $\norm{A^k\vec{z}}$ changes like $\abs{\lambda_1}^k$, while double precision covers only about $10^{\pm 308}$. With $\abs{\lambda_1} = 10$ the iterates overflow to \texttt{Inf} after about $300$ steps; with $\abs{\lambda_1} = 0.1$ they underflow to $0$. The number of steps needed for convergence depends on $\abs{\lambda_2/\lambda_1}$, not on $\abs{\lambda_1}$, so overflow or underflow would almost always come first, and normalizing only at the end is too late.
 
-\paragraph{Why the residual.} The stopping test uses the residual $\norm{A\vec{q} - \lambda\vec{q}}$ and not $\norm{\vec{q}^{(k)} - \vec{q}^{(k-1)}}$: if $\lambda_1 < 0$ (or is complex), $\vec{q}$ changes sign (is multiplied by a phase) at every step, so the direction converges but the vector does not. For Hermitian matrices the residual also bounds the eigenvalue error directly.
+Normalizing does not change the result. Since $A(c\vec{v}) = c \cdot A\vec{v}$, scaling at one step does not affect the directions at later steps, and in exact arithmetic $\vec{q}^{(k)} = A^k\vec{q}^{(0)}/\norm{A^k\vec{q}^{(0)}}$. As a bonus, the Rayleigh quotient needs no division by $\norm{\vec{q}}^2$, and the stopping test is not affected by scaling.
+
+\paragraph{Why the residual.} The stopping test uses the residual $\norm{A\vec{q} - \lambda\vec{q}}$, not the change $\norm{\vec{q}^{(k)} - \vec{q}^{(k-1)}}$. The reason: if $\lambda_1 < 0$ (or is complex), $\vec{q}$ changes sign (is multiplied by a phase) at every step, so the \emph{direction} converges but the vector does not. For Hermitian matrices the residual also bounds the eigenvalue error directly.
 
 \begin{proposition}[Residual Bound]
   \label{prop:residual-bound}
@@ -199,7 +255,7 @@ A standard normal vector has a rotation-invariant distribution, so after normali
 \end{proposition}
 
 \begin{proof}
-  Expand $\vec{q} = \sum_j c_j\vec{x}_j$ in an orthonormal eigenbasis, so that $\sum_j\abs{c_j}^2 = 1$. Then $A\vec{q} - \lambda\vec{q} = \sum_j(\lambda_j - \lambda)c_j\vec{x}_j$, and
+  Expand $\vec{q} = \sum_j c_j\vec{x}_j$ in an orthonormal eigenbasis, so that $\sum_j\abs{c_j}^2 = 1$. Then $A\vec{q} - \lambda\vec{q} = \sum_j(\lambda_j - \lambda)c_j\vec{x}_j$, and by orthonormality
   \begin{equation}
     \norm{A\vec{q} - \lambda\vec{q}}^2 = \sum_j\abs{\lambda_j - \lambda}^2\abs{c_j}^2 \ge \min_j\abs{\lambda_j - \lambda}^2\sum_j\abs{c_j}^2 = \min_j\abs{\lambda_j - \lambda}^2,
   \end{equation}
@@ -208,7 +264,7 @@ A standard normal vector has a rotation-invariant distribution, so after normali
 
 \subsection{Rate of Convergence}
 
-The key to the eigenvalue estimate is that the Rayleigh quotient of a Hermitian matrix is \emph{quadratically} accurate.
+We now analyze how fast power iteration converges, for Hermitian $A$. We need to track two errors: the error in the vector and the error in the eigenvalue. The key observation is that the second is much smaller than the first, because the Rayleigh quotient of a Hermitian matrix is \emph{quadratically} accurate.
 
 \begin{lemma}[Quadratic Accuracy of the Rayleigh Quotient]
   \label{lem:rayleigh-quad}
@@ -224,14 +280,14 @@ The key to the eigenvalue estimate is that the Rayleigh quotient of a Hermitian 
   \begin{equation}
     r(\vec{q}) = \vec{q}^\ast A\vec{q} = \sum_j\lambda_j\abs{c_j}^2 = \lambda_J\underbrace{\sum_j\abs{c_j}^2}_{=1} + \sum_{j \ne J}(\lambda_j - \lambda_J)\abs{c_j}^2.
   \end{equation}
-  For the bound, $\abs{\lambda_j - \lambda_J} \le \lambda_{\max} - \lambda_{\min}$, and
+  For the bound, we use two facts. First, $\abs{\lambda_j - \lambda_J} \le \lambda_{\max} - \lambda_{\min}$. Second,
   \begin{equation}
     \sum_{j \ne J}\abs{c_j}^2 = \norm{\vec{q} - c_J\vec{x}_J}^2 \le \norm{\vec{q} - \vec{x}_J}^2,
   \end{equation}
-  since $c_J\vec{x}_J$ is the orthogonal projection of $\vec{q}$ onto $\spn(\vec{x}_J)$, the closest point of that line to $\vec{q}$.
+  since $c_J\vec{x}_J$ is the orthogonal projection of $\vec{q}$ onto $\spn(\vec{x}_J)$, i.e., the closest point of that line to $\vec{q}$.
 \end{proof}
 
-The right side is quadratic in the coefficients $c_j$, which are themselves the vector error. More generally, the Rayleigh quotient of a Hermitian matrix is stationary at eigenvectors: in the real case $\nabla r(\vec{x}) = \frac{2}{\vec{x}^\T\vec{x}}(A\vec{x} - r(\vec{x})\vec{x})$, which vanishes exactly at eigenvectors. An $\eps$ error in the vector therefore moves the Rayleigh quotient only by $O(\eps^2)$.
+Why ``quadratic''? The coefficients $c_j$, $j \ne J$, are the vector error, and the right side is quadratic in them. Another way to see it: the Rayleigh quotient of a Hermitian matrix is \emph{stationary} at eigenvectors. In the real case, $\nabla r(\vec{x}) = \frac{2}{\vec{x}^\T\vec{x}}(A\vec{x} - r(\vec{x})\vec{x})$, which vanishes exactly at eigenvectors. So an $\eps$ error in the vector moves the Rayleigh quotient only by $O(\eps^2)$. We return to this picture in \Cref{sec:rqi-analysis}.
 
 \begin{theorem}[Convergence of Power Iteration]
   \label{thm:power}
@@ -241,40 +297,53 @@ The right side is quadratic in the coefficients $c_j$, which are themselves the 
   \end{equation}
 \end{theorem}
 
+The plan of the proof is: write $A^k\vec{q}^{(0)}$ as $\lambda_1^kc_1$ times ``$\vec{x}_1$ plus a small error'', show that normalizing keeps the error small, and then square it with \Cref{lem:rayleigh-quad}.
+
 \begin{proof}
-  By \eqref{eq:power-expand} with $y_j = c_j$, $A^k\vec{q}^{(0)} = \lambda_1^kc_1(\vec{x}_1 + \vec{e}_k)$, where
+  \emph{Step 1: the unnormalized iterate.} By \eqref{eq:power-expand} with $y_j = c_j$, we have $A^k\vec{q}^{(0)} = \lambda_1^kc_1(\vec{x}_1 + \vec{e}_k)$, where
   \begin{equation}
     \vec{e}_k = \sum_{j=2}^m\left(\frac{\lambda_j}{\lambda_1}\right)^k\frac{c_j}{c_1}\vec{x}_j, \qquad
     \norm{\vec{e}_k}^2 = \sum_{j=2}^m\abs{\frac{\lambda_j}{\lambda_1}}^{2k}\frac{\abs{c_j}^2}{\abs{c_1}^2} \le \abs{\frac{\lambda_2}{\lambda_1}}^{2k}\frac{1}{\abs{c_1}^2},
   \end{equation}
-  using $\sum_j\abs{c_j}^2 = 1$. Let $s_k = \lambda_1^kc_1/\abs{\lambda_1^kc_1}$ and $\vec{u} = \vec{x}_1 + \vec{e}_k$, so that $\vec{q}^{(k)} = s_k\vec{u}/\norm{\vec{u}}$. Since $\norm{\vec{x}_1} = 1$,
+  using $\sum_j\abs{c_j}^2 = 1$.
+
+  \emph{Step 2: normalization.} Let $s_k = \lambda_1^kc_1/\abs{\lambda_1^kc_1}$ and $\vec{u} = \vec{x}_1 + \vec{e}_k$, so that $\vec{q}^{(k)} = s_k\vec{u}/\norm{\vec{u}}$. Since $\norm{\vec{x}_1} = 1$, the triangle inequality gives
   \begin{equation}
     \norm{\frac{\vec{u}}{\norm{\vec{u}}} - \vec{x}_1} \le \norm{\frac{\vec{u}}{\norm{\vec{u}}} - \vec{u}} + \norm{\vec{u} - \vec{x}_1} = \underbrace{\abs{1 - \norm{\vec{u}}}}_{\le\,\norm{\vec{u} - \vec{x}_1}} + \norm{\vec{u} - \vec{x}_1} \le 2\norm{\vec{e}_k},
   \end{equation}
-  so $\norm{\vec{q}^{(k)} - s_k\vec{x}_1} \le 2\abs{\lambda_2/\lambda_1}^k/\abs{c_1}$. For the eigenvalue, $s_k\vec{x}_1$ is a unit eigenvector for $\lambda_1$, so \Cref{lem:rayleigh-quad} gives
+  so $\norm{\vec{q}^{(k)} - s_k\vec{x}_1} \le 2\abs{\lambda_2/\lambda_1}^k/\abs{c_1}$.
+
+  \emph{Step 3: the eigenvalue.} $s_k\vec{x}_1$ is a unit eigenvector for $\lambda_1$, so \Cref{lem:rayleigh-quad} gives
   \begin{equation}
     \abs{r(\vec{q}^{(k)}) - \lambda_1} \le (\lambda_{\max} - \lambda_{\min})\norm{\vec{q}^{(k)} - s_k\vec{x}_1}^2 \le \frac{4(\lambda_{\max} - \lambda_{\min})}{\abs{c_1}^2}\abs{\frac{\lambda_2}{\lambda_1}}^{2k},
   \end{equation}
   as desired.
 \end{proof}
 
-For a diagonalizable non-Hermitian $A$, the first estimate still holds, with a constant that also depends on the condition number of $X$; the second does not. The eigenvectors are then not orthogonal, the expansion of $r(\vec{q})$ contains cross terms linear in the $c_j$, and the eigenvalue error is only $O(\abs{\lambda_2/\lambda_1}^k)$.
+The eigenvalue error is often quoted as $O(\abs{\lambda_2/\lambda_1}^k)$, without the factor $2$ in the exponent. That is the right rate for a general diagonalizable matrix. For non-Hermitian $A$, the first estimate still holds, with a constant that also depends on the condition number of $X$, but the second does not: the eigenvectors are no longer orthogonal, the expansion of $r(\vec{q})$ contains cross terms linear in the $c_j$, and the eigenvalue error is only $O(\abs{\lambda_2/\lambda_1}^k)$. For Hermitian $A$ we get the square.
 
-Linear convergence to an error $\eps$ takes about $k \approx \log\eps/\log\abs{\lambda_2/\lambda_1}$ steps. For a vector accuracy of $10^{-8}$, this is about $27$ steps when the ratio is $0.5$, $175$ when it is $0.9$, and $1800$ when it is $0.99$.
+How many steps does this take? Linear convergence to an error $\eps$ takes about $k \approx \log\eps/\log\abs{\lambda_2/\lambda_1}$ steps. For a vector accuracy of $10^{-8}$, this is about $27$ steps when the ratio is $0.5$, $175$ when it is $0.9$, and $1800$ when it is $0.99$. So the convergence speed depends on $\lambda_2/\lambda_1$, and the natural question is what happens when this ratio is close to $1$ in modulus. There are two very different cases: $\lambda_2 \approx \lambda_1$ and $\lambda_2 \approx -\lambda_1$.
 
-\subsection{When $\lambda_2 \approx \lambda_1$: The Eigenvalue Still Converges}
+\subsection{When \texorpdfstring{$\lambda_2 \approx \lambda_1$}{λ2 ≈ λ1}: The Eigenvalue Still Converges}
 
-Suppose $\abs{\lambda_1} \sim \abs{\lambda_2} \gg \abs{\lambda_3}$. In the space spanned by $\vec{x}_1, \vec{x}_2, \vec{x}_3$, the iterates move in two phases. They first fall quickly into the plane $\spn(\vec{x}_1, \vec{x}_2)$, at the rate $\abs{\lambda_3/\lambda_1}^k$, and then turn slowly toward $\vec{x}_1$ within the plane, at the rate $\abs{\lambda_2/\lambda_1}^k$.
+In short, in this case \emph{the convergence in $\lambda$ is not bad, but the eigenvector converges slowly.}
 
-After the first phase, however, $\vec{q} \approx c_1\vec{x}_1 + c_2\vec{x}_2$, and the Rayleigh quotient $\lambda_1\abs{c_1}^2 + \lambda_2\abs{c_2}^2$ is a weighted average of $\lambda_1$ and $\lambda_2$. Its error is at most $\abs{\lambda_1 - \lambda_2}$, which is already small. In the formula $\sum_{j \ge 2}(\lambda_j - \lambda_1)\abs{c_j}^2$ of \Cref{lem:rayleigh-quad}, directions far from $\lambda_1$ have $\abs{c_j}^2$ decaying quickly, while directions close to $\lambda_1$ decay slowly but have a small lever $\lambda_j - \lambda_1$. One of the two factors is always small.
+Suppose $\abs{\lambda_1} \sim \abs{\lambda_2} \gg \abs{\lambda_3}$. In the space spanned by $\vec{x}_1, \vec{x}_2, \vec{x}_3$, the iterates move in two phases.
+\begin{enumerate}
+  \item They first fall quickly into the plane $\spn(\vec{x}_1, \vec{x}_2)$, at the rate $\abs{\lambda_3/\lambda_1}^k$.
+  \item Then they turn slowly toward $\vec{x}_1$ within the plane, at the rate $\abs{\lambda_2/\lambda_1}^k$.
+\end{enumerate}
+After the first phase, $\vec{q} \approx c_1\vec{x}_1 + c_2\vec{x}_2$, and the Rayleigh quotient $\lambda_1\abs{c_1}^2 + \lambda_2\abs{c_2}^2$ is a weighted average of $\lambda_1$ and $\lambda_2$. Its error is at most $\abs{\lambda_1 - \lambda_2}$, which is already small.
+
+In terms of the formula $\sum_{j \ge 2}(\lambda_j - \lambda_1)\abs{c_j}^2$ of \Cref{lem:rayleigh-quad}: directions far from $\lambda_1$ have $\abs{c_j}^2$ decaying quickly, while directions close to $\lambda_1$ decay slowly but have a small lever $\lambda_j - \lambda_1$. One of the two factors is always small.
 
 In the extreme case $\lambda_2 = \lambda_1$, $\vec{q}$ converges to some vector in $\spn(\vec{x}_1, \vec{x}_2)$ determined by the starting vector. Every nonzero vector in this eigenspace is an eigenvector for $\lambda_1$, so the algorithm in fact succeeds, and the eigenvalue converges at the rate $\abs{\lambda_3/\lambda_1}$.
 
-This matches the conditioning of the problem. Eigenvalues of Hermitian matrices are always well-conditioned (Weyl: $\abs{\delta\lambda} \le \norm{\delta A}_2$), whereas the sensitivity of an eigenvector is about $\norm{\delta A}/\mathrm{gap}$. When the gap is small, $\vec{x}_1$ itself is ill-conditioned.
+This matches the conditioning of the problem. Eigenvalues of Hermitian matrices are always well-conditioned (Weyl: $\abs{\delta\lambda} \le \norm{\delta A}_2$), whereas the sensitivity of an eigenvector is about $\norm{\delta A}/\mathrm{gap}$. When the gap is small, $\vec{x}_1$ itself is ill-conditioned, so we should not expect to compute it quickly.
 
-\subsection{When $\lambda_2 \approx -\lambda_1$: The Real Failure}
+\subsection{When \texorpdfstring{$\lambda_2 \approx -\lambda_1$}{λ2 ≈ −λ1}: The Real Failure}
 
-Now only the plane matters, $\vec{q} = c_1\vec{x}_1 + c_2\vec{x}_2$, and one multiplication by $A$ gives $\lambda_1(c_1\vec{x}_1 - c_2\vec{x}_2)$. Geometrically this is a \emph{reflection across the $\vec{x}_1$ axis}. The iterates jump back and forth between two directions symmetric about $\vec{x}_1$; if $\lambda_2 = -\lambda_1$ exactly, $\abs{c_2/c_1}$ never changes and there is no convergence at all. The Rayleigh quotient
+Now only the plane matters: $\vec{q} = c_1\vec{x}_1 + c_2\vec{x}_2$, and one multiplication by $A$ gives $\lambda_1(c_1\vec{x}_1 - c_2\vec{x}_2)$. Geometrically this is a \emph{reflection across the $\vec{x}_1$ axis}. The iterates jump back and forth between two directions symmetric about $\vec{x}_1$. If $\lambda_2 = -\lambda_1$ exactly, $\abs{c_2/c_1}$ never changes and there is no convergence at all. The Rayleigh quotient
 \begin{equation}
   \vec{q}^\ast A\vec{q} \approx \lambda_1\left(\abs{c_1}^2 - \abs{c_2}^2\right)
 \end{equation}
@@ -307,11 +376,11 @@ is a value determined by the starting vector, which may lie anywhere in $[-\lamb
 \small Left: with $\lambda_2/\lambda_1 = 0.8$ the iterates turn slowly but steadily toward $\vec{x}_1$. Right: with $\lambda_2 = -\lambda_1$ each step reflects $\vec{q}$ across the $\vec{x}_1$ axis, and the iteration never converges.
 \end{center}
 
-So although the rate depends only on $\abs{\lambda_2/\lambda_1}$, what is truly fatal is eigenvalues of \emph{similar modulus but far-apart values}; close values are harmless. The cure is the shift of the next section.
+So although the rate depends only on $\abs{\lambda_2/\lambda_1}$, what is truly fatal is eigenvalues of \emph{similar modulus but far-apart values}; close values are harmless. The cure is to change the spectrum, which is the subject of the next section.
 
-\section{Functions of Matrices: Manipulating the Spectrum}
+\section{Matrix Functions: Manipulating the Spectrum}
 
-The question becomes: how can we change the spectrum of a matrix so that the eigenvalue we want becomes the one that power iteration finds most easily? For every polynomial $p$, $p(A)\vec{x}_i = p(\lambda_i)\vec{x}_i$:
+Power iteration finds the eigenvalue of largest modulus, and it is fast when that eigenvalue stands out. So the question becomes: \emph{how can we manipulate the eigenvalues of a matrix, so that the one we want stands out?} The answer is to apply a function to the matrix. For every polynomial $p$, $p(A)\vec{x}_i = p(\lambda_i)\vec{x}_i$, which gives the following table.
 
 \begin{center}
 \begin{tabular}{lll}
@@ -326,23 +395,40 @@ The question becomes: how can we change the spectrum of a matrix so that the eig
 \end{tabular}
 \end{center}
 
-The key is the last column: power iteration on $p(A)$ produces eigenvectors of $A$, from which the Rayleigh quotient of $A$ reads off the eigenvalues of $A$. Power iteration itself filters the spectrum with $p(z) = z^k$ (``polynomial filtering''), amplifying eigenvalues of large modulus and damping small ones; a different $p$ filters differently. Scaling by $\alpha$ does not change the ratios and acts like normalization; the useful operation is the shift.
+The important column is the last one: power iteration on $p(A)$ produces eigenvectors of $A$, and from these the Rayleigh quotient of $A$ reads off the eigenvalues of $A$.
 
-\paragraph{Shifting.} Suppose a cluster of eigenvalues sits at the left end of the negative axis and an isolated eigenvalue at the right end of the positive axis, with similar moduli; then the ratio for plain power iteration is close to $1$. Iterating with $A + I$ shifts the whole spectrum to the right: the cluster moves toward the origin and the isolated eigenvalue moves farther out, so the ratio drops. In general, let $A$ have real eigenvalues $\lambda_1 > \lambda_2 \ge \cdots \ge \lambda_m$, ordered by value, and let $\lambda_1$ be the one we want. Power iteration on $A + \beta I$ converges at the rate $\max_{j \ge 2}\abs{\lambda_j + \beta}/\abs{\lambda_1 + \beta}$. The best shift moves the midpoint of $[\lambda_m, \lambda_2]$ to the origin, $\beta = -\frac{\lambda_2 + \lambda_m}{2}$, and gives the ratio
+From this point of view, power iteration itself filters the spectrum with $p(z) = z^k$: it amplifies eigenvalues of large modulus and damps small ones. This is called \emph{polynomial filtering}, and a different $p$ filters differently. Scaling by $\alpha$ does not change the ratios and acts like normalization; the useful operation is the shift.
+
+\paragraph{Shifting.} As an example, suppose a cluster of eigenvalues sits on the negative axis and an isolated eigenvalue on the positive axis, with similar moduli. Then the ratio for plain power iteration is close to $1$. Iterating with $A + I$ shifts the whole spectrum to the right: the cluster moves toward the origin and the isolated eigenvalue moves farther out, so the ratio drops.
+
+How should we choose the shift in general? Let $A$ have real eigenvalues $\lambda_1 > \lambda_2 \ge \cdots \ge \lambda_m$, ordered by value, and let $\lambda_1$ be the one we want. Power iteration on $A + \beta I$ converges at the rate
+\begin{equation}
+  \max_{j \ge 2}\frac{\abs{\lambda_j + \beta}}{\abs{\lambda_1 + \beta}}.
+\end{equation}
+The best shift moves the midpoint of $[\lambda_m, \lambda_2]$ to the origin, $\beta = -\frac{\lambda_2 + \lambda_m}{2}$, and gives the ratio
 \begin{equation}
   \frac{(\lambda_2 - \lambda_m)/2}{\lambda_1 - \frac{\lambda_2 + \lambda_m}{2}}.
 \end{equation}
-For larger $\beta$ the ratio is $(\lambda_2 + \beta)/(\lambda_1 + \beta)$, which increases with $\beta$; for smaller $\beta$ it is $-(\lambda_m + \beta)/(\lambda_1 + \beta)$, which decreases with $\beta$. The case $\lambda_2 \approx -\lambda_1$ of the previous section is solved in the same way: with $\lambda_1 > 0$ and any $\beta > 0$, the ratio becomes $\abs{\beta - \lambda_1}/(\beta + \lambda_1) < 1$.
+To see that this is optimal: for larger $\beta$ the ratio is $(\lambda_2 + \beta)/(\lambda_1 + \beta)$, which increases with $\beta$; for smaller $\beta$ it is $-(\lambda_m + \beta)/(\lambda_1 + \beta)$, which decreases with $\beta$. The bad case $\lambda_2 \approx -\lambda_1$ of the previous section is solved in the same way: with $\lambda_1 > 0$ and any $\beta > 0$, the ratio becomes $\abs{\beta - \lambda_1}/(\beta + \lambda_1) < 1$.
 
-A shift can only translate the spectrum, and choosing it requires rough knowledge of where the spectrum lies. Higher-degree polynomials $p$ can be designed to be large at $\lambda_1$ and uniformly small on the interval containing the rest of the spectrum (Chebyshev acceleration). Replacing polynomials by rational functions leads to inverse iteration.
+A shift can only translate the spectrum, and choosing it requires rough knowledge of where the spectrum lies. Two generalizations go further.
+\begin{itemize}
+  \item Higher-degree polynomials $p$ can be designed to be large at $\lambda_1$ and uniformly small on the interval containing the rest of the spectrum (Chebyshev acceleration).
+  \item Replacing polynomials by rational functions leads to inverse iteration, the subject of the next section.
+\end{itemize}
 
 \section{Inverse Iteration}
 
-Suppose we want an eigenvalue in the \emph{middle} of the spectrum: the one closest to a given $\mu \in \R$. Take
+Power iteration can only find eigenvalues at the edge of the spectrum. What if we want to target an eigenvalue in the \emph{middle}, the one closest to a given $\mu \in \R$? The idea is to use $(A - \mu I)^{-1}$, i.e., the function
 \begin{equation}
   f(z) = \frac{1}{z - \mu}, \qquad (A - \mu I)^{-1}\vec{x}_j = \frac{1}{\lambda_j - \mu}\vec{x}_j.
 \end{equation}
-The eigenvalue $\lambda_J$ closest to $\mu$ is mapped to $1/(\lambda_J - \mu)$, which has the largest modulus; the second closest is mapped a bit closer to the origin; the far ones are all squeezed toward the origin (those with $\lambda_j < \mu$ onto the negative axis, those with $\lambda_j > \mu$ onto the positive axis).
+Let us see what this does to the spectrum.
+\begin{itemize}
+  \item The eigenvalue $\lambda_J$ closest to $\mu$ is mapped to $1/(\lambda_J - \mu)$, which has the largest modulus.
+  \item The second closest is mapped a bit closer to the origin.
+  \item The far ones are all squeezed toward the origin: those with $\lambda_j < \mu$ onto the negative axis, those with $\lambda_j > \mu$ onto the positive axis.
+\end{itemize}
 
 \begin{center}
 \begin{tikzpicture}[xscale=1.25, every node/.style={font=\small}]
@@ -365,7 +451,7 @@ The eigenvalue $\lambda_J$ closest to $\mu$ is mapped to $1/(\lambda_J - \mu)$, 
 \small The map $\lambda \mapsto 1/(\lambda - \mu)$ sends the eigenvalue closest to $\mu$ far away and squeezes all the others toward $0$.
 \end{center}
 
-Power iteration on $(A - \mu I)^{-1}$ therefore finds $\vec{x}_J$. Let $\lambda_K$ be the second closest eigenvalue to $\mu$.
+So power iteration on $(A - \mu I)^{-1}$ finds $\vec{x}_J$. Let $\lambda_K$ be the second closest eigenvalue to $\mu$.
 
 \begin{theorem}[Convergence of Inverse Iteration]
   \label{thm:inverse-iter}
@@ -376,10 +462,14 @@ Power iteration on $(A - \mu I)^{-1}$ therefore finds $\vec{x}_J$. Let $\lambda_
 \end{theorem}
 
 \begin{proof}
-  The matrix $(A - \mu I)^{-1}$ is Hermitian, with the same orthonormal eigenvectors as $A$ and eigenvalues $1/(\lambda_j - \mu)$, the largest in modulus being $1/(\lambda_J - \mu)$ and the second largest $1/(\lambda_K - \mu)$. Up to normalization, the iterates of \Cref{alg:inverse} are those of \Cref{alg:power} applied to $(A - \mu I)^{-1}$, so the first estimate is \Cref{thm:power} with the ratio $\abs{(\lambda_K - \mu)^{-1}/(\lambda_J - \mu)^{-1}}$. The eigenvalue estimate $\lambda^{(k)} = r(\vec{q}^{(k)})$ is the Rayleigh quotient of $A$ itself, and \Cref{lem:rayleigh-quad} applied to $A$ squares the vector error.
+  The matrix $(A - \mu I)^{-1}$ is Hermitian, with the same orthonormal eigenvectors as $A$ and eigenvalues $1/(\lambda_j - \mu)$. The largest in modulus is $1/(\lambda_J - \mu)$ and the second largest is $1/(\lambda_K - \mu)$. Up to normalization, the iterates of \Cref{alg:inverse} are those of \Cref{alg:power} applied to $(A - \mu I)^{-1}$. So the first estimate is \Cref{thm:power} with the ratio
+  \begin{equation}
+    \abs{\frac{(\lambda_K - \mu)^{-1}}{(\lambda_J - \mu)^{-1}}} = \abs{\frac{\lambda_J - \mu}{\lambda_K - \mu}}.
+  \end{equation}
+  The eigenvalue estimate $\lambda^{(k)} = r(\vec{q}^{(k)})$ is the Rayleigh quotient of $A$ itself, and \Cref{lem:rayleigh-quad} applied to $A$ squares the vector error.
 \end{proof}
 
-The closer $\mu$ is to $\lambda_J$, the smaller the ratio. The rate of convergence is now controlled by our choice of $\mu$, not by the intrinsic spectrum of the matrix.
+The closer $\mu$ is to $\lambda_J$, the smaller the ratio. In other words, \emph{the rate of convergence is now controlled by our choice of $\mu$}, not by the intrinsic spectrum of the matrix.
 
 \begin{algorithm}[H]
   \caption{Inverse iteration with a fixed shift $\mu$.}
@@ -398,13 +488,19 @@ The closer $\mu$ is to $\lambda_J$, the smaller the ratio. The rate of convergen
   \end{algorithmic}
 \end{algorithm}
 
-Since $\mu$ is fixed, the factorization is computed once, outside the loop; solving with it from scratch in every step would cost $O(m^3)$ per step. For Hermitian $A$ we can use a symmetric indefinite factorization $LDL^\ast$ (Bunch--Kaufman, \Cref{sec:chol-errors}), but not Cholesky: with $\mu$ in the middle of the spectrum, $A - \mu I$ is indefinite. The eigenvalue estimate is the Rayleigh quotient of $A$ itself, which gives $\lambda_J$ directly; there is no need to recover it from $1/(\lambda_J - \mu)$. Normalization is especially important here, since $\norm{\vec{z}} \approx 1/\abs{\lambda_J - \mu}$ can be huge.
+In MATLAB notation, line 4 is \texttt{z = (A - mu*I) \textbackslash\ q}. Some remarks on implementing it.
+\begin{itemize}
+  \item \emph{Factor once.} Since $\mu$ is fixed, the factorization is computed once, outside the loop. Solving from scratch in every step would cost $O(m^3)$ per step instead of $O(m^2)$.
+  \item \emph{Which factorization.} For Hermitian $A$ we can use a symmetric indefinite factorization $LDL^\ast$ (Bunch--Kaufman, \Cref{sec:chol-errors}), but not Cholesky: with $\mu$ in the middle of the spectrum, $A - \mu I$ is indefinite.
+  \item \emph{The eigenvalue estimate.} We use the Rayleigh quotient of $A$ itself, which gives $\lambda_J$ directly; there is no need to recover it from $1/(\lambda_J - \mu)$.
+  \item \emph{Normalization} is especially important here, since $\norm{\vec{z}} \approx 1/\abs{\lambda_J - \mu}$ can be huge.
+\end{itemize}
 
-\paragraph{Ill-conditioning is harmless.} The closer $\mu$ is to $\lambda_J$, the closer $A - \mu I$ is to singular and the larger the error in the solve. But this error lies almost entirely along $\vec{x}_J$, which is exactly the direction we want, and normalization removes it. An exact zero pivot, when $\mu$ is exactly an eigenvalue, almost never happens in floating point; if it does, perturbing $\mu$ by about $\epsm$ suffices.
+\paragraph{Ill-conditioning is harmless.} The closer $\mu$ is to $\lambda_J$, the closer $A - \mu I$ is to singular, and the larger the error in the solve. Is this a problem? No: this error lies almost entirely along $\vec{x}_J$, which is exactly the direction we want, and normalization removes it. An exact zero pivot, when $\mu$ is exactly an eigenvalue, almost never happens in floating point; if it does, perturbing $\mu$ by about $\epsm$ suffices.
 
 \section{Rayleigh Quotient Iteration}
 
-Inverse iteration with a fixed $\mu$ still converges only linearly. The idea of Rayleigh quotient iteration (RQI) is to let $\mu$ be the current best guess for the eigenvalue: the Rayleigh quotient of the current vector.
+In some problems we know a good $\mu$ a priori. But what if we don't? And even with a fixed good $\mu$, inverse iteration still converges only linearly. The idea of Rayleigh quotient iteration (RQI) is to \emph{choose $\mu$ to be our present guess of the eigenvalue}: the Rayleigh quotient of the current vector.
 
 \begin{algorithm}[H]
   \caption{Rayleigh quotient iteration.}
@@ -419,7 +515,79 @@ Inverse iteration with a fixed $\mu$ still converges only linearly. The idea of 
   \end{algorithmic}
 \end{algorithm}
 
-This sets up a positive feedback loop: a more accurate $\mu$ gives a smaller inverse iteration ratio, which improves $\vec{q}$ more, which makes the Rayleigh quotient $\mu$ more accurate. The Rayleigh quotient turns good vectors into better eigenvalues, and inverse iteration turns good eigenvalues into good vectors.
+This sets up a positive feedback loop:
+\begin{itemize}
+  \item a more accurate $\mu$ gives a smaller inverse iteration ratio, which improves $\vec{q}$ more;
+  \item a better $\vec{q}$ makes the Rayleigh quotient $\mu$ more accurate.
+\end{itemize}
+In short, the Rayleigh quotient turns good vectors into better eigenvalues, and inverse iteration turns good eigenvalues into good vectors.
+
+\subsection{The Rayleigh Quotient Near an Eigenvector}
+\label{sec:rqi-analysis}
+
+To analyze RQI, we first need to know exactly how close $r(\vec{q})$ is to $\lambda_J$ when $\vec{q}$ is close to $\vec{x}_J$. We already know the answer from \Cref{lem:rayleigh-quad}, but it can also be derived in a different way, with calculus, which gives a nice picture.
+
+Take $A \in \R^{m \times m}$ symmetric (the complex case is covered by \Cref{lem:rayleigh-quad}), and view $r(\vec{x}) = \vec{x}^\T A\vec{x}/\vec{x}^\T\vec{x}$ as a function on $\R^m \setminus \{\zerovec\}$. In inverse iteration and RQI the eigenvalue estimate is $\mu_k = r(\vec{q}^{(k)})$. For an eigenpair, $r(\vec{x}_J) = \lambda_J$, so $\vec{q} \approx \vec{x}_J$ implies $r(\vec{q}) \approx \lambda_J$. How close? Let us compute the Taylor expansion around $\vec{x}_J$, with $\vec{e} = \vec{y} - \vec{x}_J$:
+\begin{equation}
+  r(\vec{y}) = r(\vec{x}_J) + \nabla r(\vec{x}_J)^\T\vec{e} + \tfrac{1}{2}\vec{e}^\T H(\vec{x}_J)\vec{e} + O(\norm{\vec{e}}^3),
+\end{equation}
+where $H$ is the Hessian of $r$. By the quotient rule, the gradient is
+\begin{equation}
+  \nabla r(\vec{x}) = \frac{2A\vec{x}\,(\vec{x}^\T\vec{x}) - 2\vec{x}\,(\vec{x}^\T A\vec{x})}{(\vec{x}^\T\vec{x})^2} = \frac{2}{\vec{x}^\T\vec{x}}\bigl(A\vec{x} - r(\vec{x})\vec{x}\bigr).
+\end{equation}
+So $\nabla r(\vec{x}) = \zerovec$ if and only if $\vec{x}$ is an eigenvector: \emph{the eigenvectors are exactly the critical points of $r$.} The linear term in the Taylor expansion drops out, and
+\begin{equation}
+  r(\vec{y}) = \lambda_J + O(\norm{\vec{y} - \vec{x}_J}^2).
+\end{equation}
+
+We can go one step further and compute the quadratic term. Differentiating $\nabla r$ once more and using $\nabla r(\vec{x}_J) = \zerovec$ gives, for $\norm{\vec{x}_J} = 1$,
+\begin{equation}
+  H(\vec{x}_J) = 2(A - \lambda_JI), \qquad \tfrac{1}{2}\vec{e}^\T H(\vec{x}_J)\vec{e} = \vec{e}^\T(A - \lambda_JI)\vec{e} = \sum_{j \ne J}(\lambda_j - \lambda_J)c_j^2, \quad c_j = \vec{x}_j^\T\vec{e},
+\end{equation}
+which is the expression of \Cref{lem:rayleigh-quad} again. The Hessian is indefinite unless $\lambda_J$ is the largest or the smallest eigenvalue. So $\vec{x}_{\max}$ and $\vec{x}_{\min}$ are the maximum and minimum of $r$, and every other eigenvector is a saddle point.
+
+\begin{center}
+\begin{tikzpicture}[x=1.5cm, y=0.9cm, every node/.style={font=\small}]
+  \begin{scope}
+    \draw[-{Latex}] (-0.5,0) -- (2.1,0) node[right] {$\theta$};
+    \draw[-{Latex}] (0,-0.3) -- (0,3.7) node[above] {$r$};
+    \draw[thick, blue!70!black, domain=-0.15:1.9, samples=80] plot (\x, {1 + 2*cos(\x r)^2});
+    \draw[densely dotted] (0,3) -- (0.75,3);
+    \draw[densely dotted] (0,2.6215) -- (0.45,2.6215) -- (0.45,0);
+    \node[left=3pt] at (0,3) {$\lambda_1$};
+    \node[left=3pt] at (0,1) {$\lambda_2$};
+    \fill (0,3) circle (1.5pt) node[above right] {$\vec{x}_1$};
+    \fill (0.45,2.6215) circle (1.5pt) node[below left] {$\vec{y}$};
+    \fill (1.5708,1) circle (1.5pt) node[below] {$\vec{x}_2$};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (0,-0.15) -- (0.45,-0.15) node[midway, below=3pt] {$\eps$};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (0.78,2.6215) -- (0.78,3) node[midway, right=3pt] {$\approx (\lambda_1 - \lambda_2)\eps^2$};
+  \end{scope}
+  \begin{scope}[xshift=7cm]
+    \draw[-{Latex}] (-0.5,0) -- (2.1,0) node[right] {$\theta$};
+    \draw[-{Latex}] (0,-2.3) -- (0,2.3) node[above] {$\mathrm{d}r/\mathrm{d}\theta$};
+    \draw[thick, red!70!black, domain=-0.4:1.9, samples=80] plot (\x, {-2*sin(2*\x r)});
+    \fill (0,0) circle (1.5pt) node[above right] {$\vec{x}_1$};
+    \fill (1.5708,0) circle (1.5pt) node[above left] {$\vec{x}_2$};
+  \end{scope}
+\end{tikzpicture}
+
+\small The Rayleigh quotient on the unit circle $\vec{q} = \cos\theta\,\vec{x}_1 + \sin\theta\,\vec{x}_2$ for $\lambda_1 = 3$, $\lambda_2 = 1$: $r(\theta) = \lambda_2 + (\lambda_1 - \lambda_2)\cos^2\theta$. The derivative vanishes at the eigenvectors, so an angle error $\eps$ moves $r$ by only $(\lambda_1 - \lambda_2)\sin^2\eps \approx (\lambda_1 - \lambda_2)\eps^2$.
+\end{center}
+
+In RQI the next vector is $\vec{q}^{(k+1)} \propto (A - r(\vec{q}^{(k)})I)^{-1}\vec{q}^{(k)}$. The good news is that \emph{getting $\vec{q}$ close to $\vec{x}_J$ means getting $\mu$ even closer to $\lambda_J$.} A vector error $\eps$ gives an eigenvalue error $O(\eps^2)$.
+
+\paragraph{Analogy with Newton's method.} RQI resembles Newton's method, and the comparison can be made precise. An eigenpair is a root of
+\begin{equation}
+  F(\vec{x}, \lambda) = \begin{bmatrix} (A - \lambda I)\vec{x} \\ \tfrac{1}{2}(1 - \vec{x}^\T\vec{x}) \end{bmatrix}, \qquad
+  F'(\vec{x}, \lambda) = \begin{bmatrix} A - \lambda I & -\vec{x} \\ -\vec{x}^\T & 0 \end{bmatrix}.
+\end{equation}
+The first block row of the Newton step $F'(\vec{x}, \lambda)(\Delta\vec{x}, \Delta\lambda) = -F(\vec{x}, \lambda)$ reads $(A - \lambda I)\Delta\vec{x} - \Delta\lambda\,\vec{x} = -(A - \lambda I)\vec{x}$, i.e.,
+\begin{equation}
+  \vec{x} + \Delta\vec{x} = \Delta\lambda\,(A - \lambda I)^{-1}\vec{x}.
+\end{equation}
+So the Newton update of the vector is parallel to one step of inverse iteration with shift $\lambda$. RQI takes this direction, normalizes it, and then replaces Newton's $\lambda + \Delta\lambda$ by the Rayleigh quotient of the new vector. Newton's method converges quadratically because the error of the linearization is quadratic; for symmetric $A$, the stationarity of $r$ adds one more order.
+
+\subsection{Cubic Convergence}
 
 \begin{theorem}[Convergence of Rayleigh Quotient Iteration {\cite[Thm.~27.3]{TB}}]
   \label{thm:rqi}
@@ -430,23 +598,87 @@ This sets up a positive feedback loop: a more accurate $\mu$ gives a smaller inv
   For a general (non-Hermitian) matrix, the convergence is quadratic instead.
 \end{theorem}
 
-\paragraph{Why cubic.} Suppose $\norm{\vec{q}^{(k)} - \vec{x}_J} = \eps$. One step of inverse iteration multiplies the vector error by $\abs{\lambda_J - \mu}/\abs{\lambda_K - \mu}$, whose denominator is roughly the spectral gap and stays bounded away from $0$. For a general matrix the Rayleigh quotient is only first-order accurate, $\abs{\mu - \lambda_J} = O(\eps)$, so the new error is $O(\eps^2)$: quadratic convergence. On the board this is written as: for $\eps$ small enough, $\norm{\vec{q}^{(k)} - \vec{x}_J} \le \eps$ implies $\norm{\vec{q}^{(k+1)} - \vec{x}_J} \le \eps^2$. For Hermitian $A$, \Cref{lem:rayleigh-quad} gives $\abs{\mu - \lambda_J} = O(\eps^2)$, so the new error is $O(\eps^3)$: cubic convergence. The number of correct digits triples at every step, $10^{-2} \to 10^{-6} \to 10^{-18}$. The board's bound $\le \eps^2$ holds here as well, since $C\eps^3 \le \eps^2$ once $\eps \le 1/C$; ``$\eps$ small enough'' absorbs the constant.
+\paragraph{Why cubic: the heuristic.} Before the proof, let us see where the exponent $3$ comes from. Suppose $\norm{\vec{q}^{(k)} - \vec{x}_J} = \eps$.
+\begin{enumerate}
+  \item One step of inverse iteration multiplies the vector error by $\abs{\lambda_J - \mu}/\abs{\lambda_K - \mu}$. The denominator is roughly the spectral gap and stays bounded away from $0$, so the new error is about $\eps\abs{\lambda_J - \mu}$.
+  \item For a general matrix the Rayleigh quotient is only first-order accurate, $\abs{\mu - \lambda_J} = O(\eps)$, so the new error is $O(\eps^2)$: quadratic convergence.
+  \item For Hermitian $A$, \Cref{lem:rayleigh-quad} gives $\abs{\mu - \lambda_J} = O(\eps^2)$, so the new error is $O(\eps^3)$: cubic convergence.
+\end{enumerate}
+In the cubic case the number of correct digits triples at every step, $10^{-2} \to 10^{-6} \to 10^{-18}$. The following proposition makes this precise.
 
-This is a \emph{local} statement: it applies only once $\vec{q}^{(k)}$ is already close enough to some eigenvector.
+\begin{proposition}[One Step of RQI]
+  \label{prop:rqi-step}
+  Let $A$ be Hermitian with orthonormal eigenvectors $\vec{x}_1, \dots, \vec{x}_m$, let $\lambda_J$ be simple, and let
+  \begin{equation}
+    g \defeq \min_{j \ne J}\abs{\lambda_j - \lambda_J} > 0, \qquad s_A \defeq \lambda_{\max} - \lambda_{\min}.
+  \end{equation}
+  Let $\vec{q}$ be a unit vector with $\norm{\vec{q} - \vec{x}_J} \le \eps$, where $\eps \le \frac{1}{2}$ and $s_A\eps^2 \le g/2$, let $\mu = r(\vec{q}) \ne \lambda_J$, and let $\vec{q}^+ = (A - \mu I)^{-1}\vec{q}/\norm{(A - \mu I)^{-1}\vec{q}}$. Then there is a unimodular $s$ with
+  \begin{equation}
+    \norm{\vec{q}^+ - s\vec{x}_J} \le \frac{4s_A}{g}\eps^3.
+  \end{equation}
+\end{proposition}
 
-\paragraph{Cost and limitations.} Since $\mu$ changes at every step, the factorization cannot be reused, and each step costs $O(m^3)$ for a dense matrix. In practice $A$ is first reduced to tridiagonal (Hermitian) or Hessenberg form, after which each solve costs only $O(m)$ or $O(m^2)$; the shifted QR algorithm is essentially RQI in disguise. As it converges, $A - \mu I$ becomes ever closer to singular, which is again ill-conditioned but harmless; an exact zero pivot means that the iteration has converged, and we can stop. Which eigenvalue RQI converges to depends on the starting vector and cannot be prescribed in advance; for Hermitian matrices it can be shown to converge for almost every starting vector. A common practice is to run a few steps of inverse iteration with a fixed shift to steer the vector toward the target, and then switch to RQI to accelerate.
+\begin{proof}
+  \emph{Step 1: split $\vec{q}$.} Write $\vec{q} = \alpha\vec{x}_J + \beta\vec{v}$ with $\alpha = \ip{\vec{x}_J}{\vec{q}}$, $\vec{v} \perp \vec{x}_J$, and $\norm{\vec{v}} = 1$. Since $\alpha\vec{x}_J$ is the closest point to $\vec{q}$ on $\spn(\vec{x}_J)$, we have $\abs{\beta} = \norm{\vec{q} - \alpha\vec{x}_J} \le \norm{\vec{q} - \vec{x}_J} \le \eps$. Also $\abs{\alpha - 1} = \abs{\ip{\vec{x}_J}{\vec{q} - \vec{x}_J}} \le \eps$, so $\abs{\alpha} \ge \frac{1}{2}$.
+
+  \emph{Step 2: apply $(A - \mu I)^{-1}$.} The vector $\vec{x}_J$ is an eigenvector of $(A - \mu I)^{-1}$ with eigenvalue $1/(\lambda_J - \mu)$, so
+  \begin{equation}
+    (A - \mu I)^{-1}\vec{q} = \frac{\alpha}{\lambda_J - \mu}\vec{x}_J + \beta(A - \mu I)^{-1}\vec{v}.
+  \end{equation}
+  We bound the second term. The subspace $\spn\{\vec{x}_j : j \ne J\}$ contains $\vec{v}$ and is invariant under $(A - \mu I)^{-1}$, so $(A - \mu I)^{-1}\vec{v} \perp \vec{x}_J$ and $\norm{(A - \mu I)^{-1}\vec{v}} \le \max_{j \ne J}1/\abs{\lambda_j - \mu}$. By \Cref{lem:rayleigh-quad}, $\abs{\mu - \lambda_J} \le s_A\eps^2 \le g/2$, hence for $j \ne J$
+  \begin{equation}
+    \abs{\lambda_j - \mu} \ge \abs{\lambda_j - \lambda_J} - \abs{\lambda_J - \mu} \ge g/2.
+  \end{equation}
+
+  \emph{Step 3: factor out the main term.} With $c = \alpha/(\lambda_J - \mu)$,
+  \begin{equation}
+    (A - \mu I)^{-1}\vec{q} = c(\vec{x}_J + \vec{d}), \qquad \vec{d} = \frac{\beta(\lambda_J - \mu)}{\alpha}(A - \mu I)^{-1}\vec{v} \perp \vec{x}_J,
+  \end{equation}
+  and
+  \begin{equation}
+    \norm{\vec{d}} \le \frac{\abs{\beta}\abs{\lambda_J - \mu}}{\abs{\alpha}} \cdot \frac{2}{g} \le \frac{4}{g}\,\eps\abs{\lambda_J - \mu} \le \frac{4s_A}{g}\eps^3.
+  \end{equation}
+  In $O$-notation, the middle bound is $O(\eps\abs{\lambda_J - \mu})$, and the last step uses $\abs{\lambda_J - \mu} = O(\eps^2)$.
+
+  \emph{Step 4: normalize.} With $s = c/\abs{c}$, we have $\vec{q}^+ = s\vec{u}$, where $\vec{u} = (\vec{x}_J + \vec{d})/\norm{\vec{x}_J + \vec{d}}$. Let $t = \norm{\vec{d}}$. Since $\vec{d} \perp \vec{x}_J$, $\norm{\vec{x}_J + \vec{d}} = \sqrt{1 + t^2}$, and
+  \begin{equation}
+    \norm{\vec{u} - \vec{x}_J}^2 = \left(1 - \frac{1}{\sqrt{1 + t^2}}\right)^2 + \frac{t^2}{1 + t^2} = 2 - \frac{2}{\sqrt{1 + t^2}} \le t^2,
+  \end{equation}
+  using $1/\sqrt{1 + t^2} \ge 1 - t^2/2$. Hence $\norm{\vec{q}^+ - s\vec{x}_J} = \norm{\vec{u} - \vec{x}_J} \le t$, as desired.
+\end{proof}
+
+Step 4 is the rigorous form of the estimate $\frac{1}{a + \eps} - \frac{1}{a} \approx -\frac{\eps}{a^2}$: dividing by a length that is perturbed by a small amount changes the result only by a perturbation of the same order, so normalizing does not destroy the $O(\eps^3)$ bound.
+
+\paragraph{From one step to the theorem.} Since $s\vec{x}_J$ is again a unit eigenvector for $\lambda_J$, the proposition can be applied at every step. With $\eps_k = \norm{\vec{q}^{(k)} - s_k\vec{x}_J}$ it gives $\eps_{k+1} \le C\eps_k^3$ with $C = 4s_A/g$, and the bound $\abs{\mu^{(k)} - \lambda_J} \le s_A\eps_k^2$ on the eigenvalue error is cubed as well. This proves the Hermitian case of \Cref{thm:rqi}. Here ``sufficiently close'' means $\eps \le \frac{1}{2}$ and $s_A\eps^2 \le g/2$, together with $C\eps^2 < 1$ so that the errors decrease. If $\mu = \lambda_J$ exactly, the iteration has already converged.
+
+Note that this is a \emph{local} statement: it applies only once $\vec{q}^{(k)}$ is already close enough to some eigenvector.
+
+\paragraph{Cost and limitations.}
+\begin{itemize}
+  \item \emph{Cost.} Since $\mu$ changes at every step, the factorization cannot be reused, and each step costs $O(m^3)$ for a dense matrix. In practice $A$ is first reduced to tridiagonal (Hermitian) or Hessenberg form, after which each solve costs only $O(m)$ or $O(m^2)$. The shifted QR algorithm is essentially RQI in disguise.
+  \item \emph{Near-singular systems.} As RQI converges, $A - \mu I$ becomes ever closer to singular. As for inverse iteration, this is ill-conditioning but harmless; an exact zero pivot means that the iteration has converged, and we can stop.
+  \item \emph{Which eigenvalue.} Which eigenvalue RQI converges to depends on the starting vector and cannot be prescribed in advance. For Hermitian matrices it can be shown to converge for almost every starting vector. A common practice is to run a few steps of inverse iteration with a fixed shift to steer the vector toward the target, and then switch to RQI to accelerate.
+\end{itemize}
 
 \section{(SUPPLEMENT) Further Topics}
 
-\paragraph{The Jordan normal form.} Diagonalizability requires $m$ linearly independent eigenvectors. A counterexample is
+\paragraph{The Jordan normal form.} Diagonalizability requires $m$ linearly independent eigenvectors, and this can fail. A counterexample is
 \begin{equation}
   J = \begin{bmatrix} \lambda & 1 \\ 0 & \lambda \end{bmatrix},
 \end{equation}
-whose eigenvalue $\lambda$ has algebraic multiplicity $2$, but $\nullsp(J - \lambda I) = \spn(\vec{e}_1)$, so its geometric multiplicity is $1$. A matrix with an eigenvalue whose geometric multiplicity is smaller than its algebraic multiplicity is called \emph{defective}. Every square matrix is similar to a Jordan normal form $A = XJX^{-1}$, $J = \diag(J_1, \dots, J_p)$, where each Jordan block is $J_i = \lambda_iI + N$ with $N$ the nilpotent matrix with ones on the superdiagonal; $J$ is unique up to the order of the blocks. The algebraic multiplicity of an eigenvalue is the total size of its blocks, and the geometric multiplicity is the number of its blocks; $A$ is diagonalizable if and only if all blocks are $1 \times 1$. The columns of $X$ belonging to a $k \times k$ block satisfy $(A - \lambda I)\vec{x}_j = \vec{x}_{j-1}$: $\vec{x}_1$ is an eigenvector and the rest are \emph{generalized eigenvectors}.
+whose eigenvalue $\lambda$ has algebraic multiplicity $2$, but $\nullsp(J - \lambda I) = \spn(\vec{e}_1)$, so its geometric multiplicity is $1$. A matrix with an eigenvalue whose geometric multiplicity is smaller than its algebraic multiplicity is called \emph{defective}.
 
-In theory, the Jordan form explains the transient growth of defective matrices: $J_i^n = \sum_{j=0}^{k-1}\binom{n}{j}\lambda^{n-j}N^j$, so even with $\abs{\lambda} < 1$, $\norm{A^n}$ may first grow like $n^{k-1}\abs{\lambda}^n$; the factor $t$ in the solutions of ODEs with repeated roots has the same origin. Numerically, it is not used, because it is discontinuous under perturbation: $\left[\begin{smallmatrix} \lambda & 1 \\ \eps & \lambda \end{smallmatrix}\right]$ has eigenvalues $\lambda \pm \sqrt{\eps}$ and is immediately diagonalizable, and a $k \times k$ block amplifies perturbations like $\eps^{1/k}$. In floating point, whether a matrix is defective and how large its blocks are cannot be decided, and $\kappa(X) \to \infty$ as a matrix approaches a defective one. This is why we give up on diagonal form and settle for the upper triangular Schur form.
+Every square matrix is similar to a Jordan normal form $A = XJX^{-1}$, $J = \diag(J_1, \dots, J_p)$, where each Jordan block is $J_i = \lambda_iI + N$ with $N$ the nilpotent matrix with ones on the superdiagonal; $J$ is unique up to the order of the blocks.
+\begin{itemize}
+  \item The algebraic multiplicity of an eigenvalue is the total size of its blocks, and the geometric multiplicity is the number of its blocks. So $A$ is diagonalizable if and only if all blocks are $1 \times 1$.
+  \item The columns of $X$ belonging to a $k \times k$ block satisfy $(A - \lambda I)\vec{x}_j = \vec{x}_{j-1}$: $\vec{x}_1$ is an eigenvector and the rest are \emph{generalized eigenvectors}.
+\end{itemize}
 
-\paragraph{Why not go through the characteristic polynomial.} Even in low degrees where root formulas exist, we do not compute $\det(zI - A)$ and then its roots, because the step from a matrix to the coefficients of its polynomial is extremely ill-conditioned. For the Wilkinson polynomial $\prod_{i=1}^{20}(z - i)$, changing the coefficient of $z^{19}$ by about $10^{-10}$ sends several roots into the complex plane, moving them by $O(1)$; yet the eigenvalues of $\diag(1, \dots, 20)$ are perfectly well-conditioned under perturbations of the matrix. So all iterative methods of this lecture act directly on the matrix, using only matrix-vector products or linear solves. They exploit $p(A)\vec{x}_i = p(\lambda_i)\vec{x}_i$, rather than approximating roots of a polynomial.
+In theory, the Jordan form explains the transient growth of defective matrices: $J_i^n = \sum_{j=0}^{k-1}\binom{n}{j}\lambda^{n-j}N^j$, so even with $\abs{\lambda} < 1$, $\norm{A^n}$ may first grow like $n^{k-1}\abs{\lambda}^n$. The factor $t$ in the solutions of ODEs with repeated roots has the same origin.
+
+Numerically, however, the Jordan form is not used, because it is discontinuous under perturbation. For example, $\left[\begin{smallmatrix} \lambda & 1 \\ \eps & \lambda \end{smallmatrix}\right]$ has eigenvalues $\lambda \pm \sqrt{\eps}$ and is immediately diagonalizable, and a $k \times k$ block amplifies perturbations like $\eps^{1/k}$. In floating point, whether a matrix is defective and how large its blocks are cannot be decided, and $\kappa(X) \to \infty$ as a matrix approaches a defective one. This is why we give up on diagonal form and settle for the upper triangular Schur form.
+
+\paragraph{Why not go through the characteristic polynomial.} Even in low degrees where root formulas exist, we do not compute $\det(zI - A)$ and then its roots. The reason is that the step from a matrix to the coefficients of its polynomial is extremely ill-conditioned. For the Wilkinson polynomial $\prod_{i=1}^{20}(z - i)$, changing the coefficient of $z^{19}$ by about $10^{-10}$ sends several roots into the complex plane, moving them by $O(1)$; yet the eigenvalues of $\diag(1, \dots, 20)$ are perfectly well-conditioned under perturbations of the matrix. So all iterative methods of this lecture act directly on the matrix, using only matrix-vector products or linear solves. They exploit $p(A)\vec{x}_i = p(\lambda_i)\vec{x}_i$, rather than approximating roots of a polynomial.
 
 \paragraph{A gap-independent eigenvalue bound.} Let $A$ be s.p.d.\ with eigenvalues $\lambda_1 \ge \lambda_2 \ge \cdots > 0$ and orthonormal eigenvectors, and let $t_j = \lambda_j/\lambda_1 \in (0, 1]$. The Rayleigh quotient of power iteration satisfies
 \begin{equation}
@@ -475,9 +707,11 @@ can serve as the definition for a general $f$. For example, an s.p.d.\ matrix ha
 \end{tabular}
 \end{center}
 
-The last row is the natural generalization of power iteration: $A^k\vec{q}$ is just one of many polynomials of degree $k$ in $A$ applied to $\vec{q}$, and searching for the best one in $\spn(\vec{q}, A\vec{q}, \dots, A^k\vec{q})$ is what Krylov subspace methods (Lanczos, Arnoldi) do. Numerically, when $X$ is ill-conditioned, the error of $Xf(\Lambda)X^{-1}$ is amplified by $\kappa(X)$. For Hermitian $A$, $X = Q$ is unitary and the formula is safe; for general matrices one uses the Schur decomposition $f(A) = Qf(T)Q^\ast$ and a recurrence on the triangular $T$ (Schur--Parlett); $e^A$ is computed by scaling and squaring, $e^A = (e^{A/2^s})^{2^s}$, with a Pad\'e approximant on the small matrix. See Higham~\cite{HighamFM}.
+The last row is the natural generalization of power iteration: $A^k\vec{q}$ is just one of many polynomials of degree $k$ in $A$ applied to $\vec{q}$, and searching for the best one in $\spn(\vec{q}, A\vec{q}, \dots, A^k\vec{q})$ is what Krylov subspace methods (Lanczos, Arnoldi) do.
 
-\paragraph{Why iterative approximation is reliable.} Eigenvalues cannot be computed exactly in finitely many steps, yet iterative approximation is numerically on equal footing with direct methods. There are three layers.
+Numerically, when $X$ is ill-conditioned, the error of $Xf(\Lambda)X^{-1}$ is amplified by $\kappa(X)$. For Hermitian $A$, $X = Q$ is unitary and the formula is safe. For general matrices one uses the Schur decomposition $f(A) = Qf(T)Q^\ast$ and a recurrence on the triangular $T$ (Schur--Parlett); $e^A$ is computed by scaling and squaring, $e^A = (e^{A/2^s})^{2^s}$, with a Pad\'e approximant on the small matrix. See Higham~\cite{HighamFM}.
+
+\paragraph{Why iterative approximation is reliable.} Eigenvalues cannot be computed exactly in finitely many steps, yet iterative approximation is numerically on equal footing with direct methods. There are three layers to this.
 \begin{itemize}
   \item \emph{Why the vector converges.} Every vector is a combination of eigenvectors, and in $f(A)^k\vec{q} = \sum_j f(\lambda_j)^ky_j\vec{x}_j$ each direction is independently multiplied by $f(\lambda_j)^k$. Exponential growth lets the direction with the largest $\abs{f(\lambda)}$ dominate, with geometric convergence. The three algorithms differ only in the choice of $f$.
   \item \emph{Why the eigenvalue can be read off.} The Rayleigh quotient equals the eigenvalue at an eigenvector and (for Hermitian matrices) is stationary there, so a roughly correct vector already gives a quadratically accurate eigenvalue.
@@ -485,7 +719,7 @@ The last row is the natural generalization of power iteration: $A^k\vec{q}$ is j
   \begin{equation}
     (A + \delta A)\vec{q} = A\vec{q} - \vec{r} = \mu\vec{q}, \qquad \norm{\delta A}_2 = \norm{\vec{r}}\norm{\vec{q}} = \norm{\vec{r}}.
   \end{equation}
-  An approximate eigenpair with residual $\norm{\vec{r}}$ is an \emph{exact} eigenpair of a matrix that differs from $A$ by $\norm{\vec{r}}$. The input $A$ already carries errors of order $\epsm$, so once $\norm{\vec{r}} \approx \epsm\norm{A}$, the result cannot be distinguished from an exact computation on a matrix indistinguishable from $A$. This is exactly backward stability (\Cref{def:backward-stable}), the same standard as for LU and QR. Combined with the well-conditioning of Hermitian eigenvalues (Weyl), a small backward error guarantees a small forward error. This is the fundamental reason for using the residual as the stopping criterion.
+  So an approximate eigenpair with residual $\norm{\vec{r}}$ is an \emph{exact} eigenpair of a matrix that differs from $A$ by $\norm{\vec{r}}$. The input $A$ already carries errors of order $\epsm$, so once $\norm{\vec{r}} \approx \epsm\norm{A}$, the result cannot be distinguished from an exact computation on a matrix indistinguishable from $A$. This is exactly backward stability (\Cref{def:backward-stable}), the same standard as for LU and QR. Combined with the well-conditioning of Hermitian eigenvalues (Weyl), a small backward error guarantees a small forward error. This is the fundamental reason for using the residual as the stopping criterion.
 \end{itemize}
 
 \paragraph{A preview of subspace iteration.} In the example $\abs{\lambda_1} \sim \abs{\lambda_2} \gg \abs{\lambda_3}$, what converges quickly is not a vector but the subspace $\spn(\vec{x}_1, \vec{x}_2)$, at the rate $\abs{\lambda_3/\lambda_2}$, regardless of how close $\lambda_1$ and $\lambda_2$ are. Iterating several vectors at once and keeping them orthonormal by a QR factorization at each step quickly produces an invariant subspace; solving a small eigenvalue problem inside it then separates the eigenpairs. This is simultaneous (subspace) iteration, the precursor of the QR algorithm. When $\lambda_2 \approx -\lambda_1$, two consecutive iterates $\vec{q}^{(k)}, \vec{q}^{(k+1)}$ also span this invariant subspace, and the same approach separates $\pm\lambda_1$.

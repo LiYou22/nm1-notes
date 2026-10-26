@@ -1,0 +1,219 @@
+\chapter{Hessenberg Reduction and Bulge Chasing}
+\label{ch:hessenberg-qr}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lecture 26.
+  \item \cite{Demmel} Sections 4.4.5, 4.4.6, and 4.4.8.
+\end{itemize}
+
+\section{Recap: From Orthogonal Iteration to the QR Algorithm}
+
+The lecture opens with a recap of \Cref{ch:qr-alg}. If $A = X\Lambda X^{-1}$ and $X = QR$, then $A = Q(R\Lambda R^{-1})Q^\ast$ with $R\Lambda R^{-1}$ upper triangular, so the Schur vectors span the same nested subspaces as the eigenvectors (\Cref{sec:schur-eig}). Orthogonal iteration finds these subspaces without knowing $X$: since $\spn(Q_k) = \spn(A^kQ_0)$, the span of the first $p$ columns converges to $\spn(\vec{x}_1, \dots, \vec{x}_p)$ at the rate $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}). Splitting $Q_k = [\bar{Q}_k\ \tilde{Q}_k]$ after every column $p$ shows that $\tilde{Q}_k^\ast A\bar{Q}_k \to 0$, so $T_k \doteq Q_k^\ast AQ_k$ converges to the triangular factor of a Schur factorization (\Cref{thm:orth-iter-schur}). Finally, with $U_{k+1} \doteq Q_k^\ast Q_{k+1}$ the iteration can be written in terms of $T_k$ alone,
+\begin{equation}
+  T_k = U_{k+1}R_{k+1} \quad\longrightarrow\quad T_{k+1} = R_{k+1}U_{k+1},
+\end{equation}
+starting from $T_0 = A$. This is the basic QR iteration (\Cref{alg:basic-qr}).
+
+This lecture asks: \emph{how expensive is the QR iteration, and how can it be made cheaper?}
+
+\section{The Cost of the QR Iteration}
+\label{sec:qr-improvements}
+
+Each step of \Cref{alg:basic-qr} computes the QR factorization of a dense $m \times m$ matrix, at a cost of $O(m^3)$, and we possibly need many such steps. Even if every eigenvector converged in $O(1)$ iterations, there are $m$ of them, so we would still need $O(m)$ factorizations and a total cost of $O(m^4)$. Speeding up convergence alone is therefore not enough; the cost of each step must come down as well.
+
+The idea is to \emph{preprocess $A$ once} so that every subsequent QR factorization becomes simple. The preprocessing must not change the eigenvalues, so it has to be a similarity transformation, $A \mapsto Q^\ast AQ$, rather than a one-sided product as in the QR factorization. We take $Q$ unitary, which does not worsen the conditioning (\Cref{thm:unitary}). Reducing $A$ all the way to triangular form is impossible, since that would compute a Schur factorization in finitely many steps (\Cref{sec:negative-result}). The best we can do is one diagonal short of that.
+
+\begin{definition}[Hessenberg Matrix]
+  \label{def:hessenberg}
+  A matrix $H \in \K^{m \times m}$ is \emph{upper Hessenberg} if $h_{ij} = 0$ for $i > j + 1$, i.e., it is upper triangular except for one additional subdiagonal:
+  \begin{equation}
+    H = \begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \end{bmatrix}.
+  \end{equation}
+\end{definition}
+
+\section{Reduction to Hessenberg Form}
+\label{sec:hessenberg}
+
+We compute $Q$ using Householder reflections (\Cref{ch:householder}). Recall that a Householder reflector is Hermitian as well as unitary, so it is its own inverse and its own adjoint.
+
+Let $P_1 \in \K^{(m-1) \times (m-1)}$ be the Householder reflector that maps
+\begin{equation}
+  \vec{v} \doteq A_{2:m,1} \quad\text{to}\quad \norm{\vec{v}}\vec{e}_1, \qquad\text{and set}\qquad Q_1 \doteq \begin{bmatrix} 1 & 0 \\ 0 & P_1 \end{bmatrix}.
+\end{equation}
+Multiplying by $Q_1$ on the left leaves the first row of $A$ unchanged and zeros out the first column below the subdiagonal:
+\begin{equation}
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ \times & \times & \times & \times \\ \times & \times & \times & \times \end{bmatrix}}_{A}
+  \xrightarrow{\ Q_1 \cdot\ }
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & \times & \times & \times \end{bmatrix}}_{Q_1A}.
+\end{equation}
+To complete the similarity we multiply by $Q_1^\ast = Q_1$ on the right. This acts only on columns $2, \dots, m$, so the first column of $Q_1A$, together with its new zeros, is left unchanged:
+\begin{equation}
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & \times & \times & \times \end{bmatrix}}_{Q_1A}
+  \xrightarrow{\ \cdot\, Q_1^\ast\ }
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & \times & \times & \times \end{bmatrix}}_{Q_1AQ_1^\ast}.
+\end{equation}
+This is why the reflector starts at row $2$ and leaves $a_{21}$ in place. A reflector acting on all rows, as in the first step of Householder QR, would zero out $a_{21}$ as well, but multiplying by its adjoint on the right would then mix all columns and fill the first column back in.
+
+Now repeat the same step on the trailing $(m-1) \times (m-1)$ block. Step $k$ uses the reflector $P_k$ that maps the part of column $k$ below the subdiagonal, $\vec{v} = (\cdot)_{k+1:m,k}$, to $\norm{\vec{v}}\vec{e}_1$, embedded as $Q_k = \diag(I_k, P_k)$. Left multiplication by $Q_k$ touches only rows $k+1, \dots, m$ and right multiplication only columns $k+1, \dots, m$, so the zeros created in columns $1, \dots, k-1$ survive. After $m - 2$ steps (the last column has nothing below the subdiagonal) we gather the reflectors into
+\begin{equation}
+  Q \doteq Q_1Q_2\cdots Q_{m-2}, \qquad Q^\ast AQ = Q_{m-2}\cdots Q_1\,A\,Q_1\cdots Q_{m-2} = H.
+\end{equation}
+The order of the factors in $Q$ matters: each $Q_k$ is Hermitian, but $Q^\ast = Q_{m-2}\cdots Q_1$ has them in reverse order.
+
+As in Householder QR, neither the $Q_k$ nor $Q$ is ever formed; we store the reflection vectors and apply them from both sides.
+
+\begin{algorithm}[H]
+  \caption{Householder reduction to Hessenberg form~\cite[Algorithm 26.1]{TB}.}
+  \label{alg:hessenberg}
+  \begin{algorithmic}[1]
+    \Require $A \in \K^{m \times m}$, overwritten by $H = Q^\ast AQ$
+    \For{$k = 1, \dots, m - 2$}
+      \State $\vec{x} \gets A_{k+1:m,k}$
+      \State $\vec{v}_k \gets \operatorname{sign}(x_1)\norm{\vec{x}}\vec{e}_1 + \vec{x}$, \quad $\vec{v}_k \gets \vec{v}_k/\norm{\vec{v}_k}$
+      \State $A_{k+1:m,k:m} \gets A_{k+1:m,k:m} - 2\vec{v}_k(\vec{v}_k^\ast A_{k+1:m,k:m})$ \Comment{from the left: rows $k+1, \dots, m$}
+      \State $A_{1:m,k+1:m} \gets A_{1:m,k+1:m} - 2(A_{1:m,k+1:m}\vec{v}_k)\vec{v}_k^\ast$ \Comment{from the right: columns $k+1, \dots, m$}
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+The reflector here maps $\vec{x}$ to $-\operatorname{sign}(x_1)\norm{\vec{x}}\vec{e}_1$ rather than $\norm{\vec{x}}\vec{e}_1$, which avoids cancellation exactly as in \Cref{ch:householder}; either choice gives a Hessenberg matrix. The left updates cost about $\tfrac{4}{3}m^3$ flops and the right updates, which act on full columns, about $2m^3$, for a total of
+\begin{equation}
+  \text{work for Hessenberg reduction} \sim \tfrac{10}{3}m^3 \text{ flops}~\cite[(26.1)]{TB},
+\end{equation}
+paid once before the QR iteration starts.
+
+\section{The QR Iteration on Hessenberg Matrices}
+\label{sec:qr-hessenberg}
+
+We now run \Cref{alg:basic-qr} on $T_0 = H$ instead of $A$. The first half of each step is a QR factorization $U_kR_k = T_{k-1}$. If $T_{k-1}$ is upper Hessenberg, we have seen in \Cref{sec:givens} that $O(m)$ Givens rotations suffice: only the $m - 1$ subdiagonal entries need to be eliminated, and they can be removed one at a time from the top. Multiplying by $G_1^\ast$ on the left acts on rows $1$ and $2$ and zeros out the $(2,1)$ entry, $G_2^\ast$ acts on rows $2$ and $3$ and zeros out the $(3,2)$ entry, and so on:
+\begin{equation}
+  \begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_1^\ast\ }
+  \begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_2^\ast\ }
+  \begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_3^\ast\ }
+  \begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & 0 & \times \end{bmatrix}.
+\end{equation}
+Each rotation changes only two rows, at a cost of $O(m)$, so the whole factorization
+\begin{equation}
+  R_k = G_{m-1}^\ast\cdots G_1^\ast\,T_{k-1}, \qquad U_k = G_1G_2\cdots G_{m-1},
+\end{equation}
+costs $O(m^2)$ instead of $O(m^3)$. We never form $U_k$; we only store the $m - 1$ rotations.
+
+The second half of each step computes $T_k = R_kU_k$. With $U_k$ in factored form,
+\begin{equation}
+  T_k = R_kG_1G_2\cdots G_{m-1},
+\end{equation}
+and multiplying by $G_j$ on the right changes only columns $j$ and $j + 1$, again at a cost of $O(m)$. So the second half also costs $O(m^2)$.
+
+For this to repeat, $T_k$ must again be upper Hessenberg. It is, because right multiplication by $G_j$ replaces columns $j$ and $j + 1$ by linear combinations of these two columns. Column $j + 1$ of $R_kG_1\cdots G_{j-1}$ has nonzeros down to row $j + 1$, so mixing it into column $j$ creates a single new nonzero at position $(j+1, j)$, on the subdiagonal, and nothing below it:
+\begin{equation}
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & 0 & \times \end{bmatrix}}_{R_k}
+  \xrightarrow{\ \cdot\, G_1\ }
+  \begin{bmatrix} \times & \times & \times & \times \\ \bm{\times} & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & 0 & \times \end{bmatrix}
+  \xrightarrow{\ \cdot\, G_2\ }
+  \begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \bm{\times} & \times & \times \\ 0 & 0 & 0 & \times \end{bmatrix}
+  \xrightarrow{\ \cdot\, G_3\ }
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times \\ \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \bm{\times} & \times \end{bmatrix}}_{T_k}.
+\end{equation}
+Hence $T_k = R_kG_1\cdots G_{m-1}$ is upper Hessenberg, and every step of the QR iteration costs $O(m^2)$. The total cost of $m$ iterations is $O(m^3)$, the same order as the one-time reduction to Hessenberg form, compared with $O(m^4)$ for the QR iteration on the dense matrix $A$.
+
+\section{Bulge Chasing}
+\label{sec:bulge-chasing}
+
+So far, one step of the QR iteration on a Hessenberg matrix consists of two sweeps. The first sweep applies $G_1^\ast, \dots, G_{m-1}^\ast$ from the left and turns $T_{k-1}$ into the upper triangular $R_k$; the second applies $G_1, \dots, G_{m-1}$ from the right and turns $R_k$ back into the Hessenberg matrix $T_k$:
+\begin{equation}
+  T_k = \bigl(G_{m-1}^\ast\cdots G_1^\ast\,T_{k-1}\bigr)\,G_1\cdots G_{m-1}.
+\end{equation}
+Since matrix multiplication is associative, nothing forces this order. \emph{Can we apply the left and right rotations simultaneously}, that is, compute
+\begin{equation}
+  T_k = G_{m-1}^\ast\Bigl(\cdots G_2^\ast\bigl(G_1^\ast\,T_{k-1}\,G_1\bigr)G_2\cdots\Bigr)G_{m-1},
+\end{equation}
+completing each similarity $G_j^\ast(\cdot)G_j$ before moving on to the next rotation?
+
+The difficulty is that the rotations are not known in advance. $G_2$ is defined by the requirement that $G_2^\ast$ zeros out the $(3,2)$ entry of $G_1^\ast T_{k-1}$, so computing it needs the matrix $G_1^\ast T_{k-1}$. If we apply $G_1$ on the right immediately, we only have $G_1^\ast T_{k-1}G_1$ at hand, whose second column has been mixed with the first. \emph{How can we compute $G_2$ from $G_1^\ast T_{k-1}G_1$?}
+
+To answer this, look at what happens when we compute $G_1^\ast T_{k-1}G_1$. Left multiplication by $G_1^\ast$ only combines rows $1$ and $2$ and keeps the Hessenberg form (it zeros out the $(2,1)$ entry). Right multiplication by $G_1$ then combines columns $1$ and $2$. Column $2$ has a nonzero in row $3$, so this creates a nonzero at position $(3,1)$, one below the subdiagonal:
+\begin{equation}
+  \underbrace{\begin{bmatrix} \times & \times & \times & \times & \times \\ \times & \times & \times & \times & \times \\ 0 & \times & \times & \times & \times \\ 0 & 0 & \times & \times & \times \\ 0 & 0 & 0 & \times & \times \end{bmatrix}}_{T_{k-1}}
+  \xrightarrow{\ G_1^\ast\,\cdot\,G_1\ }
+  \begin{bmatrix} \times & \times & \times & \times & \times \\ \times & \times & \times & \times & \times \\ \bm{+} & \times & \times & \times & \times \\ 0 & 0 & \times & \times & \times \\ 0 & 0 & 0 & \times & \times \end{bmatrix}.
+\end{equation}
+This entry, marked $+$, is called the \emph{bulge}. The idea is to \emph{choose $G_2$ such that it removes the bulge}: $G_2^\ast$ acts on rows $2$ and $3$ and zeros out the $(3,1)$ entry. The subsequent right multiplication by $G_2$ combines columns $2$ and $3$ and creates a new bulge at $(4,2)$, so the bulge moves one step further down the subdiagonal:
+\begin{equation}
+  \begin{bmatrix} \times & \times & \times & \times & \times \\ \times & \times & \times & \times & \times \\ \bm{+} & \times & \times & \times & \times \\ 0 & 0 & \times & \times & \times \\ 0 & 0 & 0 & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_2^\ast\,\cdot\,G_2\ }
+  \begin{bmatrix} \times & \times & \times & \times & \times \\ \times & \times & \times & \times & \times \\ 0 & \times & \times & \times & \times \\ 0 & \bm{+} & \times & \times & \times \\ 0 & 0 & 0 & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_3^\ast\,\cdot\,G_3\ }
+  \begin{bmatrix} \times & \times & \times & \times & \times \\ \times & \times & \times & \times & \times \\ 0 & \times & \times & \times & \times \\ 0 & 0 & \times & \times & \times \\ 0 & 0 & \bm{+} & \times & \times \end{bmatrix}
+  \xrightarrow{\ G_4^\ast\,\cdot\,G_4\ }
+  \text{Hessenberg}.
+\end{equation}
+The last rotation chases the bulge off the bottom of the matrix, and we are left with an upper Hessenberg matrix. Every rotation is applied from both sides as soon as it is known, so the step is a single sweep through the matrix. One can show that this \emph{bulge chasing} produces the same $T_k$ as the two-sweep algorithm (up to the signs of the rotations).
+
+\section{The Implicit Q Theorem}
+\label{sec:implicit-q}
+
+Why does bulge chasing produce the same $T_k$? The reason is that a Hessenberg reduction is essentially determined by its first column.
+
+\begin{definition}[Unreduced Hessenberg Matrix]
+  An upper Hessenberg matrix $H$ is \emph{unreduced} if all its subdiagonal entries are nonzero, $h_{j+1,j} \ne 0$ for $j = 1, \dots, m - 1$. Equivalently, $H$ is not block upper triangular.
+\end{definition}
+
+If some $h_{j+1,j} = 0$, then $H$ is block upper triangular and its eigenvalue problem splits into those of the two diagonal blocks, so we may always assume $H$ to be unreduced.
+
+\begin{theorem}[Implicit Q Theorem]
+  \label{thm:implicit-q}
+  Let $Q \in \K^{m \times m}$ be unitary and assume that $Q^\ast AQ = H$ is unreduced upper Hessenberg. Then columns $2, \dots, m$ of $Q$ are uniquely determined by the first column of $Q$, up to sign (up to a factor of modulus one if $\K = \C$).
+\end{theorem}
+
+\begin{proof}
+  We follow~\cite[Theorem 4.9]{Demmel}. Let $V$ be another unitary matrix with the same first column, $V\vec{e}_1 = Q\vec{e}_1$, such that $V^\ast AV = G$ is upper Hessenberg. We show that $W \doteq V^\ast Q$ is diagonal; since $W$ is unitary, its diagonal entries then have modulus one, and $Q = VW$ says that each column of $Q$ is the corresponding column of $V$ times a scalar of modulus one.
+
+  First, $W$ is unitary and $W\vec{e}_1 = V^\ast Q\vec{e}_1 = V^\ast V\vec{e}_1 = \vec{e}_1$. Second,
+  \begin{equation}
+    GW = V^\ast AVV^\ast Q = V^\ast AQ = V^\ast QH = WH.
+  \end{equation}
+  Write $\vec{w}_i$ for the $i$th column of $W$. Since $H$ is upper Hessenberg, column $i$ of $WH$ is $\sum_{j=1}^{i+1}h_{ji}\vec{w}_j$, so column $i$ of $GW = WH$ reads
+  \begin{equation}
+    h_{i+1,i}\vec{w}_{i+1} = G\vec{w}_i - \sum_{j=1}^{i}h_{ji}\vec{w}_j.
+  \end{equation}
+  We show by induction that $\vec{w}_i \in \spn(\vec{e}_1, \dots, \vec{e}_i)$. This holds for $i = 1$. If it holds for $\vec{w}_1, \dots, \vec{w}_i$, then $G\vec{w}_i \in \spn(\vec{e}_1, \dots, \vec{e}_{i+1})$ because $G$ is upper Hessenberg, so the right-hand side lies in $\spn(\vec{e}_1, \dots, \vec{e}_{i+1})$. Since $H$ is unreduced, $h_{i+1,i} \ne 0$, and dividing by it gives $\vec{w}_{i+1} \in \spn(\vec{e}_1, \dots, \vec{e}_{i+1})$.
+
+  Hence $W$ is upper triangular. Its inverse $W^{-1} = W^\ast$ is then both upper triangular (as the inverse of an upper triangular matrix) and lower triangular (as the adjoint of one), so $W$ is diagonal.
+\end{proof}
+
+The recursion in the proof is a constructive version of the theorem: given $\vec{q}_1$, the relation $AQ = QH$ determines $h_{1i}, \dots, h_{ii}$ by orthogonality and then $\vec{q}_{i+1}$ by normalization, one column at a time. This is the Arnoldi iteration~\cite[Lecture 33]{TB}, and the step that divides by $h_{i+1,i}$ is where unreducedness is needed.
+
+Applied to bulge chasing: both algorithms compute $T_k = U_k^\ast T_{k-1}U_k$ with $U_k$ a product of rotations $G_1G_2\cdots G_{m-1}$, where $G_j$ acts on rows $j$ and $j+1$. Only $G_1$ touches the first row, so $U_k\vec{e}_1 = G_1\vec{e}_1$ in both cases, and $G_1$ is the same in both, since it is determined by the first column of $T_{k-1}$ alone. Both results are upper Hessenberg, so if $T_k$ is unreduced (otherwise we deflate), \Cref{thm:implicit-q} shows that the two $U_k$ agree up to signs of their columns, and the two $T_k$ agree up to a diagonal similarity $D^\ast T_kD$ with $\abs{d_{ii}} = 1$. As in \Cref{sec:basic-qr}, such a similarity leaves the diagonal and the moduli of all entries unchanged.
+
+\begin{algorithm}[H]
+  \caption{One step of the QR iteration on an upper Hessenberg matrix by bulge chasing.}
+  \label{alg:bulge-chasing}
+  \begin{algorithmic}[1]
+    \Require upper Hessenberg $T \in \K^{m \times m}$, overwritten by the next iterate
+    \State choose $G_1$ acting on rows $1, 2$ such that $(G_1^\ast T)_{21} = 0$
+    \State $T \gets G_1^\ast TG_1$ \Comment{creates the bulge at $(3,1)$}
+    \For{$j = 2, \dots, m - 1$}
+      \State choose $G_j$ acting on rows $j, j+1$ such that $(G_j^\ast T)_{j+1,j-1} = 0$ \Comment{remove the bulge}
+      \State $T \gets G_j^\ast TG_j$ \Comment{bulge moves to $(j+2, j)$, or leaves the matrix if $j = m - 1$}
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+Each step changes only two rows and two columns, so one QR step still costs $O(m^2)$, now in a single sweep through the matrix.
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:hessenberg-supp}
+
+\paragraph{The Hermitian case: tridiagonal form.} If $A$ is Hermitian, so is $H = Q^\ast AQ$, and a Hermitian Hessenberg matrix is tridiagonal. Exploiting the zeros and the symmetry reduces the cost from $\tfrac{10}{3}m^3$ to $\sim\tfrac{4}{3}m^3$ flops, and each subsequent QR step on a tridiagonal matrix costs only $O(m)$~\cite[Lecture 26]{TB}, \cite[Section 4.4.7]{Demmel}.
+
+\paragraph{Stability.} Like Householder QR, \Cref{alg:hessenberg} is backward stable: the computed $\tilde{H}$ and the exactly unitary $\tilde{Q}$ defined by the computed reflection vectors satisfy $\tilde{Q}\tilde{H}\tilde{Q}^\ast = A + \delta A$ with $\norm{\delta A}/\norm{A} = O(\eps)$~\cite[Theorem 26.1]{TB}. So the eigenvalues of $\tilde{H}$ are the exact eigenvalues of a nearby matrix.
+
+\paragraph{The ``bad idea'' revisited.} Applying a full Householder reflector from both sides, as in the first step of Householder QR, destroys the zeros it creates. It does, however, typically make the entries below the diagonal smaller; this is exactly what one step of the QR iteration does, which is the sense in which the QR algorithm ``triangularizes in the limit''~\cite[Lecture 26]{TB}.
+
+\paragraph{Why the implicit Q theorem matters for shifts.} With a shift $\sigma$, one QR step factors $T_{k-1} - \sigma I = U_kR_k$ and sets $T_k = R_kU_k + \sigma I = U_k^\ast T_{k-1}U_k$. By \Cref{thm:implicit-q}, $U_k$ is determined by its first column, which is parallel to the first column of $T_{k-1} - \sigma I$, i.e., to $(t_{11} - \sigma, t_{21}, 0, \dots, 0)^\T$. So $G_1$ is computed from these two numbers, and the rest of the step is the bulge chasing of \Cref{alg:bulge-chasing} on $T_{k-1}$ itself; $T_{k-1} - \sigma I$ is never formed. This is the \emph{implicitly shifted} QR algorithm~\cite[Section 4.4.8]{Demmel}. For real matrices with complex conjugate eigenvalues, two such steps with shifts $\sigma$ and $\bar{\sigma}$ can be combined into a \emph{double-shift} step that stays in real arithmetic (the Francis step)~\cite[Section 4.4.8]{Demmel}.
+
+\paragraph{In practice.} LAPACK computes the Hessenberg reduction with blocked Householder updates (\texttt{xGEHRD}) and the QR iteration with multishift bulge chasing and aggressive early deflation (\texttt{xHSEQR}). In Julia, \texttt{hessenberg(A)} returns the reduction, and \texttt{eigvals(A)} runs the whole pipeline.

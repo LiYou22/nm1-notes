@@ -23,7 +23,7 @@
 \markright{}
 {\Large\bfseries Acknowledgements\par}
 \vspace{6pt}
-These notes follow the Fall 2026 lectures of CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at the Courant Institute, taught by Prof.\ Florian Schaefer. Each chapter follows one lecture. Sections marked (SUPPLEMENT) go beyond the blackboard and draw on Trefethen and Bau~\cite{TB}, Demmel~\cite{Demmel}, and Golub and Van Loan~\cite{GVL}.
+These notes follow the Fall 2026 lectures of CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at the Courant Institute, taught by Prof.\ Florian Schaefer. Each chapter follows one lecture. Sections marked (SUPPLEMENT) go beyond the blackboard and draw on Trefethen and Bau~\cite{TB}, Demmel~\cite{Demmel}, and Golub and Van Loan~\cite{GVL}; background from linear algebra follows Axler~\cite{Axler}.
 
 \paragraph{Notation.} Throughout, $\K$ denotes either $\R$ or $\C$. Vectors carry an arrow, $\vec{x} \in \K^n$; for $A \in \K^{m \times n}$, $A^\ast$ is the conjugate transpose (equal to $A^\T$ when $\K = \R$), $\range(A)$ is the range (column space), and $\nullsp(A)$ is the null space. The symbol $\defeq$ means ``is defined as''. Unless stated otherwise, $\norm{\cdot}$ is the Euclidean norm on vectors and the induced $2$-norm on matrices. Absolute values and inequalities between matrices, such as $\abs{E} \le \abs{L}\abs{U}$, are taken entrywise.
 
@@ -39,6 +39,10 @@ These notes follow the Fall 2026 lectures of CSCI-GA 2420 / MATH-GA 2010 (Numeri
 \include{chapters/ch8-normal-equations}
 \include{chapters/ch9-cholesky}
 \include{chapters/ch10-eigenvalues}
+\include{chapters/ch11-schur}
+\include{chapters/ch12-orthogonal-iteration}
+\include{chapters/ch13-qr-algorithm}
+\include{chapters/ch14-hessenberg-bulge-chasing}
 
 \appendix
 \include{chapters/appA-norms}
@@ -47,6 +51,7 @@ These notes follow the Fall 2026 lectures of CSCI-GA 2420 / MATH-GA 2010 (Numeri
 \begin{thebibliography}{9}
 \bibitem{TB} L.~N. Trefethen and D.~Bau III. \emph{Numerical Linear Algebra}. SIAM, 1997.
 \bibitem{Demmel} J.~W. Demmel. \emph{Applied Numerical Linear Algebra}. SIAM, 1997.
+\bibitem{Axler} S. Axler. \emph{Linear Algebra Done Right}, 4th edition. Springer, 2024.
 \bibitem{GVL} G.~H. Golub and C.~F. Van Loan. \emph{Matrix Computations}, 3rd edition. Johns Hopkins University Press, 1996.
 \bibitem{Overton} M.~L. Overton. \emph{Numerical Computing with IEEE Floating Point Arithmetic}. SIAM, 2001.
 \bibitem{Higham} N.~J. Higham. \emph{Accuracy and Stability of Numerical Algorithms}, 2nd edition. SIAM, 2002.

@@ -7,11 +7,29 @@ Supplementary reading:
   \item \cite{Demmel} Sections 2.7.1 and 3.2.
 \end{itemize}
 
-\section{Why Optimality Conditions?}
+\section{Recap and Motivation}
 
-\Cref{ch:qr} completed the computation of the QR factorization. We now return to the least squares problem: given $A \in \K^{m \times n}$ with $m > n$ and $\vec{b} \in \K^m$, find $\vec{x}$ minimizing $\norm{A\vec{x} - \vec{b}}^2$. There are more equations than unknowns, so $A\vec{x} = \vec{b}$ generally has no solution, and we cannot simply solve it as in the square case.
+Last lecture we finished the computation of the QR factorization.
+\begin{itemize}
+  \item \emph{How to use the factors.} With Householder QR, $Q$ is never formed. To apply $Q^\ast$ to a vector we run through the stored reflectors $\vec{v}_1, \dots, \vec{v}_n$ forward, and to apply $Q$ we run through them backward.
+  \item \emph{Givens rotations.} A rotation in the $(i, j)$ plane with $c = A_{ii}/\sqrt{A_{ii}^2 + A_{ji}^2}$ and $s = A_{ji}/\sqrt{A_{ii}^2 + A_{ji}^2}$ zeros out one entry at a time. This gives Givens QR.
+  \item \emph{Full and reduced QR}, and the \emph{existence and uniqueness} of QR.
+\end{itemize}
 
-The motivation for the QR factorization was exactly this problem, and we have seen an ``intuitive'' explanation of why $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$ solves it for a reduced QR factorization $A = \hat{Q}\hat{R}$. Extend $\vec{q}_1, \dots, \vec{q}_n$ to an orthonormal basis $\vec{q}_1, \dots, \vec{q}_m$ of $\K^m$. In this basis, $\vec{b}$ has the coordinates $Q^\ast\vec{b}$, and $A\vec{x} = \hat{Q}(\hat{R}\vec{x})$ has the coordinates $\hat{R}\vec{x}$ in the first $n$ directions and $0$ in the remaining $m - n$. Since $\hat{R}$ is invertible, we can match the first $n$ coordinates of $\vec{b}$ exactly by solving $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$, while nothing we do can affect the remaining ones. For $m = 3$ and $n = 2$, this gives the following picture.
+\subsection{Solving Overdetermined Least Squares}
+
+We now return to the problem that motivated QR in the first place: given $A \in \K^{m \times n}$ with $m > n$ and $\vec{b} \in \K^m$, find $\vec{x}$ minimizing
+\begin{equation}
+  \norm{A\vec{x} - \vec{b}}^2.
+\end{equation}
+There are more equations than unknowns, so $A\vec{x} = \vec{b}$ generally has no solution, and we cannot simply solve it as in the square case.
+
+We have already seen an ``intuitive'' explanation of why $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$ solves this problem for a reduced QR factorization $A = \hat{Q}\hat{R}$. Let us recall it. Extend $\vec{q}_1, \dots, \vec{q}_n$ to an orthonormal basis $\vec{q}_1, \dots, \vec{q}_m$ of $\K^m$. In this basis,
+\begin{itemize}
+  \item $\vec{b}$ has the coordinates $Q^\ast\vec{b}$;
+  \item $A\vec{x} = \hat{Q}(\hat{R}\vec{x})$ has the coordinates $\hat{R}\vec{x}$ in the first $n$ directions and $0$ in the remaining $m - n$.
+\end{itemize}
+Since $\hat{R}$ is invertible, we can match the first $n$ coordinates of $\vec{b}$ exactly by solving $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$, while nothing we do can affect the remaining ones. For $m = 3$ and $n = 2$, this gives the following picture.
 
 \begin{center}
 \begin{tikzpicture}[scale=1.3, every node/.style={font=\small}]
@@ -37,9 +55,14 @@ The motivation for the QR factorization was exactly this problem, and we have se
 \small The first two coordinates of $\vec{b}$ in the basis $\vec{q}_1, \vec{q}_2, \vec{q}_3$ can be matched by $A\vec{x}$; the third, $(Q^\ast\vec{b})_3$, is the residual that no $\vec{x}$ can remove.
 \end{center}
 
-This is convincing, but it leans on the picture. Why is matching coordinates optimal, and is it the only optimal choice? How do we make this rigorous? One route uses that $Q^\ast$ preserves norms (\Cref{sec:unitary}). This lecture takes a different route that needs no factorization at all.
+This is convincing, but it leans on the picture. Why is matching coordinates optimal, and is it the only optimal choice? \emph{How do we make this rigorous?} One route uses that $Q^\ast$ preserves norms (\Cref{sec:unitary}). This lecture takes a different route that needs no factorization at all.
 
-So before using any factorization, we should answer a more basic question: what condition does a minimizer satisfy? A checkable condition lets us verify that the $\vec{x}$ produced by QR really is optimal, and it turns a minimization problem into a system of equations. The main line of this lecture is
+Before using any factorization, we answer a more basic question: \emph{what condition does a minimizer satisfy?} Such a condition is useful in two ways.
+\begin{itemize}
+  \item It lets us \emph{verify} that the $\vec{x}$ produced by QR really is optimal.
+  \item It turns a minimization problem into a \emph{system of equations}.
+\end{itemize}
+The main line of this lecture is
 \begin{equation}
   \vec{x} \text{ minimizes } \norm{A\vec{x} - \vec{b}}^2 \quad\iff\quad A\vec{x} - \vec{b} \perp \range(A) \quad\iff\quad A^\ast A\vec{x} = A^\ast\vec{b}.
 \end{equation}
@@ -53,7 +76,7 @@ We use the inner product $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$, as in \C
 \begin{equation}
   \ip{\vec{x}}{\vec{y}} + \ip{\vec{y}}{\vec{x}} = 2\operatorname{Re}\ip{\vec{x}}{\vec{y}}.
 \end{equation}
-The residual is $\vec{r} \doteq A\vec{x} - \vec{b}$.
+The residual is $\vec{r} \doteq A\vec{x} - \vec{b}$. Perturbation directions are denoted by $\vec{d}$.
 
 One identity is used again and again in this lecture.
 
@@ -69,11 +92,19 @@ One identity is used again and again in this lecture.
   This is just associativity: $\ip{M\vec{u}}{\vec{v}} = (M\vec{u})^\ast\vec{v} = \vec{u}^\ast(M^\ast\vec{v}) = \ip{\vec{u}}{M^\ast\vec{v}}$.
 \end{proof}
 
-In words, a matrix can be moved from one side of the inner product to the other, and it becomes $M^\ast$ on the way. Note that this is \emph{not} the same as multiplying both sides by $M^\ast$. For the $m \times n$ factor $\hat{Q}$ of a reduced QR factorization, we have $\hat{Q}^\ast\hat{Q} = I$ but $\hat{Q}\hat{Q}^\ast \ne I$, and in general $\ip{\hat{Q}^\ast\vec{y}}{\hat{Q}^\ast\vec{z}} \ne \ip{\vec{y}}{\vec{z}}$ (compare \Cref{sec:unitary}). In Axler's \emph{Linear Algebra Done Right} (Section 7.A), \Cref{lem:adjoint} is the definition of the adjoint.
+In words, a matrix can be moved from one side of the inner product to the other, and it becomes $M^\ast$ on the way. Two remarks.
+\begin{itemize}
+  \item This is \emph{not} the same as multiplying both sides by $M^\ast$. For the $m \times n$ factor $\hat{Q}$ of a reduced QR factorization, we have $\hat{Q}^\ast\hat{Q} = I$ but $\hat{Q}\hat{Q}^\ast \ne I$, and in general $\ip{\hat{Q}^\ast\vec{y}}{\hat{Q}^\ast\vec{z}} \ne \ip{\vec{y}}{\vec{z}}$ (compare \Cref{sec:unitary}).
+  \item In Axler's \emph{Linear Algebra Done Right} (Section 7.A), \Cref{lem:adjoint} is the definition of the adjoint.
+\end{itemize}
 
 \section{The Optimality Condition}
 
-The idea is that a minimizer cannot be improved by moving it: if $\vec{x}$ minimizes the objective, then no perturbation $\vec{x} + \vec{\varepsilon}$ can do better. So we first compute exactly how the objective changes under a perturbation.
+We want to find $\vec{x}$ that minimizes $\norm{A\vec{x} - \vec{b}}^2$. The idea is simple: a minimizer cannot be improved by moving it. If $\vec{x}$ minimizes the objective, then for every $\vec{\varepsilon} \in \K^n$,
+\begin{equation}
+  \norm{A(\vec{x} + \vec{\varepsilon}) - \vec{b}}^2 \ge \norm{A\vec{x} - \vec{b}}^2.
+\end{equation}
+So we first compute exactly how the objective changes under a perturbation.
 
 \begin{lemma}[Change of the Objective Under a Perturbation]
   \label{lem:ls-expand}
@@ -97,7 +128,12 @@ The idea is that a minimizer cannot be improved by moving it: if $\vec{x}$ minim
   where the last step uses $z + \bar{z} = 2\operatorname{Re}z$.
 \end{proof}
 
-The lemma assumes nothing about $\vec{x}$. On its right-hand side, $\norm{A\vec{\varepsilon}}^2 \ge 0$, so only the cross term $2\operatorname{Re}\ip{A\vec{\varepsilon}}{\vec{r}}$ can make the objective decrease. This suggests that $\vec{x}$ is a minimizer exactly when the cross term vanishes for every $\vec{\varepsilon}$, which is the content of the following theorem.
+The lemma assumes nothing about $\vec{x}$. Let us look at its right-hand side.
+\begin{itemize}
+  \item The quadratic term $\norm{A\vec{\varepsilon}}^2$ is always $\ge 0$, so it can never make the objective decrease.
+  \item Only the cross term $2\operatorname{Re}\ip{A\vec{\varepsilon}}{\vec{r}}$ can be negative.
+\end{itemize}
+This suggests that $\vec{x}$ is a minimizer exactly when the cross term vanishes for every $\vec{\varepsilon}$. That is the content of the following theorem.
 
 \begin{theorem}[Optimality Condition for Least Squares]
   \label{thm:ls-optimality}
@@ -108,6 +144,8 @@ The lemma assumes nothing about $\vec{x}$. On its right-hand side, $\norm{A\vec{
   \end{description}
   Moreover, if $\vec{x}$ is a minimizer, then the set of all minimizers is $\vec{x} + \nullsp(A)$. In particular, the minimizer is unique if and only if $A$ has full column rank.
 \end{theorem}
+
+The plan of the proof: for (P) $\Rightarrow$ (Q), perturb $\vec{x}$ by a small step $\delta\vec{d}$ and let $\delta \to 0$, so that only the cross term survives; for (Q) $\Rightarrow$ (P), plug (Q) into \Cref{lem:ls-expand} to kill the cross term.
 
 \begin{proof}
   Write $\vec{r} = A\vec{x} - \vec{b}$.
@@ -125,10 +163,14 @@ The lemma assumes nothing about $\vec{x}$. On its right-hand side, $\norm{A\vec{
     \label{eq:ls-re-ge}
     \operatorname{Re}\ip{A\vec{d}}{\vec{r}} \ge 0 \qquad \text{for all } \vec{d} \in \K^n.
   \end{equation}
-  Since \eqref{eq:ls-re-ge} holds for all $\vec{d}$, it also holds for $-\vec{d}$, which gives $-\operatorname{Re}\ip{A\vec{d}}{\vec{r}} \ge 0$. Thus $\operatorname{Re}\ip{A\vec{d}}{\vec{r}} = 0$ for all $\vec{d} \in \K^n$. If $\K = \C$, we apply this to $i\vec{d}$; since the first argument of the inner product is conjugated,
-  \begin{equation}
-    0 = \operatorname{Re}\ip{iA\vec{d}}{\vec{r}} = \operatorname{Re}\left(-i\ip{A\vec{d}}{\vec{r}}\right) = \operatorname{Im}\ip{A\vec{d}}{\vec{r}}.
-  \end{equation}
+  We now upgrade this inequality to an equality in two steps.
+  \begin{itemize}
+    \item \emph{The real part.} Since \eqref{eq:ls-re-ge} holds for all $\vec{d}$, it also holds for $-\vec{d}$, which gives $-\operatorname{Re}\ip{A\vec{d}}{\vec{r}} \ge 0$. Thus $\operatorname{Re}\ip{A\vec{d}}{\vec{r}} = 0$ for all $\vec{d} \in \K^n$.
+    \item \emph{The imaginary part.} If $\K = \C$, we apply this to $i\vec{d}$. Since the first argument of the inner product is conjugated,
+    \begin{equation}
+      0 = \operatorname{Re}\ip{iA\vec{d}}{\vec{r}} = \operatorname{Re}\left(-i\ip{A\vec{d}}{\vec{r}}\right) = \operatorname{Im}\ip{A\vec{d}}{\vec{r}}.
+    \end{equation}
+  \end{itemize}
   So both the real and the imaginary part of $\ip{A\vec{d}}{\vec{r}}$ vanish, and $\ip{A\vec{d}}{\vec{r}} = 0$ for all $\vec{d} \in \K^n$, as desired.
 
   \emph{(Q) $\Rightarrow$ (P).} Now suppose that (Q) holds, and fix any $\vec{y} \in \K^n$. Applying \Cref{lem:ls-expand} with $\vec{\varepsilon} = \vec{y} - \vec{x}$, and then (Q) with $\vec{d} = \vec{y} - \vec{x}$, we get
@@ -146,9 +188,17 @@ The lemma assumes nothing about $\vec{x}$. On its right-hand side, $\norm{A\vec{
   \emph{The set of minimizers.} Finally, let $\vec{x}$ be a minimizer. By the first part, $\vec{x}$ satisfies (Q), so the second line of \eqref{eq:ls-pythagoras} holds for every $\vec{y}$. Hence $\vec{y}$ is also a minimizer if and only if $\norm{A(\vec{y} - \vec{x})}^2 = 0$, i.e., $\vec{y} - \vec{x} \in \nullsp(A)$. This set is the single point $\vec{x}$ if and only if $\nullsp(A) = \{\zerovec\}$, i.e., $A$ has full column rank.
 \end{proof}
 
-In the language of conditions, (P) $\Rightarrow$ (Q) says that orthogonality is \emph{necessary} for optimality: every minimizer satisfies it, so solving (Q) cannot miss a minimizer. Conversely, (Q) $\Rightarrow$ (P) says that orthogonality is \emph{sufficient}: to certify that a given $\vec{x}$ is a minimizer, it suffices to check (Q), which is how we will verify the QR solution in \Cref{sec:verify-qr}. We refer to the two directions as \emph{necessity} and \emph{sufficiency}.
+Thus, if $\vec{x}$ minimizes the squared residual, then $\ip{A\vec{d}}{A\vec{x}} = \ip{A\vec{d}}{\vec{b}}$ for all $\vec{d}$. Let us reflect on the two directions.
+\begin{itemize}
+  \item \emph{Necessity}, (P) $\Rightarrow$ (Q): orthogonality is \emph{necessary} for optimality. Every minimizer satisfies it, so solving (Q) cannot miss a minimizer.
+  \item \emph{Sufficiency}, (Q) $\Rightarrow$ (P): orthogonality is \emph{sufficient}. To certify that a given $\vec{x}$ is a minimizer, it suffices to check (Q). This is how we will verify the QR solution in \Cref{sec:verify-qr}.
+\end{itemize}
 
-The two halves of the proof also have different characters. Necessity only compares $\vec{x}$ with nearby points $\vec{x} + \delta\vec{d}$: for small $\delta$, the quadratic term $\delta^2\norm{A\vec{d}}^2$ is negligible, so the sign of the change is decided by the directional derivative $2\operatorname{Re}\ip{A\vec{d}}{\vec{r}}$, and at a minimizer no directional derivative can be negative. Sufficiency compares $\vec{x}$ with an arbitrary $\vec{y}$ in one step, so the minimizer it certifies is global. Geometrically, \eqref{eq:ls-pythagoras} is the Pythagorean theorem, as in the following picture.
+The two halves of the proof also have different characters.
+\begin{itemize}
+  \item Necessity only compares $\vec{x}$ with nearby points $\vec{x} + \delta\vec{d}$. For small $\delta$, the quadratic term $\delta^2\norm{A\vec{d}}^2$ is negligible, so the sign of the change is decided by the directional derivative $2\operatorname{Re}\ip{A\vec{d}}{\vec{r}}$, and at a minimizer no directional derivative can be negative.
+  \item Sufficiency compares $\vec{x}$ with an arbitrary $\vec{y}$ in one step, so the minimizer it certifies is global. Geometrically, \eqref{eq:ls-pythagoras} is the Pythagorean theorem, as in the following picture.
+\end{itemize}
 
 \begin{center}
 \begin{tikzpicture}[scale=1.1]
@@ -171,26 +221,28 @@ The two halves of the proof also have different characters. Necessity only compa
 
 \subsection{Geometric Meaning}
 
-The vectors $A\vec{d}$ for $\vec{d} \in \K^n$ are exactly the elements of $\range(A)$. So the optimality condition says that the residual is orthogonal to every vector in the column space, $A\vec{x} - \vec{b} \perp \range(A)$. Geometrically, dropping a perpendicular from $\vec{b}$ to $\range(A)$, its foot is $A\vec{x}$, the orthogonal projection of $\vec{b}$ onto $\range(A)$. This is the picture of \Cref{ch:ls}, now with a proof.
+The vectors $A\vec{d}$ for $\vec{d} \in \K^n$ are exactly the elements of $\range(A)$. So the optimality condition says that the residual is orthogonal to every vector in the column space, $A\vec{x} - \vec{b} \perp \range(A)$. Geometrically: drop a perpendicular from $\vec{b}$ to $\range(A)$; its foot is $A\vec{x}$, the orthogonal projection of $\vec{b}$ onto $\range(A)$. This is the picture of \Cref{ch:ls}, now with a proof.
 
 \section{What the Optimality Condition Says}
 
+What do the optimality conditions mean in concrete cases? The key point is that (Q) tests the residual only against vectors of the form $A\vec{d}$. How much this tells us depends on how many vectors have that form.
+
 \subsection{Invertible Square Matrices: Solving a Linear System}
 
-Let $m = n$ and $A$ be invertible, and let $\vec{x}$ be a minimizer. By necessity, (P) $\Rightarrow$ (Q), it satisfies the orthogonality condition. The condition holds for \emph{every} $\vec{d}$, so we may pick a special direction: $\vec{d} = A^{-1}(A\vec{x} - \vec{b})$, which has $A\vec{d} = A\vec{x} - \vec{b}$. Then
+Let $m = n$ and $A$ be invertible (full rank), and let $\vec{x}$ be a minimizer. By necessity, it satisfies the orthogonality condition. The condition holds for \emph{every} $\vec{d}$, so we may pick a special direction: $\vec{d} = A^{-1}(A\vec{x} - \vec{b})$, which has $A\vec{d} = A\vec{x} - \vec{b}$. Then
 \begin{equation}
   0 = \ip{A\vec{d}}{A\vec{x} - \vec{b}} = \ip{A\vec{x} - \vec{b}}{A\vec{x} - \vec{b}} = \norm{A\vec{x} - \vec{b}}^2,
 \end{equation}
-so $A\vec{x} = \vec{b}$. For invertible square matrices, least squares is just solving the linear system, and the minimal residual is zero.
+so $A\vec{x} = \vec{b}$. In words: for invertible square matrices, least squares is just solving the linear system, and the minimal residual is zero.
 
 \subsection{Singular or Tall Matrices: Only Some Directions Are Tested}
 
-If $A$ is singular or $m > n$, not every $\vec{y} \in \K^m$ can be written as $A\vec{d}$. Then $\range(A)$ is a proper subspace, and the optimality condition only tests directions inside it. The residual generally does not lie in $\range(A)$, so we cannot conclude $\vec{r} = \zerovec$, only $\vec{r} \perp \range(A)$.
+If $A$ is singular or $m > n$, not every $\vec{y} \in \K^m$ can be written as $A\vec{d}$. Then $\range(A)$ is a proper subspace, and the optimality condition only checks some directions (some equations). The residual generally does not lie in $\range(A)$, so we cannot conclude $\vec{r} = \zerovec$, only $\vec{r} \perp \range(A)$.
 
 \subsection{Verifying the QR Solution}
 \label{sec:verify-qr}
 
-Let $A = \hat{Q}\hat{R}$ be a reduced QR factorization with $\hat{Q}^\ast\hat{Q} = I$ and $\hat{R}$ upper triangular and invertible ($A$ of full column rank). Take $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$. Moving $\hat{Q}$ to the right with \Cref{lem:adjoint},
+We can now make the intuitive QR argument rigorous. Let $A = \hat{Q}\hat{R}$ be a reduced QR factorization with $\hat{Q}^\ast\hat{Q} = I$ and $\hat{R}$ upper triangular and invertible ($A$ of full column rank). Take $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$. We check (Q), moving $\hat{Q}$ to the right with \Cref{lem:adjoint}:
 \begin{equation}
   \begin{aligned}
     \ip{A\vec{d}}{A\vec{x} - \vec{b}} &= \ip{\hat{Q}\hat{R}\vec{d}}{\hat{Q}\hat{R}\hat{R}^{-1}\hat{Q}^\ast\vec{b} - \vec{b}} \\
@@ -198,12 +250,14 @@ Let $A = \hat{Q}\hat{R}$ be a reduced QR factorization with $\hat{Q}^\ast\hat{Q}
     &= \ip{\hat{R}\vec{d}}{\hat{Q}^\ast\vec{b} - \hat{Q}^\ast\vec{b}} = 0.
   \end{aligned}
 \end{equation}
-Note that $\hat{Q}^\ast$ acts on \emph{every} term in the second argument, so $\vec{b}$ becomes $\hat{Q}^\ast\vec{b}$ as well. Hence $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$ satisfies (Q), and by sufficiency, (Q) $\Rightarrow$ (P), it is a least squares solution; since $A$ has full column rank, it is the only one. In practice we never form $\hat{R}^{-1}$; we solve the upper triangular system $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$ by back substitution.
+Note that $\hat{Q}^\ast$ acts on \emph{every} term in the second argument, so $\vec{b}$ becomes $\hat{Q}^\ast\vec{b}$ as well.
+
+Hence $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$ satisfies (Q), and by sufficiency it is a least squares solution; since $A$ has full column rank, it is the only one. In practice we never form $\hat{R}^{-1}$; we solve the upper triangular system $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$ by back substitution.
 
 \section{The Normal Equations}
 \label{sec:normal-eq}
 
-Apply \Cref{lem:adjoint} to both sides of the optimality condition, moving $A$ to the right:
+The optimality condition is a statement ``for all $\vec{d}$''. We now turn it into a single linear system. The trick is to use the transpose: apply \Cref{lem:adjoint} to both sides, moving $A$ to the right.
 \begin{equation}
   \ip{A\vec{d}}{A\vec{x}} = \ip{A\vec{d}}{\vec{b}} \ \ \forall\vec{d} \in \K^n
   \quad\iff\quad
@@ -211,9 +265,9 @@ Apply \Cref{lem:adjoint} to both sides of the optimality condition, moving $A$ t
   \quad\iff\quad
   A^\ast A\vec{x} = A^\ast\vec{b}.
 \end{equation}
-For the last step, let $\vec{w} = A^\ast A\vec{x} - A^\ast\vec{b}$. The middle condition says that $\vec{w}$ is orthogonal to every vector; taking $\vec{d} = \vec{w}$ gives $\norm{\vec{w}}^2 = 0$, so $\vec{w} = \zerovec$. The other direction is clear.
+Only the last step needs an argument. Let $\vec{w} = A^\ast A\vec{x} - A^\ast\vec{b}$. The middle condition says that $\vec{w}$ is orthogonal to every vector; taking $\vec{d} = \vec{w}$ gives $\norm{\vec{w}}^2 = 0$, so $\vec{w} = \zerovec$. The other direction is clear.
 
-So (Q) is equivalent to the normal equations, and combining this with (P) $\iff$ (Q) from \Cref{thm:ls-optimality} gives the following theorem.
+So (Q) is equivalent to the normal equations. Combining this with (P) $\iff$ (Q) from \Cref{thm:ls-optimality} gives the following theorem.
 
 \begin{theorem}[The Normal Equations]
   \label{thm:normal}
@@ -223,7 +277,7 @@ So (Q) is equivalent to the normal equations, and combining this with (P) $\iff$
   \end{equation}
 \end{theorem}
 
-The overdetermined $m \times n$ system $A\vec{x} = \vec{b}$ has become an $n \times n$ \emph{square} system. The name ``normal'' means perpendicular: the equation $A^\ast(A\vec{x} - \vec{b}) = \zerovec$ says exactly that the residual is perpendicular to the column space, as in \eqref{eq:normal}.
+We have turned our system into a square one! The overdetermined $m \times n$ system $A\vec{x} = \vec{b}$ has become an $n \times n$ system. The name ``normal'' means perpendicular: the equation $A^\ast(A\vec{x} - \vec{b}) = \zerovec$ says exactly that the residual is perpendicular to the column space, as in \eqref{eq:normal}.
 
 The normal equations have clear advantages and one serious drawback.
 \begin{itemize}
@@ -233,7 +287,7 @@ The normal equations have clear advantages and one serious drawback.
 
 \section{Gram Matrices and Positive Semidefinite Matrices}
 
-Solving the normal equations means solving a system whose matrix has the form $B^\ast B$ (we switch to the letter $B$ so that $A$ is free for the coefficient matrix). So we study the structure of such matrices. We begin with the class of matrices they belong to.
+Solving the normal equations means solving a system whose matrix has the form $B^\ast B$. (We switch to the letter $B$ so that $A$ is free for the coefficient matrix.) So it pays to study the structure of such matrices. We begin with the larger class they belong to.
 
 \subsection{Hermitian and Anti-Hermitian Matrices}
 
@@ -254,7 +308,11 @@ Solving the normal equations means solving a system whose matrix has the form $B
   with $+$ for Hermitian and $-$ for anti-Hermitian $A$. So $\vec{v}^\ast A\vec{v}$ is real in the first case and purely imaginary in the second, and so is $\lambda = \vec{v}^\ast A\vec{v}/\norm{\vec{v}}^2$.
 \end{proof}
 
-Every square matrix splits uniquely into a Hermitian and an anti-Hermitian part, $A = \frac{1}{2}(A + A^\ast) + \frac{1}{2}(A - A^\ast)$, much like a complex number splits into real and imaginary parts. A second analogy with complex numbers, $z = e^{i\theta}r$ with $r \ge 0$, is the polar decomposition. It uses the following notion, which we study in detail below: a Hermitian matrix $S$ is \emph{positive semidefinite} if $\vec{v}^\ast S\vec{v} \ge 0$ for all $\vec{v}$.
+These matrices behave a lot like complex numbers.
+\begin{itemize}
+  \item Every square matrix splits uniquely into a Hermitian and an anti-Hermitian part, $A = \frac{1}{2}(A + A^\ast) + \frac{1}{2}(A - A^\ast)$, much like a complex number splits into real and imaginary parts.
+  \item A second analogy, with $z = e^{i\theta}r$, $r \ge 0$, is the polar decomposition below. It uses the following notion, which we study in detail in the next subsection: a Hermitian matrix $S$ is \emph{positive semidefinite} if $\vec{v}^\ast S\vec{v} \ge 0$ for all $\vec{v}$.
+\end{itemize}
 
 \begin{theorem}[Polar Decomposition]
   \label{thm:polar}
@@ -269,18 +327,26 @@ Every square matrix splits uniquely into a Hermitian and an anti-Hermitian part,
   \begin{equation}
     A = W\Sigma V^\ast = \underbrace{(WV^\ast)}_{U}\underbrace{(V\Sigma V^\ast)}_{S}.
   \end{equation}
-  $U = WV^\ast$ is a product of unitary matrices, hence unitary. $S = V\Sigma V^\ast$ is Hermitian since $\Sigma$ is real diagonal, and $\vec{v}^\ast S\vec{v} = \sum_i\sigma_i\abs{(V^\ast\vec{v})_i}^2 \ge 0$, as desired.
+  We check the two factors.
+  \begin{itemize}
+    \item $U = WV^\ast$ is a product of unitary matrices, hence unitary.
+    \item $S = V\Sigma V^\ast$ is Hermitian since $\Sigma$ is real diagonal, and $\vec{v}^\ast S\vec{v} = \sum_i\sigma_i\abs{(V^\ast\vec{v})_i}^2 \ge 0$. \qedhere
+  \end{itemize}
 \end{proof}
 
-Geometrically, $S$ stretches space along the orthogonal directions given by the columns of $V$, and $U$ then rotates (or reflects) the result. The factor $S$ is always determined by $A$, since $A^\ast A = SU^\ast US = S^2$ makes $S$ the positive semidefinite square root of $A^\ast A$; if $A$ is invertible, so is $S$, and $U = AS^{-1}$ is determined as well.
+Geometrically, $S$ stretches space along the orthogonal directions given by the columns of $V$, and $U$ then rotates (or reflects) the result. The factor $S$ is always determined by $A$: since $A^\ast A = SU^\ast US = S^2$, $S$ is the positive semidefinite square root of $A^\ast A$. If $A$ is invertible, so is $S$, and $U = AS^{-1}$ is determined as well.
 
 \subsection{Gram Matrices}
 
-A matrix of the form $B^\ast B$ is called a \emph{Gram matrix}, because its entries are the inner products of the columns $B_{:,1}, \dots, B_{:,n}$ of $B$ with each other. Using $B\vec{e}_j = B_{:,j}$,
+A matrix of the form $B^\ast B$ is called a \emph{Gram matrix} (or inner product matrix), because its entries are the inner products of the columns $B_{:,1}, \dots, B_{:,n}$ of $B$ with each other. Using $B\vec{e}_j = B_{:,j}$,
 \begin{equation}
   (B^\ast B)_{ij} = \vec{e}_i^\ast B^\ast B\vec{e}_j = \ip{B\vec{e}_i}{B\vec{e}_j} = \ip{B_{:,i}}{B_{:,j}}.
 \end{equation}
-In particular, the diagonal entries $(B^\ast B)_{ii} = \norm{B_{:,i}}^2$ are nonnegative, and $B^\ast B = I$ exactly when the columns of $B$ are orthonormal.
+Two consequences are immediate.
+\begin{itemize}
+  \item The diagonal entries $(B^\ast B)_{ii} = \norm{B_{:,i}}^2$ are nonnegative.
+  \item $B^\ast B = I$ exactly when the columns of $B$ are orthonormal.
+\end{itemize}
 
 \begin{definition}[Positive (Semi)definite Matrices]
   A Hermitian matrix $A \in \K^{n \times n}$ is
@@ -290,6 +356,8 @@ In particular, the diagonal entries $(B^\ast B)_{ii} = \norm{B_{:,i}}^2$ are non
   \end{itemize}
 \end{definition}
 
+The main result of this section says that these two notions describe the same matrices.
+
 \begin{theorem}[Gram Matrices Are Exactly the Positive Semidefinite Matrices]
   \label{thm:gram}
   \begin{enumerate}
@@ -298,7 +366,7 @@ In particular, the diagonal entries $(B^\ast B)_{ii} = \norm{B_{:,i}}^2$ are non
   \end{enumerate}
 \end{theorem}
 
-Item 1 does not hold for all Hermitian matrices. For example, $\diag(1, -1)$ is symmetric but not a Gram matrix: its second diagonal entry would have to be $\norm{B_{:,2}}^2 \ge 0$.
+Item 1 does not hold for all Hermitian matrices. For example, $\diag(1, -1)$ is symmetric but not a Gram matrix: its second diagonal entry would have to be $\norm{B_{:,2}}^2 \ge 0$. Note that the rank condition in item 2 is on $B$, not on the Gram matrix $A = B^\ast B$, which is square.
 
 \begin{proof}[Proof of item 1]
   \emph{Gram matrices are Hermitian positive semidefinite.} We have
@@ -306,18 +374,20 @@ Item 1 does not hold for all Hermitian matrices. For example, $\diag(1, -1)$ is 
     (B^\ast B)^\ast = B^\ast(B^\ast)^\ast = B^\ast B, \qquad \vec{x}^\ast B^\ast B\vec{x} = \norm{B\vec{x}}^2 \ge 0.
   \end{equation}
 
-  \emph{Hermitian positive semidefinite matrices are Gram matrices.} By the spectral theorem, a Hermitian matrix can be diagonalized by a unitary matrix: $A = U\Lambda U^\ast$, where $U$ is unitary and $\Lambda$ is diagonal with the eigenvalues of $A$ on the diagonal.
-
-  The eigenvalues are real by \Cref{prop:herm-eig}, and they are nonnegative: if $A\vec{v} = \lambda\vec{v}$ with $\vec{v} \ne \zerovec$, then $\lambda\norm{\vec{v}}^2 = \vec{v}^\ast A\vec{v} \ge 0$, so $\lambda \ge 0$. (If $A$ is positive definite, the same argument gives $\lambda > 0$.)
-
-  So we can define $\sqrt{\Lambda} = \diag(\sqrt{\lambda_1}, \dots, \sqrt{\lambda_n})$. Inserting $U^\ast U = I$ in the middle,
-  \begin{equation}
-    A = U\sqrt{\Lambda}\,U^\ast U\sqrt{\Lambda}\,U^\ast = \left(U\sqrt{\Lambda}\,U^\ast\right)^\ast\left(U\sqrt{\Lambda}\,U^\ast\right),
-  \end{equation}
-  where the last step uses that $\sqrt{\Lambda}$ is a real diagonal matrix and hence equal to its conjugate transpose. Taking $B = U\sqrt{\Lambda}\,U^\ast$ gives $A = B^\ast B$.
+  \emph{Hermitian positive semidefinite matrices are Gram matrices.} We take a square root of $A$ in three steps.
+  \begin{enumerate}
+    \item \emph{Diagonalize.} By the spectral theorem, a Hermitian matrix can be diagonalized by a unitary matrix: $A = U\Lambda U^\ast$, where $U$ is unitary and $\Lambda$ is diagonal with the eigenvalues of $A$ on the diagonal.
+    \item \emph{The eigenvalues are nonnegative.} They are real by \Cref{prop:herm-eig}. If $A\vec{v} = \lambda\vec{v}$ with $\vec{v} \ne \zerovec$, then $\lambda\norm{\vec{v}}^2 = \vec{v}^\ast A\vec{v} \ge 0$, so $\lambda \ge 0$. (If $A$ is positive definite, the same argument gives $\lambda > 0$.)
+    \item \emph{Take square roots.} So we can define $\sqrt{\Lambda} = \diag(\sqrt{\lambda_1}, \dots, \sqrt{\lambda_n})$. Inserting $U^\ast U = I$ in the middle,
+    \begin{equation}
+      A = U\sqrt{\Lambda}\,U^\ast U\sqrt{\Lambda}\,U^\ast = \left(U\sqrt{\Lambda}\,U^\ast\right)^\ast\left(U\sqrt{\Lambda}\,U^\ast\right),
+    \end{equation}
+    where the last step uses that $\sqrt{\Lambda}$ is a real diagonal matrix and hence equal to its conjugate transpose.
+  \end{enumerate}
+  Taking $B = U\sqrt{\Lambda}\,U^\ast$ gives $A = B^\ast B$.
 \end{proof}
 
-The matrix $B = U\sqrt{\Lambda}\,U^\ast$ is the \emph{matrix square root} $A^{1/2}$. It is not the only choice: for any unitary $V$, $(VB)^\ast(VB) = B^\ast B$. In particular, taking a QR factorization $B = QR$ (\Cref{thm:qr-exists}) gives $A = R^\ast Q^\ast QR = R^\ast R$ with $R$ upper triangular. This is the \emph{Cholesky factorization} of $A$.
+The matrix $B = U\sqrt{\Lambda}\,U^\ast$ is the \emph{matrix square root} $A^{1/2}$. It is not the only choice: for any unitary $V$, $(VB)^\ast(VB) = B^\ast B$. In particular, taking a QR factorization $B = QR$ (\Cref{thm:qr-exists}) gives $A = R^\ast Q^\ast QR = R^\ast R$ with $R$ upper triangular. This is the \emph{Cholesky factorization} of $A$, the subject of the next lecture.
 
 \begin{proof}[Proof of item 2]
   We prove the contrapositive by a chain of equivalences:
@@ -347,10 +417,14 @@ consistent with the uniqueness statement of \Cref{thm:ls-optimality}. A positive
 
 \paragraph{Relation to the projection argument.} Introductory linear algebra texts (for example Lay's) derive the normal equations differently. Let $\hat{\vec{b}}$ be the orthogonal projection of $\vec{b}$ onto $\range(A)$. By the properties of the projection, $\vec{b} - A\hat{\vec{x}} \perp \range(A)$, that is, $\vec{b} - A\hat{\vec{x}} \in \nullsp(A^\ast)$, which rearranges to the normal equations. Here $\hat{\vec{b}} \in \K^m$ is the projected point, while $\hat{\vec{x}} \in \K^n$ holds the coefficients that combine the columns of $A$ into it, $\hat{\vec{b}} = A\hat{\vec{x}}$. The point $\hat{\vec{b}}$ is always unique; $\hat{\vec{x}}$ is unique if and only if $A$ has full column rank.
 
-This derivation is shorter, but it relies on the \emph{best approximation theorem}: if $W$ is a subspace and $\hat{\vec{b}}$ is the orthogonal projection of $\vec{b}$ onto $W$, then $\norm{\vec{b} - \hat{\vec{b}}} < \norm{\vec{b} - \vec{w}}$ for all $\vec{w} \in W$ with $\vec{w} \ne \hat{\vec{b}}$. Its proof takes two steps. First, choose an orthonormal basis $\vec{u}_1, \dots, \vec{u}_k$ of $W$ and set $\hat{\vec{b}} = \sum_i\ip{\vec{u}_i}{\vec{b}}\vec{u}_i$; a direct computation gives $\ip{\vec{u}_j}{\vec{b} - \hat{\vec{b}}} = 0$, so $\vec{b} - \hat{\vec{b}} \perp W$. Second, split $\vec{b} - \vec{w} = (\vec{b} - \hat{\vec{b}}) + (\hat{\vec{b}} - \vec{w})$, where the first part is orthogonal to $W$ and the second lies in $W$. By the Pythagorean theorem,
-\begin{equation}
-  \norm{\vec{b} - \vec{w}}^2 = \norm{\vec{b} - \hat{\vec{b}}}^2 + \norm{\hat{\vec{b}} - \vec{w}}^2 > \norm{\vec{b} - \hat{\vec{b}}}^2.
-\end{equation}
+This derivation is shorter, but it relies on the \emph{best approximation theorem}: if $W$ is a subspace and $\hat{\vec{b}}$ is the orthogonal projection of $\vec{b}$ onto $W$, then $\norm{\vec{b} - \hat{\vec{b}}} < \norm{\vec{b} - \vec{w}}$ for all $\vec{w} \in W$ with $\vec{w} \ne \hat{\vec{b}}$. Its proof takes two steps.
+\begin{enumerate}
+  \item Choose an orthonormal basis $\vec{u}_1, \dots, \vec{u}_k$ of $W$ and set $\hat{\vec{b}} = \sum_i\ip{\vec{u}_i}{\vec{b}}\vec{u}_i$. A direct computation gives $\ip{\vec{u}_j}{\vec{b} - \hat{\vec{b}}} = 0$, so $\vec{b} - \hat{\vec{b}} \perp W$.
+  \item Split $\vec{b} - \vec{w} = (\vec{b} - \hat{\vec{b}}) + (\hat{\vec{b}} - \vec{w})$, where the first part is orthogonal to $W$ and the second lies in $W$. By the Pythagorean theorem,
+  \begin{equation}
+    \norm{\vec{b} - \vec{w}}^2 = \norm{\vec{b} - \hat{\vec{b}}}^2 + \norm{\hat{\vec{b}} - \vec{w}}^2 > \norm{\vec{b} - \hat{\vec{b}}}^2.
+  \end{equation}
+\end{enumerate}
 So the best approximation theorem is ``orthogonal $\Rightarrow$ closest'', our sufficiency, while the perturbation argument of the lecture is ``closest $\Rightarrow$ orthogonal'', our necessity. The lecture's proof is self-contained: it needs no basis, no Gram--Schmidt, and no existence result for projections.
 
 \paragraph{Why the perturbation argument.} Its structure, ``at a minimizer, the first-order change in every direction is nonnegative'', generalizes to settings that the projection argument does not reach:
@@ -364,4 +438,4 @@ So the best approximation theorem is ``orthogonal $\Rightarrow$ closest'', our s
 \begin{equation}
   \kappa_2(A^\ast A) = \kappa_2(A)^2.
 \end{equation}
-Forming and solving $A^\ast A\vec{x} = A^\ast\vec{b}$ therefore loses about twice as many digits as necessary when $A$ is ill-conditioned. Forming $A^\ast A$ costs about $mn^2$ flops and Cholesky another $\frac{1}{3}n^3$, roughly half of Householder QR when $m \gg n$, but the speed is worth it only when $A$ is well-conditioned. This is why in practice one solves $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$ with a QR factorization instead~\cite[Lecture 11]{TB}.
+Forming and solving $A^\ast A\vec{x} = A^\ast\vec{b}$ therefore loses about twice as many digits as necessary when $A$ is ill-conditioned. In terms of cost, forming $A^\ast A$ takes about $mn^2$ flops and Cholesky another $\frac{1}{3}n^3$, roughly half of Householder QR when $m \gg n$. But the speed is worth it only when $A$ is well-conditioned. This is why in practice one solves $\hat{R}\vec{x} = \hat{Q}^\ast\vec{b}$ with a QR factorization instead~\cite[Lecture 11]{TB}.

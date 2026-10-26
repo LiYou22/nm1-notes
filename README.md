@@ -2,7 +2,7 @@
 
 My LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at NYU Courant, Fall 2026, taught by Prof. Florian Schaefer.
 
-Each chapter is one lecture. Things that come up again and again (norms, the SVD, floating point) are collected in the appendices so I don't have to repeat them. Sections marked (SUPPLEMENT) go past what was said in class; for those I mostly used Trefethen & Bau, Demmel, and Golub & Van Loan.
+Each chapter is one lecture. Things that come up again and again (norms, the SVD, floating point) are collected in the appendices so I don't have to repeat them. Sections marked (SUPPLEMENT) go past what was said in class; for those I mostly used Trefethen & Bau, Demmel, and Golub & Van Loan, with Axler for linear algebra background.
 
 ## Files
 
@@ -20,6 +20,10 @@ chapters/
   ch8-normal-equations.tex  L8: normal equations, Gram matrices
   ch9-cholesky.tex          L9: Cholesky, Schur complements
   ch10-eigenvalues.tex      L10: eigenvalue problems, power/inverse/Rayleigh quotient iteration
+  ch11-schur.tex            L11: deflation, invariant subspaces, Jordan form, Schur factorization
+  ch12-orthogonal-iteration.tex  L12: normal matrices, orthogonal iteration
+  ch13-qr-algorithm.tex     L13: the QR algorithm without shifts
+  ch14-hessenberg-bulge-chasing.tex  L14: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing, implicit Q theorem
   appA-norms.tex            Appendix A: unitary matrices, 2-norm and SVD, Frobenius norm
   appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, backward stability
 ```

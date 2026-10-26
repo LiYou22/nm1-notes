@@ -1,0 +1,39 @@
+\chapter{Deflation, Invariant Subspaces, and the Schur Factorization}
+
+\begin{question}[Does deflation remove the largest eigenvalue by a rank-one update?]
+  \label{q:deflation-rank-one}
+  After computing $(\lambda_1, \vec{x}_1)$, the lecture says to work with $A - \lambda_1\vec{x}_1\vec{x}_1^\T/(\vec{x}_1^\T\vec{x}_1)$. Is the point to remove $\lambda_1$ from the spectrum with a rank-one update?
+\end{question}
+
+\begin{answer}
+  Yes, for symmetric (Hermitian) $A$. The update $\lambda_1\vec{x}_1\vec{x}_1^\ast/(\vec{x}_1^\ast\vec{x}_1)$ has rank one, and with $B$ the updated matrix,
+  \begin{equation}
+    B\vec{x}_1 = \lambda_1\vec{x}_1 - \lambda_1\vec{x}_1 = \zerovec, \qquad B\vec{x}_i = A\vec{x}_i = \lambda_i\vec{x}_i \quad (i \ge 2),
+  \end{equation}
+  where the second identity uses $\vec{x}_1^\ast\vec{x}_i = 0$. That orthogonality is the property of Hermitian matrices the trick depends on. So $\lambda_1$ is replaced by $0$ and the other eigenpairs are untouched; power iteration on $B$ then finds the next eigenpair. In practice $B$ is never formed: $B\vec{z} = A\vec{z} - \lambda_1\vec{x}_1(\vec{x}_1^\ast\vec{z})/(\vec{x}_1^\ast\vec{x}_1)$. For non-Hermitian $A$, one uses $A - \lambda_1\vec{x}_1\vec{v}^\ast$ with $\vec{v}^\ast\vec{x}_1 = 1$, which keeps the other eigenvalues but changes the eigenvectors (supplement of Lecture 11). The proof of the Schur factorization is a unitary version of deflation.
+\end{answer}
+
+\begin{question}[What does ``self-adjoint'' mean?]
+  \label{q:self-adjoint}
+\end{question}
+
+\begin{answer}
+  The adjoint $A^\ast$ of $A$ with respect to an inner product is the matrix with $\ip{A\vec{x}}{\vec{y}} = \ip{\vec{x}}{A^\ast\vec{y}}$ for all $\vec{x}, \vec{y}$; for the standard inner product $\vec{x}^\ast\vec{y}$ it is the conjugate transpose. Self-adjoint means $A^\ast = A$: symmetric if $\K = \R$, Hermitian if $\K = \C$. For example, $\left[\begin{smallmatrix} 2 & i \\ -i & 3 \end{smallmatrix}\right]$ is self-adjoint but not symmetric. The word avoids choosing between ``symmetric'' and ``Hermitian'' and also applies to operators on infinite-dimensional spaces. A quick consequence is that $\vec{x}^\ast A\vec{x}$ is real, since $\overline{\vec{x}^\ast A\vec{x}} = \vec{x}^\ast A^\ast\vec{x} = \vec{x}^\ast A\vec{x}$; this is why the eigenvalues are real.
+\end{answer}
+
+\begin{question}[{What does the example $\left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right] \to \left[\begin{smallmatrix} \eps & 1 \\ 0 & 2\eps \end{smallmatrix}\right]$ show?}]
+  \label{q:jordan-example}
+\end{question}
+
+\begin{answer}
+  It shows that the Jordan form is not numerically stable. The left matrix $N$ is a $2 \times 2$ Jordan block, with only one eigenvector $\vec{e}_1$. The perturbed matrix $A_\eps$ has distinct eigenvalues $\eps, 2\eps$, so it is diagonalizable with eigenvectors $\vec{e}_1$ and $(1, \eps)^\T$:
+  \begin{equation}
+    A_\eps = S_\eps\diag(\eps, 2\eps)S_\eps^{-1}, \qquad S_\eps = \begin{bmatrix} 1 & 1 \\ 0 & \eps \end{bmatrix}.
+  \end{equation}
+  Two things go wrong as $\eps \to 0$.
+  \begin{enumerate}
+    \item \emph{Discontinuity.} $A_\eps \to N$, but the Jordan form $\diag(\eps, 2\eps) \to 0 \ne N$. Since rounding errors of size $\epsm$ are always present, computation cannot decide whether a Jordan block is there.
+    \item \emph{Ill-conditioning.} The two eigenvectors become parallel, and $\kappa_2(S_\eps) \approx 2/\eps$ even with normalized columns. Any computation of the form $Sf(J)S^{-1}$ amplifies errors by $\kappa(S)$.
+  \end{enumerate}
+  The eigenvalues themselves only move by $O(\eps)$ here; it is the structure and the basis that break. (Perturbing the bottom left entry instead gives eigenvalues $\pm\sqrt{\eps}$, which move much more.) This motivates the Schur form, which uses a unitary basis.
+\end{answer}

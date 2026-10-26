@@ -1,0 +1,560 @@
+\chapter{Deflation, Invariant Subspaces, and the Schur Factorization}
+\label{ch:schur}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{TB} Lecture 24.
+  \item \cite{Demmel} Sections 4.2--4.3.
+  \item \cite{Axler} Sections 5A, 5C, 6B, 7B, and 8A--8C (linear algebra background).
+\end{itemize}
+
+\section{Recap and Motivation}
+
+Last lecture we started on eigenvalue problems.
+\begin{itemize}
+  \item \emph{A negative result.} Eigenvalues cannot be computed in finitely many steps (\Cref{thm:eig-iterative}): the companion matrix turns every polynomial into an eigenvalue problem, and Abel rules out a finite formula for the roots. So every eigenvalue algorithm is iterative.
+  \item \emph{Power iteration.} Expanding the starting vector in the eigenbasis as $\vec{z} = X\vec{y}$ gives $A^k\vec{z} = X\Lambda^k\vec{y}$, and after normalization $\Lambda^k$ keeps only the dominant eigenvalue.
+  \item \emph{Matrix functions.} We can move the spectrum around: a shift $A + \sigma I$ can make the wanted eigenvalue dominant, and inverse iteration and Rayleigh quotient iteration use $f(z) = (z - \mu)^{-1}$.
+\end{itemize}
+All of these methods compute \emph{one} eigenpair. This lecture asks two questions.
+\begin{enumerate}
+  \item How do we get \emph{all} the eigenpairs, efficiently?
+  \item What object should ``all eigenpairs'' be? We will see that the obvious answer, the eigenvalue decomposition, does not always exist and is numerically unstable. The right answer is the \emph{Schur factorization}.
+\end{enumerate}
+
+\section{Deflation}
+\label{sec:deflation}
+
+We have a fast way to compute \emph{one} eigenpair. What if we want all of them? Suppose we have already computed the largest eigenpair $(\lambda_1, \vec{x}_1)$. If we start power iteration again from a new random vector, it converges to $\vec{x}_1$ again. How do we avoid recomputing the same thing?
+
+The idea is to work with a modified matrix from which $\lambda_1$ has been removed: same eigenpairs, except that what was $\lambda_1$ is now $0$. For Hermitian $A$ this is a rank-one update, called Hotelling deflation.
+
+\begin{proposition}[Hotelling Deflation]
+  \label{prop:hotelling}
+  Let $A \in \K^{m \times m}$ be Hermitian with eigenpairs $(\lambda_i, \vec{x}_i)$, where the $\vec{x}_i$ are pairwise orthogonal. Let
+  \begin{equation}
+    B \defeq A - \lambda_1\frac{\vec{x}_1\vec{x}_1^\ast}{\vec{x}_1^\ast\vec{x}_1}.
+  \end{equation}
+  Then $B\vec{x}_1 = \zerovec$ and $B\vec{x}_i = \lambda_i\vec{x}_i$ for $i = 2, \dots, m$. In particular, the eigenvalues of $B$ are $0, \lambda_2, \dots, \lambda_m$.
+\end{proposition}
+
+\begin{proof}
+  We check the two cases.
+  \begin{itemize}
+    \item For $i = 1$,
+    \begin{equation}
+      B\vec{x}_1 = A\vec{x}_1 - \lambda_1\vec{x}_1\frac{\vec{x}_1^\ast\vec{x}_1}{\vec{x}_1^\ast\vec{x}_1} = \lambda_1\vec{x}_1 - \lambda_1\vec{x}_1 = \zerovec.
+    \end{equation}
+    \item For $i \ge 2$, orthogonality gives $\vec{x}_1^\ast\vec{x}_i = 0$, so the correction term vanishes and $B\vec{x}_i = A\vec{x}_i = \lambda_i\vec{x}_i$. \qedhere
+  \end{itemize}
+\end{proof}
+
+The only property of Hermitian matrices used here is orthogonality of the eigenvectors. For distinct eigenvalues it is automatic (\Cref{prop:herm-orth}); within the eigenspace of a repeated eigenvalue the eigenvectors can be chosen orthogonal by Gram--Schmidt. Note also that $\vec{x}_1\vec{x}_1^\ast/(\vec{x}_1^\ast\vec{x}_1)$ is the orthogonal projector onto $\spn(\vec{x}_1)$, which is why $\vec{x}_1$ need not be normalized.
+
+Power iteration applied to $B$ then converges to the eigenpair of the next largest modulus. Repeating this, we can compute the eigenpairs one by one.
+
+\paragraph{Implementation.} We never form $B$: if $A$ is sparse, $B$ is dense. Instead we compute
+\begin{equation}
+  B\vec{z} = A\vec{z} - \lambda_1\vec{x}_1\frac{\vec{x}_1^\ast\vec{z}}{\vec{x}_1^\ast\vec{x}_1},
+\end{equation}
+which costs one product with $A$ plus $O(m)$ work.
+
+There is another way to see what $B$ does. With $P \defeq I - \vec{x}_1\vec{x}_1^\ast/(\vec{x}_1^\ast\vec{x}_1)$, one checks that $B = AP = PA$. So power iteration on $B$ is power iteration on $A$ with the $\vec{x}_1$ component projected out. Could we just project the starting vector once and then iterate with $A$?
+\begin{itemize}
+  \item In exact arithmetic, yes.
+  \item In floating point, no. Rounding reintroduces a component of size $O(\epsm)$ along $\vec{x}_1$, which then grows like $\abs{\lambda_1/\lambda_2}^k$ and eventually takes over.
+\end{itemize}
+So the projection must be applied at every step, which is exactly what multiplying by $B = AP$ does.
+
+\paragraph{Limitations.}
+\begin{itemize}
+  \item The computed $(\lambda_1, \vec{x}_1)$ is only approximate, and its error is inherited by $B$ and hence by every eigenpair computed after it. Deflating many times in a row accumulates these errors.
+  \item For non-Hermitian $A$, the eigenvectors are not orthogonal and the proof above fails. See \Cref{sec:schur-supp} for a version that works, and \Cref{sec:schur-fact} for the stable, unitary way of deflating.
+\end{itemize}
+
+\section{Subspace Iteration: Motivation}
+\label{sec:subspace-motivation}
+
+So far we can compute individual eigenvalues, and in principle, with deflation, we can compute all eigenpairs one by one. The problem is cost. Surprisingly, the issue is not the number of flops but memory traffic.
+\begin{itemize}
+  \item Computing $N$ eigenpairs needs at least $N$ matrix-vector products, and in practice many more, since each eigenpair needs many iterations.
+  \item These matrix-vector products happen \emph{serially}. The $(k+1)$-st eigenpair cannot be started until the $k$-th has converged and been deflated.
+  \item Each matrix-vector product must load the whole matrix from RAM. It performs $2m^2$ flops on $m^2$ entries of $A$, a computational intensity $q \approx 2$ (\Cref{sec:intensity}). It is a Level 2 operation, limited by memory bandwidth.
+\end{itemize}
+So we load the matrix from RAM at least $N$ times, one after another.
+
+The alternative is to run power iteration on \emph{multiple vectors simultaneously}. With $Z \in \K^{m \times n}$, the product $AZ$ performs $2m^2n$ flops while reading $A$ only once, so its intensity grows proportionally to $n$. Matrix-vector products become matrix-matrix products (Level 3), which run near peak speed with the tiling of \Cref{ch:performance}. This is \emph{subspace iteration}.
+
+Simply iterating $Z \mapsto AZ$ is not enough, though. Every column is then an independent power iteration, so every column converges to the same direction $\vec{x}_1$. The columns must be kept linearly independent, for example by orthonormalizing them with a QR factorization after each multiplication. The algorithm and its convergence come in a later lecture; the end of \Cref{ch:eigen} gave a preview.
+
+This lecture answers a prior question: \emph{when we iterate a whole set of vectors, what object does the iteration converge to?} The answer (\Cref{sec:schur-fact}) is an orthonormal basis of nested invariant subspaces, i.e., a Schur factorization. The rest of the lecture builds up to it.
+
+\section{Eigenvalue Problems as Matrix Factorizations}
+\label{sec:eig-factorization}
+
+To ask for ``all eigenpairs at once'' we need to write them as one object. The first candidate is the eigenvalue decomposition $A = X\Lambda X^{-1}$. When does it exist? We start with the simplest sufficient condition: distinct eigenvalues.
+
+\begin{lemma}[Eigenvectors for Distinct Eigenvalues]
+  \label{lem:distinct-indep}
+  Eigenvectors $\vec{x}_1, \dots, \vec{x}_k$ of $A$ corresponding to distinct eigenvalues $\lambda_1, \dots, \lambda_k$ are linearly independent~\cite[5.11]{Axler}.
+\end{lemma}
+
+\begin{proof}
+  Suppose not, and choose a shortest nontrivial dependency $\sum_{i \in S}c_i\vec{x}_i = \zerovec$, where all $c_i \ne 0$. Since eigenvectors are nonzero, $S$ has at least two elements. The idea is to kill one term by applying $A - \lambda_jI$. Fix some $j \in S$; then
+  \begin{equation}
+    \sum_{i \in S \setminus \{j\}}c_i(\lambda_i - \lambda_j)\vec{x}_i = \zerovec.
+  \end{equation}
+  All coefficients $c_i(\lambda_i - \lambda_j)$ are nonzero because the eigenvalues are distinct, so this is a shorter nontrivial dependency, a contradiction.
+\end{proof}
+
+\begin{proposition}[Distinct Eigenvalues Give an Eigenvalue Decomposition]
+  \label{prop:distinct-diag}
+  If $A \in \K^{m \times m}$ has $m$ distinct eigenvalues $\lambda_1, \dots, \lambda_m$ with eigenvectors $\vec{x}_1, \dots, \vec{x}_m$, then
+  \begin{equation}
+    A = X\Lambda X^{-1}, \qquad X = \begin{bmatrix} \vec{x}_1 & \cdots & \vec{x}_m \end{bmatrix}, \quad \Lambda = \diag(\lambda_1, \dots, \lambda_m).
+  \end{equation}
+\end{proposition}
+
+\begin{proof}
+  The $m$ equations $A\vec{x}_i = \lambda_i\vec{x}_i$, written column by column, are $AX = X\Lambda$. By \Cref{lem:distinct-indep}, $X$ has linearly independent columns, so it is invertible, and we can multiply by $X^{-1}$ on the right.
+\end{proof}
+
+Distinct eigenvalues are sufficient but not necessary: $I$ has the single eigenvalue $1$ and is diagonal. The exact condition is given in \Cref{thm:nondefective}.
+
+For self-adjoint matrices, we can say more: the eigenvectors can be chosen orthonormal. Let us first recall the term.
+
+\begin{definition}[Adjoint and Self-Adjoint]
+  \label{def:self-adjoint}
+  Let $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$ be the standard inner product on $\K^m$. The \emph{adjoint} of $A \in \K^{m \times m}$ is the unique matrix $A^\ast$ with
+  \begin{equation}
+    \ip{A\vec{x}}{\vec{y}} = \ip{\vec{x}}{A^\ast\vec{y}} \quad \text{for all } \vec{x}, \vec{y} \in \K^m.
+  \end{equation}
+  $A$ is \emph{self-adjoint} if $A^\ast = A$.
+\end{definition}
+
+Since $\ip{A\vec{x}}{\vec{y}} = (A\vec{x})^\ast\vec{y} = \vec{x}^\ast(\overline{A}^\T\vec{y})$, the adjoint for the standard inner product is the conjugate transpose. So self-adjoint means \emph{symmetric} for $\K = \R$ and \emph{Hermitian} for $\K = \C$; for example, $\left[\begin{smallmatrix} 2 & i \\ -i & 3 \end{smallmatrix}\right]$ is Hermitian but not symmetric. Why use a new word? The name refers only to the inner product, not to a matrix representation, so it also applies to operators on infinite-dimensional spaces (for example $-\mathrm{d}^2/\mathrm{d}x^2$ with zero boundary values), and it covers the real and complex cases at once. We keep saying ``Hermitian'' below, as in \Cref{ch:eigen}.
+
+\begin{theorem}[Spectral Theorem]
+  \label{thm:spectral}
+  If $A \in \K^{m \times m}$ is self-adjoint, there is a unitary $X$ with
+  \begin{equation}
+    A = X\Lambda X^\ast,
+  \end{equation}
+  and $\Lambda$ is real~\cite[Thm.~24.7]{TB}, \cite[7.29, 7.31]{Axler}.
+\end{theorem}
+
+We postpone the proof to \Cref{cor:spectral}, where it follows from the Schur factorization in two lines. A few remarks.
+\begin{itemize}
+  \item The theorem says $X$ \emph{can be chosen} orthogonal. If the eigenvalues are distinct, the eigenvectors are automatically orthogonal (\Cref{prop:herm-orth}) and only need to be normalized. If an eigenvalue is repeated, its eigenspace also contains non-orthogonal eigenvectors, and one must pick an orthonormal basis of it.
+  \item Compared with \Cref{prop:distinct-diag}, inverting $X$ is free ($X^{-1} = X^\ast$), and $\kappa_2(X) = 1$, so changing to and from eigenvector coordinates does not amplify errors.
+\end{itemize}
+
+\section{Defective Matrices and Invariant Subspaces}
+\label{sec:defective}
+
+Are all matrices diagonalizable? Consider
+\begin{equation}
+  J = \begin{bmatrix} \lambda & 1 \\ 0 & \lambda \end{bmatrix}.
+\end{equation}
+What are its eigenpairs? Its only eigenvalue is $\lambda$, and $(J - \lambda I)\vec{x} = \left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right]\vec{x} = \zerovec$ forces $x_2 = 0$. So $(\lambda, \vec{e}_1)$ is the only eigenpair, up to scaling. There is no second independent eigenvector, and hence no invertible $X$ with $J = X\Lambda X^{-1}$. Such matrices are called \emph{defective}.
+
+To see what is going on, take $\lambda = 0$, so that $J = N \defeq \left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right]$. Then $N\vec{e}_2 = \vec{e}_1$ and $N\vec{e}_1 = \zerovec$: the matrix pushes $\vec{e}_2$ onto $\vec{e}_1$ and $\vec{e}_1$ onto $\zerovec$, a chain $\vec{e}_2 \mapsto \vec{e}_1 \mapsto \zerovec$. Hence $N^2 = 0$ although $N \ne 0$.
+
+This gives another short proof that $N$ is not diagonalizable. If $N = X\Lambda X^{-1}$, the diagonal of $\Lambda$ holds the eigenvalues of $N$, which are all $0$. So $\Lambda = 0$ and $N = 0$, a contradiction.
+
+\begin{center}
+\begin{tikzpicture}[scale=1.7, every node/.style={font=\small}]
+  \draw[-{Latex}] (-0.3,0) -- (1.6,0) node[right] {$\vec{e}_1$};
+  \draw[-{Latex}] (0,-0.3) -- (0,1.5) node[above] {$\vec{e}_2$};
+  \fill (1,0) circle (0.9pt);
+  \fill (0,1) circle (0.9pt);
+  \draw[-{Latex}, thick, blue!70!black] (0.08,1.02) to[out=0,in=95] (0.97,0.1);
+  \node[blue!70!black, right] at (0.75,0.9) {$N\vec{e}_2 = \vec{e}_1$};
+  \draw[-{Latex}, thick, red!70!black] (1,-0.13) -- (0.06,-0.13);
+  \node[red!70!black, below] at (0.55,-0.16) {$N\vec{e}_1 = \zerovec$};
+\end{tikzpicture}
+
+\small The nilpotent matrix $N$ maps $\vec{e}_2$ to $\vec{e}_1$ and $\vec{e}_1$ to $\zerovec$. Only $\spn(\vec{e}_1)$ is an eigenspace.
+\end{center}
+
+\subsection{Algebraic and Geometric Multiplicity}
+
+We follow the terminology of~\cite[Lecture~24]{TB}. The characteristic polynomial $p_A(z) \defeq \det(zI - A)$ is monic of degree $m$, and its roots are the eigenvalues. Similar matrices have the same characteristic polynomial, since
+\begin{equation}
+  \det(zI - X^{-1}AX) = \det(X^{-1}(zI - A)X) = p_A(z).
+\end{equation}
+There are two ways to count how often an eigenvalue occurs, and defectiveness is exactly the gap between them.
+
+\begin{definition}[Multiplicities, Defective Matrices]
+  \label{def:multiplicity}
+  Let $\lambda$ be an eigenvalue of $A$.
+  \begin{itemize}
+    \item The \emph{eigenspace} is $E_\lambda \defeq \nullsp(A - \lambda I)$, and the \emph{geometric multiplicity} of $\lambda$ is $\dim E_\lambda$, the largest number of linearly independent eigenvectors for $\lambda$.
+    \item The \emph{algebraic multiplicity} of $\lambda$ is its multiplicity as a root of $p_A$. The eigenvalue is \emph{simple} if its algebraic multiplicity is $1$.
+    \item $\lambda$ is \emph{defective} if its algebraic multiplicity exceeds its geometric multiplicity, and $A$ is \emph{defective} if it has a defective eigenvalue.
+  \end{itemize}
+\end{definition}
+
+For the matrix $J$ above, $p_J(z) = (z - \lambda)^2$, so the algebraic multiplicity is $2$, but $E_\lambda = \spn(\vec{e}_1)$, so the geometric multiplicity is $1$. The gap can only go one way.
+
+\begin{theorem}[Algebraic Multiplicity Bounds Geometric Multiplicity]
+  \label{thm:alg-geq-geo}
+  For every eigenvalue, the algebraic multiplicity is at least the geometric multiplicity~\cite[Thm.~24.4]{TB}.
+\end{theorem}
+
+\begin{proof}
+  The idea is to change to a basis that starts with the eigenspace. Let $n = \dim E_\lambda$, let the columns of $\hat{V} \in \K^{m \times n}$ be an orthonormal basis of $E_\lambda$, and extend $\hat{V}$ to a unitary $V = [\hat{V}\ \tilde{V}]$. Since $A\hat{V} = \lambda\hat{V}$ and $\tilde{V}^\ast\hat{V} = 0$,
+  \begin{equation}
+    V^\ast AV = \begin{bmatrix} \lambda I_n & C \\ 0 & D \end{bmatrix}, \qquad C = \hat{V}^\ast A\tilde{V}, \quad D = \tilde{V}^\ast A\tilde{V}.
+  \end{equation}
+  The determinant of a block triangular matrix is the product of the determinants of its diagonal blocks, so $p_A(z) = (z - \lambda)^n\det(zI - D)$. Thus $\lambda$ is a root of multiplicity at least $n$.
+\end{proof}
+
+\begin{theorem}[Diagonalizable Means Nondefective]
+  \label{thm:nondefective}
+  $A \in \K^{m \times m}$ has an eigenvalue decomposition $A = X\Lambda X^{-1}$ if and only if $A$ is nondefective~\cite[Thm.~24.5]{TB}.
+\end{theorem}
+
+\begin{proof}
+  ($\Rightarrow$) If $A = X\Lambda X^{-1}$, then $A$ and $\Lambda$ have the same eigenvalues with the same algebraic multiplicities, and $X$ maps each eigenspace of $\Lambda$ onto the corresponding eigenspace of $A$, so the geometric multiplicities agree too. A diagonal matrix is clearly nondefective.
+
+  ($\Leftarrow$) If $A$ is nondefective, choose a basis of each eigenspace. The geometric multiplicities add up to the algebraic ones, which add up to $m$, so we have $m$ vectors. They are linearly independent: in a relation $\sum_\lambda \vec{u}_\lambda = \zerovec$ with $\vec{u}_\lambda \in E_\lambda$, the nonzero $\vec{u}_\lambda$ would be eigenvectors for distinct eigenvalues, contradicting \Cref{lem:distinct-indep}. So every $\vec{u}_\lambda = \zerovec$, and then all coefficients vanish because each basis is independent. These $m$ vectors form an invertible $X$ with $AX = X\Lambda$.
+\end{proof}
+
+\subsection{Invariant Subspaces}
+
+A defective matrix does not have enough eigenvectors to fill $\K^m$. But intuitively, all vectors still show ``$\lambda$-growth'' under $J$. The idea of the lecture is to generalize the $\lambda$-eigenspace to an \emph{invariant subspace with $\lambda$-growth}: a subspace that $A$ maps into itself, but on which $A$ need not act as a multiple of the identity. For $J$, the whole plane $\spn(\vec{e}_1, \vec{e}_2)$ is mapped into itself, and on it $J$ acts as $\lambda I + N$ rather than as $\lambda I$.
+
+\begin{definition}[Invariant Subspace]
+  \label{def:invariant}
+  Let $X = [\vec{x}_1\ \cdots\ \vec{x}_n] \in \K^{m \times n}$ have linearly independent columns. The space $\range(X)$ spanned by its columns is \emph{$A$-invariant} if and only if there is $B \in \K^{n \times n}$ with
+  \begin{equation}
+    AX = XB.
+  \end{equation}
+\end{definition}
+
+Let us unpack the definition.
+\begin{itemize}
+  \item Read column by column, $A\vec{x}_j = X\vec{b}_j$: $A$ maps every basis vector into $\range(X)$. So the definition is equivalent to $A\,\range(X) \subseteq \range(X)$, the basis-free definition in~\cite[5.2]{Axler} and~\cite[Def.~4.4]{Demmel}.
+  \item The matrix $B$ is the matrix of $A$ restricted to $\range(X)$, in the basis $X$. Since $X$ has independent columns, $B$ is unique.
+\end{itemize}
+The following table shows that the definition covers everything we have seen so far.
+
+\begin{center}
+\small
+\begin{tabular}{@{}l l l@{}}
+  \toprule
+  Situation & $X$ & $B$ \\
+  \midrule
+  eigenpair & $\vec{x}_1$ ($n = 1$) & $\lambda_1$ \\
+  eigenspace & a basis of $E_\lambda$ & $\lambda I$ \\
+  diagonalizable $A$ & all eigenvectors ($n = m$) & $\Lambda$ \\
+  the matrix $J$ above & $I_2$ & $J$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+So $AX = XB$ generalizes both $A\vec{x} = \lambda\vec{x}$ and $AX = X\Lambda$, without requiring $B$ to be diagonal. The eigenvalues of $B$ are still eigenvalues of $A$.
+
+\begin{proposition}[Eigenvalues on an Invariant Subspace]
+  \label{prop:invariant-eig}
+  Let $AX = XB$ with $X$ of full column rank. Then every eigenvalue of $B$ is an eigenvalue of $A$. If the columns of $X = Q$ are orthonormal, then $B = Q^\ast AQ$~\cite[Prop.~4.3]{Demmel}.
+\end{proposition}
+
+\begin{proof}
+  If $B\vec{v} = \lambda\vec{v}$ with $\vec{v} \ne \zerovec$, then $A(X\vec{v}) = XB\vec{v} = \lambda X\vec{v}$, and $X\vec{v} \ne \zerovec$ because $X$ has independent columns. If $Q^\ast Q = I$, multiplying $AQ = QB$ by $Q^\ast$ on the left gives $B = Q^\ast AQ$.
+\end{proof}
+
+For $n = 1$ and $\norm{\vec{q}} = 1$, $Q^\ast AQ = \vec{q}^\ast A\vec{q}$ is the Rayleigh quotient (\Cref{def:rayleigh}). So $Q^\ast AQ$ is its block version.
+
+\paragraph{The meaning of ``$\lambda$-growth''.} Iterating $AX = XB$ gives $A^kX = XB^k$. On an invariant subspace, the powers of $A$ (and hence power iteration) behave like the powers of the small matrix $B$, and their growth is governed by the eigenvalues of $B$. For the $2 \times 2$ block,
+\begin{equation}
+  J^k = \begin{bmatrix} \lambda^k & k\lambda^{k-1} \\ 0 & \lambda^k \end{bmatrix},
+\end{equation}
+which grows like $\abs{\lambda}^k$ up to a factor polynomial in $k$. Note that even for $\abs{\lambda} < 1$, $\norm{J^k}$ can first increase before it decays (see the supplement of \Cref{ch:eigen}).
+
+\section{The Jordan Normal Form}
+\label{sec:jordan}
+
+If we collect invariant subspaces on which $A$ acts like a single eigenvalue, we arrive at the Jordan normal form. It decomposes the whole space into $A$-invariant subspaces.
+
+\begin{theorem}[Jordan Normal Form]
+  \label{thm:jordan}
+  For every $A \in \K^{m \times m}$ there is a nonsingular $S \in \C^{m \times m}$ with
+  \begin{equation}
+    A = SJS^{-1}, \qquad J = \begin{bmatrix} J_1 & & \\ & \ddots & \\ & & J_k \end{bmatrix}, \qquad J_\ell = \begin{bmatrix} \lambda_\ell & 1 & & \\ & \lambda_\ell & \ddots & \\ & & \ddots & 1 \\ & & & \lambda_\ell \end{bmatrix} \in \C^{n_\ell \times n_\ell}.
+  \end{equation}
+  $J$ is unique up to the order of the blocks~\cite[Thm.~4.1]{Demmel}, \cite[8.46]{Axler}.
+\end{theorem}
+
+\paragraph{Reading the theorem.}
+\begin{itemize}
+  \item $S$ and $J$ are complex in general, even for real $A$, because the eigenvalues may be complex.
+  \item The $\lambda_\ell$ need not be distinct; one eigenvalue may own several blocks. For each eigenvalue, its algebraic multiplicity is the total size of its blocks, and its geometric multiplicity is the number of its blocks (by \Cref{prop:jordan-block} below).
+  \item $A$ is diagonalizable if and only if all $n_\ell = 1$. Then $J = \Lambda$ and $S = X$.
+  \item Splitting $S = [S_1\ \cdots\ S_k]$ conformally with $J$ gives $AS_\ell = S_\ell J_\ell$. So each block is an invariant subspace in the sense of \Cref{def:invariant}, with $B = J_\ell$.
+\end{itemize}
+
+\paragraph{Where the proof comes from.} The proof is pure linear algebra and is not given in the lecture; see~\cite[Chapter~8]{Axler}. Here is the outline.
+\begin{itemize}
+  \item A nonzero $\vec{v}$ with $(A - \lambda I)^p\vec{v} = \zerovec$ for some $p \ge 1$ is a \emph{generalized eigenvector}~\cite[8.8]{Axler}.
+  \item The space $\K^m$ (over $\C$) is the direct sum of the generalized eigenspaces $\nullsp(A - \lambda I)^m$, and on each of them $A - \lambda I$ is nilpotent~\cite[8.14]{Axler}, i.e., some power of it is zero.
+  \item The columns of $S$ belonging to one block form a \emph{Jordan chain} $(A - \lambda I)\vec{s}_j = \vec{s}_{j-1}$, $(A - \lambda I)\vec{s}_1 = \zerovec$. This is the chain $\vec{e}_2 \mapsto \vec{e}_1 \mapsto \zerovec$ of $N$ above. Only $\vec{s}_1$ is an eigenvector.
+\end{itemize}
+
+\begin{proposition}[One Eigenvector per Jordan Block]
+  \label{prop:jordan-block}
+  Every Jordan block $J_\ell$ has, up to scaling, only one eigenvector, $\vec{e}_1$~\cite[Prop.~4.2]{Demmel}.
+\end{proposition}
+
+\begin{proof}
+  The only eigenvalue of $J_\ell$ is $\lambda_\ell$. The matrix $J_\ell - \lambda_\ell I$ has ones on the superdiagonal and zeros elsewhere, so it shifts entries up: $(J_\ell - \lambda_\ell I)\vec{x} = (x_2, \dots, x_{n_\ell}, 0)^\T$. This vanishes if and only if $x_2 = \cdots = x_{n_\ell} = 0$, i.e., $\vec{x} \in \spn(\vec{e}_1)$.
+\end{proof}
+
+\subsection{The Jordan Form Is Not Numerically Stable}
+
+The Jordan form exists for every matrix, so why not compute it? The problem is that it is not (numerically) stable, in two ways: it is discontinuous in the input, and the transformation $S$ can be arbitrarily ill-conditioned.
+
+\begin{example}[A Tiny Perturbation Changes the Jordan Form]
+  \label{ex:jordan-unstable}
+  Perturb $N = \left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right]$ to
+  \begin{equation}
+    A_\eps = \begin{bmatrix} \eps & 1 \\ 0 & 2\eps \end{bmatrix}, \qquad \eps > 0.
+  \end{equation}
+  $A_\eps$ is upper triangular with distinct eigenvalues $\eps$ and $2\eps$, so it is diagonalizable. Let us compute its eigenvectors.
+  \begin{itemize}
+    \item For $\eps$, the eigenvector is $\vec{e}_1$.
+    \item For $2\eps$, $(A_\eps - 2\eps I)\vec{x} = \left[\begin{smallmatrix} -\eps & 1 \\ 0 & 0 \end{smallmatrix}\right]\vec{x} = \zerovec$ gives the eigenvector $(1, \eps)^\T$.
+  \end{itemize}
+  Hence
+  \begin{equation}
+    A_\eps = S_\eps\begin{bmatrix} \eps & 0 \\ 0 & 2\eps \end{bmatrix}S_\eps^{-1}, \qquad S_\eps = \begin{bmatrix} 1 & 1 \\ 0 & \eps \end{bmatrix}.
+  \end{equation}
+  As $\eps \to 0$, $A_\eps \to N$, but the Jordan form $\diag(\eps, 2\eps)$ tends to the zero matrix, while the Jordan form of $N$ is $N \ne 0$. So the Jordan form is a \emph{discontinuous} function of $A$. More generally, adding $\diag(\eps, 2\eps, \dots, n\eps)$ to an $n \times n$ Jordan block with eigenvalue $0$ turns its Jordan form into $\diag(\eps, \dots, n\eps)$~\cite[Example~4.2]{Demmel}.
+\end{example}
+
+In floating point, perturbations of size $\epsm\norm{A}$ are always present. So the question ``does $A$ have a nontrivial Jordan block?''\ cannot be answered by computation.
+
+\paragraph{$S$ can be arbitrarily ill-conditioned.} The two columns of $S_\eps$ are nearly parallel: the angle $\theta$ between them satisfies $\tan\theta = \eps$. With both columns normalized to unit length, the singular values are $\sqrt{1 \pm \cos\theta}$, so
+\begin{equation}
+  \kappa_2(S_\eps) = \sqrt{\frac{1 + \cos\theta}{1 - \cos\theta}} = \cot\frac{\theta}{2} \approx \frac{2}{\eps}.
+\end{equation}
+Could a better scaling of the columns help? No. Let $\vec{u}, \vec{v}$ be the unit columns and $SD = [a\vec{u}\ b\vec{v}]$ with $a, b \ne 0$.
+\begin{itemize}
+  \item For $\vec{w} = (1/a, -1/b)^\T$ we get $SD\vec{w} = \vec{u} - \vec{v}$ and $\norm{\vec{w}} \ge 1/\min(\abs{a}, \abs{b})$, so $\sigma_{\min}(SD) \le \min(\abs{a}, \abs{b})\norm{\vec{u} - \vec{v}}$.
+  \item Also $\sigma_{\max}(SD) \ge \max(\abs{a}, \abs{b})$, the norm of the larger column.
+\end{itemize}
+Hence $\kappa_2(SD) \ge 1/\norm{\vec{u} - \vec{v}} = 1/(2\sin(\theta/2)) \approx 1/\eps$. Since $A_\eps$ is diagonalizable, this also shows that the eigenvector matrix $X$ of a diagonalizable matrix can be arbitrarily ill-conditioned when the matrix is close to a defective one.
+
+\paragraph{Why an ill-conditioned $S$ is fatal.} Suppose we were lucky enough to compute $S$ exactly and $J$ with a tiny error $\delta J$, $\norm{\delta J} = O(\epsm)\norm{A}$. The backward error $\delta A$ with $S^{-1}(A + \delta A)S = J + \delta J$ is $\delta A = S\,\delta J\,S^{-1}$, and all we can say is
+\begin{equation}
+  \norm{\delta A} \le \kappa(S)\norm{\delta J} = O(\epsm)\,\kappa(S)\norm{A},
+\end{equation}
+which can be far larger than $\epsm\norm{A}$. So the Jordan form cannot be computed in a backward stable way~\cite[Example~4.3]{Demmel}. The same factor $\kappa(S)$ multiplies the error of any computation of the form $f(A) = Sf(J)S^{-1}$.
+
+The conclusion is to restrict the similarity transformation to be \emph{unitary}, so that $\kappa_2 = 1$. We then cannot reach a form as simple as $J$, but we get something almost as good.
+
+\section{The Schur Factorization}
+\label{sec:schur-fact}
+
+\begin{theorem}[Schur Factorization]
+  \label{thm:schur}
+  For every $A \in \K^{m \times m}$ there exist a unitary $Q$ and an upper triangular $T$ with
+  \begin{equation}
+    A = QTQ^\ast.
+  \end{equation}
+  The eigenvalues of $A$ are the diagonal entries of $T$~\cite[Thm.~24.9]{TB}, \cite[Thm.~4.2]{Demmel}, \cite[6.38]{Axler}.
+\end{theorem}
+
+The idea of the proof: use the fact that every matrix has at least one eigenpair, rotate it into the first column by a unitary similarity, and then recurse on the bottom right part.
+
+\begin{proof}
+  We use induction on $m$; for $m = 1$, take $Q = [1]$ and $T = A$. Let $m \ge 2$.
+
+  \emph{Step 1: find one eigenpair.} By the fundamental theorem of algebra, $p_A$ has a root $\lambda \in \C$, so there is $\vec{u}$ with $A\vec{u} = \lambda\vec{u}$, normalized to $\norm{\vec{u}}_2 = 1$.
+
+  \emph{Step 2: rotate it into the first column.} Extend $\vec{u}$ to a square unitary matrix $U = [\vec{u}\ \tilde{U}]$, $\tilde{U} \in \C^{m \times (m-1)}$; for example, take a Householder reflector that maps $\vec{e}_1$ to a multiple of $\vec{u}$ (\Cref{ch:householder}). Then
+  \begin{equation}
+    U^\ast AU = \begin{bmatrix} \vec{u}^\ast A\vec{u} & \vec{u}^\ast A\tilde{U} \\ \tilde{U}^\ast A\vec{u} & \tilde{U}^\ast A\tilde{U} \end{bmatrix} = \begin{bmatrix} \lambda & \vec{u}^\ast A\tilde{U} \\ \zerovec & A_2 \end{bmatrix}, \qquad A_2 \defeq \tilde{U}^\ast A\tilde{U},
+  \end{equation}
+  because $\vec{u}^\ast A\vec{u} = \lambda\vec{u}^\ast\vec{u} = \lambda$ and $\tilde{U}^\ast A\vec{u} = \lambda\tilde{U}^\ast\vec{u} = \zerovec$ by orthogonality.
+
+  \emph{Step 3: recurse on the bottom right part.} By the induction hypothesis, $A_2 = \tilde{Q}\tilde{T}\tilde{Q}^\ast$ with $\tilde{Q}$ unitary and $\tilde{T}$ upper triangular. Set
+  \begin{equation}
+    Q \defeq U\begin{bmatrix} 1 & \\ & \tilde{Q} \end{bmatrix},
+  \end{equation}
+  a product of unitary matrices. Then
+  \begin{equation}
+    Q^\ast AQ = \begin{bmatrix} 1 & \\ & \tilde{Q}^\ast \end{bmatrix}\begin{bmatrix} \lambda & \vec{u}^\ast A\tilde{U} \\ \zerovec & A_2 \end{bmatrix}\begin{bmatrix} 1 & \\ & \tilde{Q} \end{bmatrix} = \begin{bmatrix} \lambda & \vec{u}^\ast A\tilde{U}\tilde{Q} \\ \zerovec & \tilde{T} \end{bmatrix}
+  \end{equation}
+  is upper triangular; call it $T$.
+
+  \emph{Step 4: the eigenvalues.} $A$ and $T$ are similar, so they have the same characteristic polynomial, and $p_T(z) = \prod_i(z - t_{ii})$ since $T$ is triangular.
+\end{proof}
+
+The fundamental theorem of algebra in Step 1 is where $\C$ enters. Over $\R$, a matrix may have no eigenvalue at all (a rotation of the plane), so $Q$ and $T$ are complex in general even for real $A$.
+
+\paragraph{Remarks.}
+\begin{itemize}
+  \item \emph{Comparison with Jordan.} Both forms exist for every matrix. Jordan uses a possibly ill-conditioned $S$ and is discontinuous; Schur uses a unitary $Q$ with $\kappa_2(Q) = 1$. The price is that $T$ is only triangular, with a possibly dense strictly upper part.
+  \item \emph{Non-uniqueness.} The eigenvalue picked in Step 1 is arbitrary, so the eigenvalues can appear on the diagonal of $T$ in any order.
+  \item \emph{Nested invariant subspaces.} Writing $AQ = QT$ and keeping the first $k$ columns gives $AQ_{:,1:k} = Q_{:,1:k}T_{1:k,1:k}$, because $T$ is upper triangular. So $\spn(\vec{q}_1) \subset \spn(\vec{q}_1, \vec{q}_2) \subset \cdots$ is a nested sequence of invariant subspaces (\Cref{def:invariant}) with orthonormal bases. Conversely, a basis whose leading spans are all invariant gives an upper triangular matrix~\cite[5.39]{Axler}. This is what subspace iteration with orthonormalization aims at (\Cref{sec:subspace-motivation}).
+  \item \emph{The proof is deflation.} Each step isolates one eigenvalue in the top left corner by a unitary similarity, and the remaining eigenvalues are those of $A_2$. This answers the question of \Cref{sec:deflation} for all matrices, Hermitian or not, using only unitary transformations. It is not yet an algorithm, since each step needs an eigenpair, which itself must be computed iteratively.
+\end{itemize}
+
+As promised, the spectral theorem now follows in two lines.
+
+\begin{corollary}[Normal Matrices and the Spectral Theorem]
+  \label{cor:spectral}
+  If $A$ is normal ($A^\ast A = AA^\ast$), then the triangular factor $T$ of any Schur factorization of $A$ is diagonal, so $A = Q\Lambda Q^\ast$. If $A$ is Hermitian, $\Lambda$ is moreover real. In particular, \Cref{thm:spectral} holds~\cite[Thm.~24.8]{TB}.
+\end{corollary}
+
+\begin{proof}
+  \emph{Hermitian case.} $T = Q^\ast AQ$ satisfies $T^\ast = Q^\ast A^\ast Q = T$. A Hermitian upper triangular matrix is diagonal with real diagonal.
+
+  \emph{Normal case.} This is the forward direction of \Cref{thm:normal-diag}, proved in \Cref{ch:orth-iter}.
+\end{proof}
+
+\subsection{The Real Schur Form}
+
+When working with real matrices, we prefer to stay with real numbers, for two reasons.
+\begin{itemize}
+  \item \emph{Cost.} A complex multiplication costs four real multiplications and two additions, and complex storage is twice as large.
+  \item \emph{Structure.} A real matrix has its non-real eigenvalues in conjugate pairs $\lambda, \overline{\lambda}$. Complex arithmetic with rounding would destroy this exact symmetry, while real arithmetic preserves it automatically.
+\end{itemize}
+
+\begin{theorem}[Real Schur Form]
+  \label{thm:real-schur}
+  If $A \in \R^{m \times m}$, there exist an orthogonal $Q$ and a block upper triangular $T$ with $1 \times 1$ or $2 \times 2$ diagonal blocks such that
+  \begin{equation}
+    A = QTQ^\T.
+  \end{equation}
+  The $1 \times 1$ blocks are the real eigenvalues of $A$, and each $2 \times 2$ block has a pair of complex conjugate eigenvalues of $A$~\cite[Thm.~4.3]{Demmel}.
+\end{theorem}
+
+Such a $T$ is called \emph{quasi-upper triangular}.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.5, every node/.style={font=\small}]
+  \fill[black!10] (0,0) -- (6,0) -- (6,-6) -- (4,-6) -- (4,-4) -- (3,-4) -- (3,-3) -- (1,-3) -- (1,-1) -- (0,-1) -- cycle;
+  \foreach \s/\b in {0/1, 1/2, 3/1, 4/2} {
+    \fill[blue!20] (\s,-\s) rectangle (\s+\b,-\s-\b);
+    \draw[blue!60!black] (\s,-\s) rectangle (\s+\b,-\s-\b);
+  }
+  \draw (0,0) -- (6,0) -- (6,-6) -- (4,-6) -- (4,-4) -- (3,-4) -- (3,-3) -- (1,-3) -- (1,-1) -- (0,-1) -- cycle;
+  \draw[thick] (0.2,0.2) -- (-0.2,0.2) -- (-0.2,-6.2) -- (0.2,-6.2);
+  \draw[thick] (5.8,0.2) -- (6.2,0.2) -- (6.2,-6.2) -- (5.8,-6.2);
+  \node at (-1,-3) {$T =$};
+  \node at (2.2,-5) {$0$};
+  \draw[-{Latex}] (8,-0.5) node[right] {real $\lambda$ ($1 \times 1$)} -- (0.8,-0.5);
+  \draw[-{Latex}] (8,-2) node[right] {$\alpha \pm i\beta$ ($2 \times 2$)} -- (2.9,-2);
+\end{tikzpicture}
+
+\small The quasi-upper triangular factor of the real Schur form. Shaded entries may be nonzero; each diagonal block holds a real eigenvalue or a conjugate pair.
+\end{center}
+
+The key idea is that complex eigenvalues of a real matrix appear in conjugate pairs, and together they span a \emph{real} two-dimensional invariant subspace.
+
+\begin{lemma}[A Conjugate Pair Gives a Real Invariant Plane]
+  \label{lem:conj-pair}
+  Let $A \in \R^{m \times m}$, $A\vec{x} = \lambda\vec{x}$ with $\lambda = \alpha + i\beta$, $\beta \ne 0$, and $\vec{x} = \vec{a} + i\vec{b}$ with $\vec{a}, \vec{b} \in \R^m$. Then $\vec{a}, \vec{b}$ are linearly independent and
+  \begin{equation}
+    A\begin{bmatrix} \vec{a} & \vec{b} \end{bmatrix} = \begin{bmatrix} \vec{a} & \vec{b} \end{bmatrix}\begin{bmatrix} \alpha & \beta \\ -\beta & \alpha \end{bmatrix},
+  \end{equation}
+  where the $2 \times 2$ matrix has eigenvalues $\alpha \pm i\beta$.
+\end{lemma}
+
+\begin{proof}
+  \emph{The identity.} Since $A$ is real, comparing real and imaginary parts of $A(\vec{a} + i\vec{b}) = (\alpha + i\beta)(\vec{a} + i\vec{b})$ gives
+  \begin{equation}
+    A\vec{a} = \alpha\vec{a} - \beta\vec{b}, \qquad A\vec{b} = \beta\vec{a} + \alpha\vec{b},
+  \end{equation}
+  which is the matrix identity, column by column.
+
+  \emph{Independence.} If $\vec{a}, \vec{b}$ were dependent, then $\vec{x}$ would be a complex multiple of a single real vector $\vec{r} \ne \zerovec$, so $A\vec{r} = \lambda\vec{r}$. The left side is real, which forces $\lambda$ to be real, a contradiction.
+
+  \emph{The eigenvalues.} The eigenvalues of $\left[\begin{smallmatrix} \alpha & \beta \\ -\beta & \alpha \end{smallmatrix}\right]$ are the roots of $(z - \alpha)^2 + \beta^2$, i.e., $\alpha \pm i\beta$.
+\end{proof}
+
+The $2 \times 2$ matrix is the standard real representation of the complex number $\alpha + i\beta$ acting by multiplication.
+
+\begin{proof}[Proof of \Cref{thm:real-schur}]
+  Induct as in \Cref{thm:schur}, but with real arithmetic. There are two cases.
+
+  \emph{A real eigenvalue.} It has a real eigenvector, and the step is the same as before, with a $1 \times 1$ block.
+
+  \emph{No real eigenvalue.} Take $\lambda = \alpha + i\beta$ with $\beta \ne 0$ and form $[\vec{a}\ \vec{b}]$ as in \Cref{lem:conj-pair}. Compute its QR factorization $[\vec{a}\ \vec{b}] = \hat{Q}R$, $\hat{Q} \in \R^{m \times 2}$, $R$ invertible. Then $\range(\hat{Q}) = \spn(\vec{a}, \vec{b})$ is invariant, $A\hat{Q} = \hat{Q}\hat{B}$ with $\hat{B} = R\left[\begin{smallmatrix} \alpha & \beta \\ -\beta & \alpha \end{smallmatrix}\right]R^{-1}$, which still has eigenvalues $\alpha \pm i\beta$. Extend $\hat{Q}$ to an orthogonal $U = [\hat{Q}\ \tilde{Q}]$. By \Cref{prop:invariant-eig}, $\hat{Q}^\T A\hat{Q} = \hat{B}$, and $\tilde{Q}^\T A\hat{Q} = \tilde{Q}^\T\hat{Q}\hat{B} = 0$, so
+  \begin{equation}
+    U^\T AU = \begin{bmatrix} \hat{B} & \hat{Q}^\T A\tilde{Q} \\ 0 & \tilde{Q}^\T A\tilde{Q} \end{bmatrix},
+  \end{equation}
+  and we recurse on $\tilde{Q}^\T A\tilde{Q}$.
+\end{proof}
+
+A $2 \times 2$ block with a non-real conjugate pair cannot be triangularized further over $\R$, since its triangular form would show the non-real eigenvalues on a real diagonal.
+
+\section{Computing Eigenvectors from the Schur Form}
+\label{sec:schur-eigvec}
+
+The Schur factorization gives us the eigenvalues. What about the eigenvectors? Suppose a Schur factorization $A = QTQ^\ast$ is known. Then
+\begin{equation}
+  T\vec{x} = \lambda\vec{x} \iff (QTQ^\ast)(Q\vec{x}) = \lambda Q\vec{x},
+\end{equation}
+so $\vec{x}$ is an eigenvector of $T$ if and only if $Q\vec{x}$ is an eigenvector of $A$. So we need to find eigenvectors of $T$, a triangular matrix, which turns out to be just a triangular solve.
+
+\begin{proposition}[Eigenvectors of a Triangular Matrix]
+  \label{prop:triangular-eigvec}
+  Let $T$ be upper triangular and let $\lambda = t_{kk}$ be a simple eigenvalue. Partition
+  \begin{equation}
+    T - \lambda I = \begin{bmatrix} T_{11} - \lambda I & \vec{t}_{12} & T_{13} \\ & 0 & \vec{t}_{23}^\ast \\ & & T_{33} - \lambda I \end{bmatrix},
+  \end{equation}
+  with $T_{11}$ of size $(k-1) \times (k-1)$, a $1 \times 1$ middle block, and $T_{33}$ of size $(m-k) \times (m-k)$. Then
+  \begin{equation}
+    \vec{x} = \begin{bmatrix} (\lambda I - T_{11})^{-1}\vec{t}_{12} \\ 1 \\ \zerovec \end{bmatrix}
+  \end{equation}
+  is an eigenvector of $T$ for $\lambda$, and $Q\vec{x}$ is an eigenvector of $A$~\cite[\S4.2.1]{Demmel}.
+\end{proposition}
+
+\begin{proof}
+  Partition $\vec{x} = (\vec{x}_1, x_2, \vec{x}_3)$ conformally. Then $(T - \lambda I)\vec{x} = \zerovec$ reads
+  \begin{equation}
+    \begin{bmatrix} (T_{11} - \lambda I)\vec{x}_1 + \vec{t}_{12}x_2 + T_{13}\vec{x}_3 \\ \vec{t}_{23}^\ast\vec{x}_3 \\ (T_{33} - \lambda I)\vec{x}_3 \end{bmatrix} = \zerovec.
+  \end{equation}
+  Since $\lambda$ is simple, it does not appear on the diagonal of $T_{11}$ or $T_{33}$, so $T_{11} - \lambda I$ and $T_{33} - \lambda I$ are nonsingular triangular matrices. We solve from the bottom up.
+  \begin{itemize}
+    \item The third row gives $\vec{x}_3 = \zerovec$, and then the second row holds automatically.
+    \item The scalar $x_2$ is free, and we choose $x_2 = 1$.
+    \item The first row becomes $(T_{11} - \lambda I)\vec{x}_1 = -\vec{t}_{12}$, i.e., $\vec{x}_1 = (\lambda I - T_{11})^{-1}\vec{t}_{12}$. \qedhere
+  \end{itemize}
+\end{proof}
+
+\paragraph{Cost.} Computing $\vec{x}_1$ is one triangular solve of size $k - 1$, about $(k-1)^2$ flops, and $Q\vec{x}$ uses only the first $k$ columns of $Q$, about $2mk$ flops. Summing over $k = 1, \dots, m$ gives roughly $\tfrac{1}{3}m^3 + m^3$ flops for all eigenvectors, the same order $O(m^3)$ as computing the Schur form itself. For $k = 1$, $\vec{x} = \vec{e}_1$ and $Q\vec{x} = \vec{q}_1$: the first Schur vector is always an eigenvector, namely the $\vec{u}$ chosen in Step 1 of the proof of \Cref{thm:schur}.
+
+\paragraph{Remarks.}
+\begin{itemize}
+  \item \emph{Repeated eigenvalues.} If $t_{jj} = \lambda$ for some $j < k$, then $T_{11} - \lambda I$ is singular, and an eigenvector with $x_k = 1$ may not exist. This is the defective situation of \Cref{sec:defective} showing up again.
+  \item \emph{Sensitivity.} The Schur form can be computed stably, but if $\lambda$ is close to some other diagonal entry of $T_{11}$, then $(\lambda I - T_{11})^{-1}$ is large and $\vec{x}$ is very sensitive to perturbations. This is not a flaw of the method: the eigenvector itself is ill-conditioned, as in \Cref{ex:jordan-unstable}, where two eigenvectors become nearly parallel.
+  \item \emph{Real Schur form.} From the real Schur form one solves a quasi-triangular system instead. Computing complex eigenvectors in real arithmetic needs a little more care; LAPACK does it in the routine \texttt{xTREVC}~\cite[\S4.2.1]{Demmel}.
+\end{itemize}
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:schur-supp}
+
+\paragraph{Deflation for non-Hermitian matrices.} Hotelling deflation (\Cref{prop:hotelling}) uses orthogonal eigenvectors. For general $A$ with $A\vec{x}_1 = \lambda_1\vec{x}_1$, let $\vec{w} \in \K^m$ be arbitrary. Then the eigenvalues of $A - \vec{x}_1\vec{w}^\ast$ are $\lambda_1 - \vec{w}^\ast\vec{x}_1, \lambda_2, \dots, \lambda_m$, counted with multiplicity (Brauer's theorem). The proof is one step of the Schur proof: with $\hat{\vec{x}}_1 = \vec{x}_1/\norm{\vec{x}_1}$ and a unitary $U = [\hat{\vec{x}}_1\ \tilde{U}]$,
+\begin{equation}
+  U^\ast(A - \vec{x}_1\vec{w}^\ast)U = \begin{bmatrix} \lambda_1 & \ast \\ \zerovec & A_2 \end{bmatrix} - \begin{bmatrix} \norm{\vec{x}_1} \\ \zerovec \end{bmatrix}\vec{w}^\ast U = \begin{bmatrix} \lambda_1 - \vec{w}^\ast\vec{x}_1 & \ast \\ \zerovec & A_2 \end{bmatrix},
+\end{equation}
+since $U^\ast\vec{x}_1 = \norm{\vec{x}_1}\vec{e}_1$ and the $(1,1)$ entry of the correction is $\norm{\vec{x}_1}\vec{w}^\ast\hat{\vec{x}}_1 = \vec{w}^\ast\vec{x}_1$. Choosing $\vec{w} = \lambda_1\vec{v}$ with $\vec{v}^\ast\vec{x}_1 = 1$ moves $\lambda_1$ to $0$ and keeps the rest of the spectrum (Wielandt deflation); $\vec{v} = \vec{x}_1/\norm{\vec{x}_1}^2$ recovers Hotelling's formula. Unlike the Hermitian case, the eigenvectors change: if $B\vec{w}_i = \lambda_i\vec{w}_i$ for $B = A - \lambda_1\vec{x}_1\vec{v}^\ast$ and $\lambda_i \ne \lambda_1$, a direct computation shows that $\vec{x}_i = \vec{w}_i + c\,\vec{x}_1$ with $c = \lambda_1\vec{v}^\ast\vec{w}_i/(\lambda_i - \lambda_1)$ is an eigenvector of $A$.
+
+\paragraph{How ill-conditioned eigenvalues near a Jordan block are.} In \Cref{ex:jordan-unstable} the eigenvalues moved by only $O(\eps)$ while the Jordan structure and $S$ broke down. A different perturbation moves the eigenvalues themselves much more. Put $\eps$ in the bottom left corner of an $n \times n$ Jordan block with eigenvalue $0$. The result is the companion matrix (\Cref{lem:companion}) of $z^n - \eps$, whose eigenvalues are the $n$ complex $n$-th roots of $\eps$, all of modulus $\eps^{1/n}$~\cite[Example~4.4]{Demmel}. For $n = 10$ and $\eps = 10^{-10}$, a perturbation of size $10^{-10}$ moves the eigenvalues by $0.1$. A multiple eigenvalue in a nontrivial Jordan block has infinite condition number.
+
+\paragraph{The Bauer--Fike theorem.} The role of $\kappa(X)$ can be made quantitative. Let $A = X\Lambda X^{-1}$ be diagonalizable and let $\mu$ be an eigenvalue of $A + E$. Then
+\begin{equation}
+  \min_i\abs{\mu - \lambda_i} \le \kappa_2(X)\norm{E}_2.
+\end{equation}
+To see this, assume $\mu$ is not an eigenvalue of $A$. Since $A + E - \mu I$ is singular, so is $X^{-1}(A + E - \mu I)X = (\Lambda - \mu I) + X^{-1}EX$, and hence so is $I + (\Lambda - \mu I)^{-1}X^{-1}EX$. A matrix $I + M$ can only be singular if $\norm{M} \ge 1$, so
+\begin{equation}
+  1 \le \norm{(\Lambda - \mu I)^{-1}}\,\norm{X^{-1}}\,\norm{E}\,\norm{X} = \frac{\kappa_2(X)\norm{E}_2}{\min_i\abs{\lambda_i - \mu}}.
+\end{equation}
+For normal matrices, $X$ can be unitary, $\kappa_2(X) = 1$, and the eigenvalues move by at most $\norm{E}_2$. This is the eigenvalue analogue of the remark after \Cref{thm:spectral}. When $A$ approaches a defective matrix, $\kappa_2(X) \to \infty$ and the bound becomes useless, consistent with the $\eps^{1/n}$ behavior above. See~\cite[\S4.3]{Demmel}.
+
+\paragraph{From the Schur form to the QR algorithm.} The Schur factorization is what practical eigenvalue solvers compute. Subspace iteration with $n = m$ vectors and a QR factorization after each multiplication by $A$ produces, under suitable conditions, a $Q^{(k)}$ whose leading columns converge to the nested invariant subspaces of \Cref{sec:schur-fact}, so that $(Q^{(k)})^\ast AQ^{(k)}$ converges to an upper triangular $T$. Rewritten in terms of $(Q^{(k)})^\ast AQ^{(k)}$ alone, this becomes the QR algorithm. Combined with an initial reduction to Hessenberg form and with shifts (the Rayleigh quotient idea of \Cref{ch:eigen}), it computes the Schur form in $O(m^3)$ flops, and the real version produces the real Schur form in real arithmetic. See~\cite[Lectures~25 and 28]{TB}.
