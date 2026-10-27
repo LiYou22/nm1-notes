@@ -325,6 +325,26 @@ As a final note, everything above assumes that the transformation is \emph{exact
 
 Most error bounds in this course are stated in the $2$-norm. Here we record how it is expressed through the SVD; these facts are proved in Homework 1, Problem 3.
 
+\begin{definition}[Full and Reduced SVD]
+  \label{def:svd}
+  Let $A \in \K^{m \times n}$ and $p = \min(m, n)$. A \emph{full SVD} is a factorization
+  \begin{equation}
+    A = U\Sigma V^\ast, \qquad U \in \K^{m \times m}, \quad \Sigma \in \R^{m \times n}, \quad V \in \K^{n \times n},
+  \end{equation}
+  with $U$ and $V$ unitary and $\Sigma$ ``diagonal'' of the same shape as $A$: only $\Sigma_{11}, \dots, \Sigma_{pp}$ can be nonzero, and these are the \emph{singular values} $\sigma_1 \ge \cdots \ge \sigma_p \ge 0$. Dropping the zero blocks of $\Sigma$ together with the columns of $U$ or $V$ they multiply gives the \emph{reduced SVD}
+  \begin{equation}
+    A = \hat{U}\hat{\Sigma}\hat{V}^\ast, \qquad \hat{U} \in \K^{m \times p}, \quad \hat{\Sigma} = \diag(\sigma_1, \dots, \sigma_p) \in \R^{p \times p}, \quad \hat{V} \in \K^{n \times p},
+  \end{equation}
+  where $\hat{U}$ and $\hat{V}$ have orthonormal columns.
+\end{definition}
+
+In the full SVD, $\Sigma$ has a zero block below or beside its square diagonal part $D = \diag(\sigma_1, \dots, \sigma_p)$:
+\begin{equation}
+  \Sigma = \begin{bmatrix} D \\ 0 \end{bmatrix} \ (m > n), \qquad
+  \Sigma = \begin{bmatrix} D & 0 \end{bmatrix} \ (m < n).
+\end{equation}
+The reduced form is more economical for computation, while the full form is more convenient in proofs, because square unitary $U$ and $V$ preserve norms in both directions (\Cref{thm:unitary}). Every matrix has an SVD, and the singular values are unique~\cite[Theorem 4.1]{TB}.
+
 \begin{definition}[Induced $2$-Norm]
   The \emph{$2$-norm} of $A \in \K^{m \times n}$ is the matrix norm induced by the vector $2$-norm (\Cref{def:induced}),
   \begin{equation}
@@ -348,8 +368,9 @@ Most error bounds in this course are stated in the $2$-norm. Here we record how 
 \begin{proof}
   Take an SVD $A = U\Sigma V^\ast$ and put $\vec{y} = V^\ast\vec{x}$. Since $U$ and $V$ are unitary (\Cref{thm:unitary}), $\norm{A\vec{x}}_2 = \norm{\Sigma\vec{y}}_2$ and $\norm{\vec{y}}_2 = \norm{\vec{x}}_2$. Now
   \begin{equation}
-    \norm{\Sigma\vec{y}}_2^2 = \sum_{i}\sigma_i^2\abs{y_i}^2.
+    \norm{\Sigma\vec{y}}_2^2 = \sum_{i=1}^{\min(m,n)}\sigma_i^2\abs{y_i}^2.
   \end{equation}
+  The sum stops at $\min(m, n)$, not at $n$: for $m < n$ the last $n - m$ entries of $\vec{y}$ are multiplied by the zero block of $\Sigma$ and do not contribute. In particular a wide matrix has a nontrivial null space, which is why item 2 needs $m \ge n$.
   This is at most $\sigma_{\max}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_1$, which gives item 1. If $m \ge n$, the sum runs over all $n$ entries of $\vec{y}$, so it is at least $\sigma_{\min}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_n$; this gives item 2. For item 3, $A^{-1} = V\Sigma^{-1}U^\ast$ is an SVD up to reordering, so the singular values of $A^{-1}$ are the $1/\sigma_i$, and the largest of them is $1/\sigma_{\min}$.
 \end{proof}
 
