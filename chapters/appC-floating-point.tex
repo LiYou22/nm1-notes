@@ -46,7 +46,14 @@ Two different quantities are both called ``machine epsilon'' in the literature, 
   \end{itemize}
 \end{definition}
 
-Any statement of the form $O(\eps)$ is unaffected by the choice, but constants copied from different textbooks must be read with care.
+The two quantities answer different questions: $\eps$ describes how dense the floating-point grid is, while $u$ describes how much error rounding to that grid causes. They differ by a factor of $2$ because rounding goes to the \emph{nearest} floating-point number. On $[2^e, 2^{e+1})$ the spacing is $2^e\eps$, a real number $x$ in this interval is at most half a spacing from its nearest neighbour, and therefore
+\begin{equation}
+  \frac{\abs{\fl(x) - x}}{\abs{x}} \le \frac{2^e\eps/2}{2^e} = \frac{\eps}{2} = u.
+\end{equation}
+
+Both conventions survive for historical and practical reasons. Many early machines rounded by \emph{chopping}, i.e., discarding the extra bits, and then the largest relative error is a whole spacing, so the two quantities coincided. They separated only once IEEE 754 made round to nearest the default. Since then, authors on error analysis (Trefethen--Bau, Higham, Golub--Van Loan) use $u$, because what they need is the bound on $\delta$ in $\fl(x) = x(1 + \delta)$, whereas programming languages report $\eps$, because the gap from $1$ to \texttt{nextfloat(1.0)} is what can be observed directly.
+
+Any statement of the form $O(\eps)$ is unaffected by the choice, but constants copied from different textbooks, such as $\abs{\delta} \le u$ or $\gamma_n = nu/(1 - nu)$, must be read with care.
 
 The IEEE default rounding mode is \emph{round to nearest, ties to even}, under which both orders in \Cref{ex:nonassoc} (Lecture 1) give $4$. Non-associativity does not depend on the rounding mode, however. With ties to even,
 \begin{equation}
@@ -103,12 +110,19 @@ The textbooks~\cite[Lecture 14]{TB} mostly use a stronger notion than the stabil
   \label{def:backward-stable}
   An algorithm $\hat{f}$ for $f$ is \emph{backward stable} if for every $x$ there exists $\tilde{x}$ with
   \begin{equation}
-    \hat{f}(x) = f(\tilde{x}) \qquad \text{and} \qquad \frac{\abs{\tilde{x} - x}}{\abs{x}} = O(u).
+    \hat{f}(x) = f(\tilde{x}) \qquad \text{and} \qquad \frac{\abs{\tilde{x} - x}}{\abs{x}} = O(u),
   \end{equation}
   where $\tilde{x}$ is a hypothetical input constructed in the analysis, never computed.
 \end{definition}
 
-In words: \emph{the computed answer is the exact answer to a nearby problem}. The backward reading of \Cref{thm:axiom} is the simplest example. Backward stability is the gold standard of numerical linear algebra because it cleanly separates the problem from the algorithm, and it yields the classical rule of thumb
+In words: \emph{the computed answer is the exact answer to a nearby problem}. Both halves of the definition matter.
+\begin{itemize}
+  \item The two sides of $\hat{f}(x) = f(\tilde{x})$ are computed differently. The left side runs the algorithm on the computer, with rounding, on the true input $x$. The right side evaluates the exact mathematical function $f$, with no rounding at all, on the perturbed input $\tilde{x}$.
+  \item The perturbation must be small, $\abs{\tilde{x} - x}/\abs{x} = O(u)$. Without this condition the definition would be empty, since for most $f$ some $\tilde{x}$ reproduces any output whatsoever.
+\end{itemize}
+Backward stability does not make the rounding errors disappear; it is a way of \emph{accounting} for them. All errors committed inside the algorithm are pushed back to the input and reinterpreted as a perturbation $\tilde{x} - x$ of the data. The backward reading of \Cref{thm:axiom} is the simplest example: $\fl(x + y)$ is the exact sum of $\tilde{x} = x(1 + \delta)$ and $\tilde{y} = y(1 + \delta)$, which are within relative distance $u$ of $x$ and $y$.
+
+This accounting is useful because the input carries errors of size $O(u)$ anyway, from rounding when it is stored or from measurement. A backward stable algorithm gives the exact answer for some input that is indistinguishable from the one we have, which is as much as can be asked of any algorithm. Whatever error remains is due to the problem, not the algorithm. Backward stability is the gold standard of numerical linear algebra because it cleanly separates the problem from the algorithm, and it yields the classical rule of thumb
 \begin{equation}
   \text{forward relative error} \lesssim \kappa_f(x) \cdot u,
 \end{equation}

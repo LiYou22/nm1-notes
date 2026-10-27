@@ -24,8 +24,9 @@ chapters/
   ch12-orthogonal-iteration.tex  L12: normal matrices, orthogonal iteration
   ch13-qr-algorithm.tex     L13: the QR algorithm without shifts
   ch14-hessenberg-bulge-chasing.tex  L14: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing, implicit Q theorem
-  appA-norms.tex            Appendix A: unitary matrices, 2-norm and SVD, Frobenius norm
-  appB-floating-point.tex   Appendix B: IEEE formats, machine epsilon, backward stability
+  appA-linear-algebra.tex   Appendix A: Math 54-level linear algebra (products, transpose, inverses, det, rank, eigen, orthogonality, SVD)
+  appB-norms.tex            Appendix B: unitary matrices, 2-norm and SVD, Frobenius norm
+  appC-floating-point.tex   Appendix C: IEEE formats, machine epsilon, backward stability
 ```
 
 ## Building

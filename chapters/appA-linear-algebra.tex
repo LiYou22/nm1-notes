@@ -1,0 +1,179 @@
+\chapter{Linear Algebra Basics}
+\label{app:linalg}
+
+This appendix collects the first-course linear algebra (Math 54 level) that is used without comment throughout the course: matrix products, transposes, inverses, determinants, subspaces, eigenvalues, orthogonality, and symmetric matrices. Proofs are omitted; results proved in the main text are cross-referenced. Throughout, $A$ and $B$ are matrices of compatible sizes, $c$ is a scalar, and $\vec{x}, \vec{y}$ are column vectors. Supplementary reading:
+\begin{itemize}
+  \item \cite{Lay} Chapters 2--7.
+  \item \cite{TB} Lectures 1 and 2.
+  \item \cite{Axler} Section 7A.
+\end{itemize}
+
+\section{Matrix Multiplication}
+\label{sec:matmul}
+
+Write $\vec{a}_j$ for the columns of $A \in \K^{m \times n}$ and $\vec{b}_i^\T$ for the rows of $B \in \K^{n \times p}$. The product $AB$ can be read in four equivalent ways:
+\begin{itemize}
+  \item \emph{entries}: $(AB)_{ij} = \sum_k A_{ik}B_{kj}$;
+  \item \emph{columns}: $A\vec{x} = \sum_j x_j\vec{a}_j$ is a linear combination of the columns of $A$, and the $j$-th column of $AB$ is $A$ times the $j$-th column of $B$;
+  \item \emph{rows}: the $i$-th row of $AB$ is the $i$-th row of $A$ times $B$;
+  \item \emph{outer products}: $AB = \sum_{k=1}^{n} \vec{a}_k\vec{b}_k^\T$, a sum of rank-one matrices.
+\end{itemize}
+Multiplication is associative and distributive but not commutative. Multiplying by a diagonal matrix $D$ on the left scales the rows ($DA$), on the right the columns ($AD$). Block matrices multiply like ordinary matrices as long as the block sizes are compatible.
+
+\section{Transpose and Conjugate Transpose}
+\label{sec:transpose}
+
+\begin{definition}[Transpose and Conjugate Transpose]
+  \label{def:transpose}
+  For $A \in \K^{m \times n}$, the \emph{transpose} $A^\T \in \K^{n \times m}$ and the \emph{conjugate transpose} (or \emph{adjoint}) $A^\ast \in \K^{n \times m}$ are
+  \begin{equation}
+    (A^\T)_{ij} = A_{ji}, \qquad (A^\ast)_{ij} = \overline{A_{ji}}.
+  \end{equation}
+  For real matrices the two coincide.
+\end{definition}
+
+\begin{proposition}[Rules for the Transpose]
+  \label{prop:transpose-rules}
+  \begin{enumerate}
+    \item $(A^\T)^\T = A$.
+    \item $(A + B)^\T = A^\T + B^\T$ and $(cA)^\T = cA^\T$.
+    \item $(AB)^\T = B^\T A^\T$, and more generally $(A_1 A_2 \cdots A_k)^\T = A_k^\T \cdots A_2^\T A_1^\T$.
+    \item If $A$ is invertible, so is $A^\T$, and $(A^\T)^{-1} = (A^{-1})^\T$, written $A^{-\T}$.
+    \item $\det A^\T = \det A$, $\operatorname{tr} A^\T = \operatorname{tr} A$, and $\rank A^\T = \rank A$.
+    \item $A^\T$ and $A$ have the same characteristic polynomial, hence the same eigenvalues, but in general different eigenvectors.
+  \end{enumerate}
+\end{proposition}
+
+The order reversal in (3) is the same as in $(AB)^{-1} = B^{-1}A^{-1}$: the factor applied last is undone first. Rule (4) follows from (3) by transposing $AA^{-1} = I$.
+
+\subsection{Vectors and Inner Products}
+
+Since a column vector is an $n \times 1$ matrix, the rules above apply to it directly.
+\begin{itemize}
+  \item $(A\vec{x})^\T = \vec{x}^\T A^\T$.
+  \item $\vec{x}^\T\vec{y} = \vec{y}^\T\vec{x}$, because $\vec{x}^\T\vec{y}$ is a $1 \times 1$ matrix, and a scalar is its own transpose.
+  \item $(A\vec{x})^\T\vec{y} = \vec{x}^\T(A^\T\vec{y})$, i.e., $\ip{A\vec{x}}{\vec{y}} = \ip{\vec{x}}{A^\T\vec{y}}$. This \emph{adjoint relation} moves a matrix from one side of an inner product to the other. It is the key step in deriving the normal equations (\Cref{lem:adjoint}).
+\end{itemize}
+
+\subsection{Block Matrices}
+
+A block matrix is transposed by transposing each block \emph{and} the arrangement of the blocks:
+\begin{equation}
+  \begin{bmatrix} A & B \\ C & D \end{bmatrix}^\T = \begin{bmatrix} A^\T & C^\T \\ B^\T & D^\T \end{bmatrix}.
+\end{equation}
+The off-diagonal blocks $B$ and $C$ swap places.
+
+\subsection{The Complex Case}
+
+For complex matrices the conjugate transpose $A^\ast = \overline{A}^\T$ plays the role of the transpose. All rules of \Cref{prop:transpose-rules} carry over, with complex conjugates wherever a scalar appears:
+\begin{itemize}
+  \item $(cA)^\ast = \bar{c}A^\ast$ and $(AB)^\ast = B^\ast A^\ast$;
+  \item $\det A^\ast = \overline{\det A}$, and the eigenvalues of $A^\ast$ are the complex conjugates of those of $A$;
+  \item $\vec{x}^\ast\vec{y} = \overline{\vec{y}^\ast\vec{x}}$, which in general is \emph{not} equal to $\vec{y}^\ast\vec{x}$;
+  \item $\ip{A\vec{x}}{\vec{y}} = \ip{\vec{x}}{A^\ast\vec{y}}$ for the standard inner product $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$ (\Cref{ch:schur}).
+\end{itemize}
+
+\paragraph{Hermitian versus symmetric.} A matrix is \emph{Hermitian} if $A^\ast = A$ and \emph{symmetric} if $A^\T = A$. For real matrices $A^\ast = A^\T$, so the two notions coincide, and every result about Hermitian matrices applies to real symmetric ones. For complex matrices they differ: a complex symmetric matrix is in general not Hermitian. For example,
+\begin{equation}
+  A = \begin{bmatrix} 1 & i \\ i & 1 \end{bmatrix}
+\end{equation}
+satisfies $A^\T = A$, but $A^\ast = \begin{bsmallmatrix} 1 & -i \\ -i & 1 \end{bsmallmatrix} \ne A$, and its eigenvalues $1 \pm i$ are not real. Complex symmetric matrices therefore enjoy none of the special properties of Hermitian matrices (real eigenvalues, unitary diagonalization, the Rayleigh quotient characterization). In these notes $\K$ is $\R$ or $\C$, and ``Hermitian'' means ``symmetric'' when $\K = \R$.
+
+\subsection{Useful Consequences}
+
+\begin{itemize}
+  \item $A^\ast A$ and $AA^\ast$ are Hermitian and positive semidefinite, since $\vec{x}^\ast A^\ast A\vec{x} = \norm{A\vec{x}}_2^2 \ge 0$.
+  \item $Q$ is unitary if and only if $Q^\ast Q = I$, i.e., $Q^\ast = Q^{-1}$ (\Cref{sec:unitary}).
+  \item $A^\ast$ and $A$ have the same singular values, so $\norm{A^\ast}_2 = \norm{A}_2$ and $\kappa_2(A^\ast) = \kappa_2(A)$.
+  \item $\norm{A^\ast}_1 = \norm{A}_\infty$, since transposing turns column sums into row sums (\Cref{prop:one-inf-norm}).
+\end{itemize}
+
+\begin{remark}[Common Mistakes]
+  \begin{itemize}
+    \item Writing $(AB)^\T = A^\T B^\T$. The order must be reversed.
+    \item Assuming that the product of two symmetric matrices is symmetric. In fact $(AB)^\T = B^\T A^\T = BA$, which in general differs from $AB$.
+    \item Using $^\T$ where $^\ast$ is meant for complex matrices, e.g., writing $A^\T = A$ for ``Hermitian''.
+  \end{itemize}
+\end{remark}
+
+\section{Inverses, Elementary and Triangular Matrices}
+\label{sec:inverse}
+
+A square matrix $A$ is invertible if $AB = BA = I$ for some $B = A^{-1}$; for square matrices a one-sided inverse is automatically two-sided. Then $(AB)^{-1} = B^{-1}A^{-1}$ and $(A^{-1})^{-1} = A$.
+
+\begin{theorem}[Invertible Matrix Theorem]
+  \label{thm:imt}
+  For $A \in \K^{n \times n}$ the following are equivalent:
+  \begin{enumerate}
+    \item $A$ is invertible;
+    \item $A\vec{x} = \vec{b}$ has a unique solution for every $\vec{b}$;
+    \item $A\vec{x} = \vec{0}$ has only the solution $\vec{x} = \vec{0}$;
+    \item the columns (equivalently, the rows) of $A$ are linearly independent;
+    \item $\rank A = n$;
+    \item $\det A \ne 0$;
+    \item $0$ is not an eigenvalue of $A$;
+    \item $\sigma_{\min}(A) > 0$.
+  \end{enumerate}
+\end{theorem}
+
+\paragraph{Elementary matrices.} Each elementary row operation (swap two rows, scale a row, add a multiple of one row to another) is left multiplication by the matrix obtained by applying that operation to $I$; the corresponding column operation is right multiplication. Gaussian elimination is therefore a sequence of left multiplications, which is the starting point of LU factorization (\Cref{ch:lu}). A \emph{permutation matrix} $P$, a row-permuted identity, satisfies $P^{-1} = P^\T$.
+
+\paragraph{Triangular matrices.} Products and inverses of lower (upper) triangular matrices are lower (upper) triangular, and if the diagonal entries are all $1$ they stay $1$. A triangular matrix is invertible if and only if all diagonal entries are nonzero, and its eigenvalues are its diagonal entries.
+
+\section{Determinants}
+\label{sec:det}
+
+\begin{itemize}
+  \item For triangular $A$, $\det A = \prod_i a_{ii}$.
+  \item Row operations: swapping two rows flips the sign, scaling a row by $c$ scales $\det A$ by $c$, and adding a multiple of one row to another leaves $\det A$ unchanged. Hence if $PA = LU$ with unit lower triangular $L$, then $\det A = \pm\prod_i u_{ii}$, which is how determinants are computed in practice.
+  \item $\det(AB) = \det A\det B$, $\det A^{-1} = 1/\det A$, $\det(cA) = c^n\det A$ for $A \in \K^{n \times n}$, and $\abs{\det Q} = 1$ for unitary $Q$. In general $\det(A + B) \ne \det A + \det B$.
+  \item For block triangular matrices, $\det\begin{bsmallmatrix} A_{11} & A_{12} \\ 0 & A_{22} \end{bsmallmatrix} = \det A_{11}\det A_{22}$.
+  \item $\det A = \prod_i \lambda_i$ and $\operatorname{tr} A = \sum_i \lambda_i$, with eigenvalues counted with algebraic multiplicity.
+\end{itemize}
+
+\section{Subspaces and Rank}
+\label{sec:subspaces}
+
+For $A \in \K^{m \times n}$, the \emph{range} (column space) $\range(A) = \{A\vec{x}\} \subseteq \K^m$ and the \emph{null space} $\nullsp(A) = \{\vec{x} : A\vec{x} = \vec{0}\} \subseteq \K^n$ are subspaces. A \emph{basis} of a subspace is a linearly independent spanning set; all bases have the same size, the \emph{dimension}.
+\begin{itemize}
+  \item $\rank A = \dim\range(A)$, and column rank equals row rank, so $\rank A \le \min(m, n)$.
+  \item \emph{Rank--nullity}: $\rank A + \dim\nullsp(A) = n$.
+  \item $\range(A)^\perp = \nullsp(A^\ast)$, so $\K^m = \range(A) \oplus \nullsp(A^\ast)$ as an orthogonal direct sum.
+  \item $\nullsp(A^\ast A) = \nullsp(A)$, hence $\rank A^\ast A = \rank A$, and $A^\ast A$ is invertible if and only if $A$ has linearly independent columns (\Cref{ch:normal}).
+  \item $\rank(AB) \le \min(\rank A, \rank B)$, and multiplying by an invertible matrix does not change the rank.
+\end{itemize}
+
+\section{Eigenvalues and Diagonalization}
+\label{sec:eig-basics}
+
+$\lambda$ is an \emph{eigenvalue} of $A \in \K^{n \times n}$ with \emph{eigenvector} $\vec{x} \ne \vec{0}$ if $A\vec{x} = \lambda\vec{x}$. The eigenvalues are the roots of the characteristic polynomial $\det(\lambda I - A)$, so there are exactly $n$ of them in $\C$, counted with multiplicity.
+\begin{itemize}
+  \item A real matrix may have complex eigenvalues; they come in conjugate pairs $\lambda, \bar{\lambda}$, with conjugate eigenvectors.
+  \item If $A\vec{x} = \lambda\vec{x}$, then $A^k\vec{x} = \lambda^k\vec{x}$, $(A - \sigma I)\vec{x} = (\lambda - \sigma)\vec{x}$, and $A^{-1}\vec{x} = \lambda^{-1}\vec{x}$ for invertible $A$. These are the facts behind the power iteration, shifts, and inverse iteration (\Cref{ch:eigen}).
+  \item \emph{Similar} matrices $B = S^{-1}AS$ have the same characteristic polynomial, hence the same eigenvalues; eigenvectors transform as $\vec{x} \mapsto S^{-1}\vec{x}$. Row operations alone are \emph{not} similarity transformations and change the eigenvalues, which is why eigenvalue algorithms transform $A \mapsto Q^\ast AQ$ from both sides.
+  \item Eigenvectors belonging to distinct eigenvalues are linearly independent.
+  \item The \emph{algebraic multiplicity} of $\lambda$ is its multiplicity as a root of the characteristic polynomial, and the \emph{geometric multiplicity} is $\dim\nullsp(A - \lambda I)$; always $1 \le \text{geometric} \le \text{algebraic}$.
+  \item $A$ is \emph{diagonalizable}, $A = X\Lambda X^{-1}$, if and only if it has $n$ linearly independent eigenvectors, if and only if the two multiplicities agree for every eigenvalue. Then $A^k = X\Lambda^k X^{-1}$. A matrix with $n$ distinct eigenvalues is diagonalizable; a matrix that is not is called \emph{defective} (\Cref{ch:schur}).
+\end{itemize}
+
+\section{Orthogonality and Projections}
+\label{sec:orth-basics}
+
+\begin{itemize}
+  \item A set of nonzero, mutually orthogonal vectors is linearly independent. In an orthonormal basis $\vec{q}_1, \dots, \vec{q}_n$ the coordinates are inner products: $\vec{y} = \sum_j (\vec{q}_j^\ast\vec{y})\vec{q}_j$.
+  \item If $Q \in \K^{m \times n}$ has orthonormal columns, then $Q^\ast Q = I_n$ and $\norm{Q\vec{x}}_2 = \norm{\vec{x}}_2$. For $m > n$, however, $QQ^\ast \ne I_m$: it is the orthogonal projector onto $\range(Q)$.
+  \item \emph{Projection onto a line}: the projection of $\vec{y}$ onto $\spn\{\vec{a}\}$ is $\frac{\vec{a}^\ast\vec{y}}{\vec{a}^\ast\vec{a}}\vec{a}$.
+  \item \emph{Orthogonal decomposition and best approximation}: for a subspace $W$, every $\vec{y}$ splits uniquely as $\vec{y} = \hat{\vec{y}} + \vec{z}$ with $\hat{\vec{y}} \in W$ and $\vec{z} \perp W$, and $\hat{\vec{y}}$ is the point of $W$ closest to $\vec{y}$. If the columns of $Q$ form an orthonormal basis of $W$, then $\hat{\vec{y}} = QQ^\ast\vec{y}$.
+  \item \emph{Gram--Schmidt} turns linearly independent columns into orthonormal ones and yields $A = QR$ (\Cref{ch:ls,ch:qr}).
+  \item \emph{Least squares}: $\min_{\vec{x}}\norm{A\vec{x} - \vec{b}}_2$ is attained exactly when $A^\ast A\vec{x} = A^\ast\vec{b}$; with $A = QR$ this becomes $R\vec{x} = Q^\ast\vec{b}$ (\Cref{ch:ls,ch:normal}).
+\end{itemize}
+
+\section{Hermitian Matrices, Quadratic Forms, and the SVD}
+\label{sec:herm-basics}
+
+\begin{itemize}
+  \item \emph{Spectral theorem} (\Cref{thm:spectral}): a Hermitian $A$ has real eigenvalues and an orthonormal basis of eigenvectors, $A = Q\Lambda Q^\ast$ with $Q$ unitary and $\Lambda$ real diagonal. Equivalently $A = \sum_i \lambda_i\vec{q}_i\vec{q}_i^\ast$ (spectral decomposition).
+  \item A Hermitian $A$ is \emph{positive definite} if $\vec{x}^\ast A\vec{x} > 0$ for all $\vec{x} \ne \vec{0}$, equivalently if all its eigenvalues are positive; \emph{semidefinite} versions use $\ge$. Changing variables $\vec{x} = Q\vec{y}$ turns the quadratic form into $\sum_i \lambda_i\abs{y_i}^2$ (principal axes theorem).
+  \item On the unit sphere, $\vec{x}^\ast A\vec{x}$ ranges over $[\lambda_{\min}, \lambda_{\max}]$, attained at the corresponding eigenvectors (\Cref{def:rayleigh}).
+  \item \emph{SVD}: every $A \in \K^{m \times n}$ factors as $A = U\Sigma V^\ast$ with $U, V$ unitary and $\Sigma$ diagonal with entries $\sigma_1 \ge \dots \ge 0$. The $\sigma_i^2$ are the eigenvalues of $A^\ast A$, the columns $\vec{v}_i$ of $V$ are its orthonormal eigenvectors, and $\vec{u}_i = A\vec{v}_i/\sigma_i$ for $\sigma_i > 0$. The number of nonzero $\sigma_i$ is $\rank A$ (\Cref{sec:twonorm}).
+\end{itemize}
