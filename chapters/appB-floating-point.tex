@@ -105,6 +105,7 @@ The textbooks~\cite[Lecture 14]{TB} mostly use a stronger notion than the stabil
   \begin{equation}
     \hat{f}(x) = f(\tilde{x}) \qquad \text{and} \qquad \frac{\abs{\tilde{x} - x}}{\abs{x}} = O(u).
   \end{equation}
+  where $\tilde{x}$ is a hypothetical input constructed in the analysis, never computed.
 \end{definition}
 
 In words: \emph{the computed answer is the exact answer to a nearby problem}. The backward reading of \Cref{thm:axiom} is the simplest example. Backward stability is the gold standard of numerical linear algebra because it cleanly separates the problem from the algorithm, and it yields the classical rule of thumb

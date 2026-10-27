@@ -157,14 +157,35 @@ Conditioning is about the problem; stability is about the algorithm. Let $\hat{f
   \begin{equation}
     \frac{\abs{\hat{f}(\hat{x}) - y}/\abs{y}}{\abs{\hat{x} - x}/\abs{x}} \lesssim \kappa_f(x),
   \end{equation}
-  that is, if it does not amplify input perturbations more than the problem itself does. Otherwise $\hat{f}$ is \emph{unstable}.
+  where $\hat{x} = \fl(x)$ is the stored input and $\hat{f}$ is the algorithm run in floating point, rounding after every operation. That is, $\hat{f}$ is stable if it does not amplify input perturbations more than the problem itself does. Otherwise $\hat{f}$ is \emph{unstable}.
 \end{definition}
+
+The denominator is at most $u$, and it is $0$ when $x$ is already a floating-point number, so $\hat{x} = x$. In practice we therefore check the equivalent condition
+\begin{equation}
+  \frac{\abs{\hat{f}(\hat{x}) - y}}{\abs{y}} \lesssim \kappa_f(x)\, u:
+\end{equation}
+the output error should be no larger than the error that rounding the input alone would cause.
 
 \begin{example}[An Unstable Algorithm for the Identity]
   \label{ex:unstable-identity}
-  Let $f(x) = x$ and $\hat{f}(x) = (x + 10^6) - 10^6$. Mathematically $\hat{f} = f$, and the identity has $\kappa_f \equiv 1$, the best possible conditioning. But $\hat{f}$ first adds $x$ to $10^6$, which pushes the low-order bits of $x$ out of the significand for good, and then subtracts $10^6$ again. For $x = 1$ the relative error is $O(10^6 \eps)$ instead of $O(\eps)$.
+  Let $f(x) = x$ and $\hat{f}(x) = (x + 10^6) - 10^6$, and take $x$ to be a floating-point number, so $\hat{x} = x$ and the exact answer is $y = f(x) = x$. Mathematically $\hat{f} = f$, and the identity has $\kappa_f \equiv 1$, the best possible conditioning. But $\hat{f}$ first adds $x$ to $10^6$, which pushes the low-order bits of $x$ out of the significand for good, and then subtracts $10^6$ again. Concretely, the addition is rounded,
+  \begin{equation}
+    \fl(x + 10^6) = (x + 10^6)(1 + \delta), \qquad \abs{\delta} \le u,
+  \end{equation}
+  and the subtraction is exact by \Cref{lem:sterbenz}, so
+  \begin{equation}
+    \hat{f}(x) = (x + 10^6)(1 + \delta) - 10^6 = x + (x + 10^6)\delta,
+    \qquad
+    \frac{\abs{\hat{f}(x) - y}}{\abs{y}} = \frac{\abs{\hat{f}(x) - x}}{\abs{x}} = \frac{\abs{x + 10^6}}{\abs{x}}\abs{\delta} \approx \frac{10^6}{\abs{x}}\abs{\delta}.
+  \end{equation}
+  For $x \approx 1$ the relative error is $O(10^6 u)$, while a stable algorithm must achieve $\kappa_f(x)\,u = u$; so $\hat{f}$ is unstable, by a factor of about $10^6$; for instance $\hat{f}(0.1) = 0.09999999997671694$. ($x = 1$ itself is an exception: $10^6 + 1$ is representable, so $\delta = 0$.)
 
-  The diagnosis: \emph{the algorithm splits a well-conditioned problem into ill-conditioned intermediate steps}. Writing $\hat{f} = g_2 \circ g_1$ with $g_1(x) = x + 10^6$ and $g_2(z) = z - 10^6$, the step $g_1$ is well-conditioned but $g_2$ has condition number about $10^6$ at $z \approx 10^6$. A small overall condition number does not mean every step is well-conditioned, and the algorithm's error accumulates step by step. This view in terms of intermediate condition numbers will return when we compare Gram--Schmidt with the normal equations.
+  The diagnosis: \emph{the algorithm splits a well-conditioned problem into ill-conditioned intermediate steps}. Writing $\hat{f} = g_2 \circ g_1$ with $g_1(x) = x + 10^6$ and $g_2(z) = z - 10^6$, \Cref{def:cond} gives
+  \begin{equation}
+    \kappa_{g_1}(x) = \frac{\abs{x}}{\abs{x + 10^6}} \approx 10^{-6}, \qquad
+    \kappa_{g_2}(z) = \frac{\abs{z}}{\abs{z - 10^6}} \approx 10^6 \quad (z = x + 10^6,\ x \approx 1),
+  \end{equation}
+  so the step $g_1$ is well-conditioned but $g_2$ is not. Their product is $\kappa_f = 1$, so the overall problem is fine; the trouble is that the rounding error $\delta$ is committed \emph{between} the two steps. It is a relative perturbation of $z$, and $g_2$ amplifies it by $\kappa_{g_2} \approx 10^6$, which is exactly the factor in the error formula above. A small overall condition number does not mean every step is well-conditioned, and the algorithm's error accumulates step by step. This view in terms of intermediate condition numbers will return when we compare Gram--Schmidt with the normal equations.
 \end{example}
 
 ``Unstable'' and ``ill-conditioned'' are different diagnoses with different remedies: the former calls for a different algorithm, the latter for a different formulation of the problem (reparametrization, regularization, or higher precision).
@@ -184,8 +205,12 @@ The IEEE formats, the two conventions for machine epsilon, the standard model of
 \end{strategy}
 
 \begin{lemma}[Sterbenz]
+  \label{lem:sterbenz}
   If $x, y$ are floating-point numbers with $y/2 \le x \le 2y$, then $x - y$ is a floating-point number, so $\fl(x - y) = x - y$ exactly.
 \end{lemma}
+\begin{proof}
+  The condition forces $x, y \ge 0$; by symmetry assume $y \le x \le 2y$, and that $y$ is normal. With $b_p$ bits of precision, write $y = m\,2^{e}$ with an integer $m < 2^{b_p}$, where $2^e$ is the spacing of floating-point numbers near $y$. Since $x \ge y$, the spacing near $x$ is $2^e$ or a larger power of $2$, so $x$ is also an integer multiple of $2^e$, and hence $x - y = k\,2^e$ for an integer $k \ge 0$. From $x \le 2y$ we get $x - y \le y$, so $k \le m < 2^{b_p}$. Thus $x - y$ fits in $b_p$ bits on the grid $2^e$ and is a floating-point number. (If $x - y$ falls below the normal range, it is still representable as a subnormal number.)
+\end{proof}
 This confirms again that cancellation does not lose new precision; it only exposes old errors.
 
 \paragraph{Useful techniques.}
@@ -197,6 +222,7 @@ This confirms again that cancellation does not lose new precision; it only expos
 
 \paragraph{Low-precision formats.} Float16 and BFloat16 both use $16$ bits, but BFloat16 spends them on the exponent: it has $8$ exponent bits, the same range as Float32, and only $8$ bits of precision. This is the right trade-off for deep learning, where the first failure in training is usually overflow or underflow of gradients (a range problem) rather than lack of precision. Float16 has only $5$ exponent bits and a largest value of about $65504$, so training in Float16 requires loss scaling while BFloat16 does not. The accumulation bound $\gamma_n\abs{A}\abs{B}$ of \Cref{prop:dot} explains another convention, \emph{multiply in low precision, accumulate in high precision}: the factor $n$ comes from the length of the summation chain, and reduction dimensions of thousands are common, so tensor cores take BFloat16 or FP8 inputs but accumulate in Float32.
 
+\noindent\begin{minipage}{\linewidth}
 \paragraph{Experiments in Julia.}
 \begin{lstlisting}
 bitstring(1.0)                    # sign, exponent, and significand fields
@@ -208,3 +234,4 @@ nextfloat(1.0) - 1.0              # == eps(Float64) == 2^-52
 Float16(65504), Float16(65520)    # the second overflows to Inf
 nextfloat(Float64(0))             # smallest subnormal, about 5e-324
 \end{lstlisting}
+\end{minipage}
