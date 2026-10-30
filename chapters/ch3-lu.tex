@@ -1,4 +1,4 @@
-\chapter{Gaussian Elimination and the LU Factorization}
+\chapter{Solving Linear Systems and Stability}
 \label{ch:lu}
 
 Supplementary reading:
@@ -11,7 +11,7 @@ Supplementary reading:
 
 The lecture opens with a recap of \Cref{ch:performance}: matrices are stored column by column, memory access costs far more than arithmetic, and the loop order and tiling of an algorithm should match the storage. It then returns to linear systems. Triangular systems are solved by forward or back substitution in $O(m^2)$ flops, and Gaussian elimination reduces a general system to a triangular one: by \Cref{thm:elim}, applying elementary lower triangular matrices $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ for $k = 1, \dots, m - 1$ gives
 \begin{equation}
-  U \doteq L_{m-1} \cdots L_1 A \ \text{ upper triangular}, \qquad L \doteq (L_{m-1} \cdots L_1)^{-1}, \qquad A = LU.
+  U \defeq L_{m-1} \cdots L_1 A \ \text{ upper triangular}, \qquad L \defeq (L_{m-1} \cdots L_1)^{-1}, \qquad A = LU.
 \end{equation}
 This lecture answers the two questions left open: \emph{is $L$ lower triangular, and can we compute it cheaply?} Answering them requires a little algebra of lower triangular matrices.
 

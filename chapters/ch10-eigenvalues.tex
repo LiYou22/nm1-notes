@@ -1,4 +1,4 @@
-\chapter{Eigenvalue Problems, Power Iteration, and Inverse Iteration}
+\chapter{Eigen-like Decompositions, Computing a Single Eigenvalue}
 \label{ch:eigen}
 
 Supplementary reading:
@@ -74,19 +74,32 @@ Recall that $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$ is conjugate-linear in
 \begin{equation}
   \lambda_i = \frac{\ip{\vec{x}_i}{A\vec{x}_i}}{\norm{\vec{x}_i}^2} = \frac{\ip{A\vec{x}_i}{\vec{x}_i}}{\norm{\vec{x}_i}^2} = \overline{\lambda_i}.
 \end{equation}
-Let us justify each step.
+Let us justify each step. Two facts are used: the inner product $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$ is linear in its second argument and conjugate-linear in its first, and $A = A^\ast$.
 \begin{itemize}
-  \item The first equality is $\ip{\vec{x}_i}{\lambda_i\vec{x}_i} = \lambda_i\norm{\vec{x}_i}^2$.
-  \item The second uses $A = A^\ast$.
-  \item The third uses conjugate symmetry, $\ip{A\vec{x}_i}{\vec{x}_i} = \overline{\ip{\vec{x}_i}{A\vec{x}_i}}$.
+  \item \emph{The first equality.} Substitute $A\vec{x}_i = \lambda_i\vec{x}_i$ into the second argument, where the scalar comes out unchanged:
+  \begin{equation}
+    \ip{\vec{x}_i}{A\vec{x}_i} = \vec{x}_i^\ast(\lambda_i\vec{x}_i) = \lambda_i\,\vec{x}_i^\ast\vec{x}_i = \lambda_i\norm{\vec{x}_i}^2.
+  \end{equation}
+  \item \emph{The second equality.} Move $A$ to the other side of the inner product, using $(A\vec{x})^\ast = \vec{x}^\ast A^\ast$ and $A = A^\ast$:
+  \begin{equation}
+    \ip{\vec{x}_i}{A\vec{x}_i} = \vec{x}_i^\ast A\vec{x}_i = \vec{x}_i^\ast A^\ast\vec{x}_i = (A\vec{x}_i)^\ast\vec{x}_i = \ip{A\vec{x}_i}{\vec{x}_i}.
+  \end{equation}
+  In general $\ip{\vec{x}}{A\vec{y}} = \ip{A^\ast\vec{x}}{\vec{y}}$; being Hermitian means that $A$ can be moved freely between the two arguments.
+  \item \emph{The third equality.} Substitute $A\vec{x}_i = \lambda_i\vec{x}_i$ again, but now into the first argument, where the conjugate transpose turns $\lambda_i$ into $\overline{\lambda_i}$:
+  \begin{equation}
+    \ip{A\vec{x}_i}{\vec{x}_i} = (\lambda_i\vec{x}_i)^\ast\vec{x}_i = \overline{\lambda_i}\,\vec{x}_i^\ast\vec{x}_i = \overline{\lambda_i}\norm{\vec{x}_i}^2.
+  \end{equation}
 \end{itemize}
+Thus $\lambda_i = \overline{\lambda_i}$, i.e., $\lambda_i \in \R$. More compactly, $\vec{x}^\ast A\vec{x}$ is a $1 \times 1$ matrix equal to its own conjugate transpose, $(\vec{x}^\ast A\vec{x})^\ast = \vec{x}^\ast A^\ast\vec{x} = \vec{x}^\ast A\vec{x}$, so it is real for \emph{every} $\vec{x}$; dividing by the real number $\norm{\vec{x}_i}^2 > 0$ gives $\lambda_i \in \R$.
+
+Note that even for a real symmetric $A$ the argument must allow $\vec{x}_i \in \C^m$: we do not know in advance that $\lambda_i$ is real, so we cannot assume that its eigenvector is real. Restricting to $\vec{x}_i \in \R^m$ from the start would assume what we want to prove.
 Notice that the first expression makes sense for \emph{any} nonzero vector, not just for eigenvectors. This motivates the following definition, which will be our main tool for estimating eigenvalues.
 
 \begin{definition}[Rayleigh Quotient]
   \label{def:rayleigh}
   Let $A \in \K^{m \times m}$. The \emph{Rayleigh quotient} of a nonzero $\vec{x} \in \K^m$ is
   \begin{equation}
-    r(\vec{x}) \doteq \frac{\vec{x}^\ast A\vec{x}}{\vec{x}^\ast\vec{x}}.
+    r(\vec{x}) \defeq \frac{\vec{x}^\ast A\vec{x}}{\vec{x}^\ast\vec{x}}.
   \end{equation}
 \end{definition}
 

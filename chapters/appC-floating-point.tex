@@ -41,8 +41,8 @@ Two different quantities are both called ``machine epsilon'' in the literature, 
   \label{def:eps}
   Let $b_p$ be the precision of a floating-point format.
   \begin{itemize}
-    \item The \emph{machine epsilon} $\eps = \epsm \doteq 2^{-(b_p - 1)}$ is the distance from $1$ to the next larger floating-point number. For Float64, $\eps = 2^{-52} \approx 2.22 \times 10^{-16}$. This is the convention of the lecture, of Julia's \texttt{eps(Float64)}, and of C's \texttt{DBL\_EPSILON}.
-    \item The \emph{unit roundoff} $u \doteq 2^{-b_p} = \eps/2$ is the largest relative rounding error, i.e., half a spacing. For Float64, $u = 2^{-53} \approx 1.11 \times 10^{-16}$. Trefethen and Bau~\cite{TB} call this quantity $\epsilon_{\text{machine}}$, and Golub and Van Loan~\cite{GVL} call it the unit roundoff.
+    \item The \emph{machine epsilon} $\eps = \epsm \defeq 2^{-(b_p - 1)}$ is the distance from $1$ to the next larger floating-point number. For Float64, $\eps = 2^{-52} \approx 2.22 \times 10^{-16}$. This is the convention of the lecture, of Julia's \texttt{eps(Float64)}, and of C's \texttt{DBL\_EPSILON}.
+    \item The \emph{unit roundoff} $u \defeq 2^{-b_p} = \eps/2$ is the largest relative rounding error, i.e., half a spacing. For Float64, $u = 2^{-53} \approx 1.11 \times 10^{-16}$. Trefethen and Bau~\cite{TB} call this quantity $\epsilon_{\text{machine}}$, and Golub and Van Loan~\cite{GVL} call it the unit roundoff.
   \end{itemize}
 \end{definition}
 
@@ -87,7 +87,7 @@ so the computed sum is \emph{exactly} the sum of two slightly perturbed inputs. 
 
 A single operation incurs an error of size $O(u)$. For $n$ operations, Golub and Van Loan write
 \begin{equation}
-  \gamma_n \doteq \frac{nu}{1 - nu} \approx nu \qquad (nu \ll 1).
+  \gamma_n \defeq \frac{nu}{1 - nu} \approx nu \qquad (nu \ll 1).
 \end{equation}
 
 \begin{proposition}[Error in Inner Products]

@@ -1,4 +1,4 @@
-\chapter{Error Analysis of LU and Pivoting}
+\chapter{LU Factorization with Pivoting}
 \label{ch:pivoting}
 
 Supplementary reading:
@@ -51,9 +51,9 @@ so each term carries its own relative perturbation, proportional to the number o
   \begin{equation}
     A_{ik} = \frac{1}{1 + \delta'}\tilde{L}_{ii}\tilde{U}_{ik} + \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j).
   \end{equation}
-  Setting $1 + \delta_i \doteq (1 + \delta')^{-1}$, so that $\abs{\delta_i} \lesssim \epsm$ to first order, the $i$-th term joins the sum:
+  Setting $1 + \delta_i \defeq (1 + \delta')^{-1}$, so that $\abs{\delta_i} \lesssim \epsm$ to first order, the $i$-th term joins the sum:
   \begin{equation}
-    A_{ik} = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk} + \underbrace{\sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}\delta_j}_{\doteq\, E_{ik}}.
+    A_{ik} = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk} + \underbrace{\sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}\delta_j}_{\eqqcolon\, E_{ik}}.
   \end{equation}
   All $\abs{\delta_j} \le m\epsm$, so
   \begin{equation}
@@ -65,7 +65,7 @@ so each term carries its own relative perturbation, proportional to the number o
   \begin{equation}
     \tilde{L}_{ik} = (1 + \delta'')\,\frac{(1 + \delta')\left(A_{ik} - \sum_{j=1}^{k-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\right)}{\tilde{U}_{kk}}, \qquad \abs{\delta''} \le \epsm,
   \end{equation}
-  with $\delta'$ from the subtraction and $\delta''$ from the division. Solving for $A_{ik}$ and setting $1 + \delta_k \doteq \left((1 + \delta')(1 + \delta'')\right)^{-1}$, so that $\abs{\delta_k} \lesssim 2\epsm \le m\epsm$, we get
+  with $\delta'$ from the subtraction and $\delta''$ from the division. Solving for $A_{ik}$ and setting $1 + \delta_k \defeq \left((1 + \delta')(1 + \delta'')\right)^{-1}$, so that $\abs{\delta_k} \lesssim 2\epsm \le m\epsm$, we get
   \begin{equation}
     A_{ik} = \sum_{j=1}^{k}\tilde{L}_{ij}\tilde{U}_{jk} + E_{ik}, \qquad \abs{E_{ik}} \le m\epsm\left(\abs{\tilde{L}}\abs{\tilde{U}}\right)_{ik}.
   \end{equation}
@@ -148,9 +148,9 @@ where $L$'s and $P$'s alternate, so we cannot directly write $PA = LU$. We need 
 
 Using \Cref{prop:perm-swap} repeatedly to push every $P$ to the right,
 \begin{equation}
-  L_{m-1}P_{m-1} \cdots L_1P_1 = L'_{m-1} \cdots L'_1\,P_{m-1} \cdots P_1, \qquad L'_k \doteq P_{m-1} \cdots P_{k+1}L_kP_{k+1} \cdots P_{m-1},
+  L_{m-1}P_{m-1} \cdots L_1P_1 = L'_{m-1} \cdots L'_1\,P_{m-1} \cdots P_1, \qquad L'_k \defeq P_{m-1} \cdots P_{k+1}L_kP_{k+1} \cdots P_{m-1},
 \end{equation}
-and each $L'_k$ is still elementary lower triangular. With $P \doteq P_{m-1} \cdots P_1$ and $L \doteq (L'_{m-1} \cdots L'_1)^{-1}$, we obtain
+and each $L'_k$ is still elementary lower triangular. With $P \defeq P_{m-1} \cdots P_1$ and $L \defeq (L'_{m-1} \cdots L'_1)^{-1}$, we obtain
 \begin{equation}
   PA = LU.
 \end{equation}
@@ -210,7 +210,7 @@ Some remarks:
 \begin{definition}[Growth Factor]
   The \emph{growth factor} of Gaussian elimination on $A$ is
   \begin{equation}
-    \rho \doteq \frac{\max_{i,j}\abs{U_{ij}}}{\max_{i,j}\abs{A_{ij}}}.
+    \rho \defeq \frac{\max_{i,j}\abs{U_{ij}}}{\max_{i,j}\abs{A_{ij}}}.
   \end{equation}
 \end{definition}
 

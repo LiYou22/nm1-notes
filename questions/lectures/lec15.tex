@@ -1,0 +1,19 @@
+\chapter{Shifted QR}
+
+\begin{question}[Why is the implicit Q theorem proved through $W = V^\T Q$?]
+  \label{q:implicit-q-strategy}
+  The proof takes a second orthogonal $V$ with the same first column and shows that $W = V^\T Q$ is $\diag(\pm 1)$. Why this route?
+\end{question}
+
+\begin{answer}
+  It is the standard way to prove uniqueness: take two solutions and show that the matrix converting one into the other is trivial, as in the uniqueness of QR. The relation $GW = WH$ with $H$ upper Hessenberg gives, column by column, $H_{i+1,i}\vec{w}_{i+1} = G\vec{w}_i - \sum_{j \le i}H_{ji}\vec{w}_j$, a recursion that produces $\vec{w}_{i+1}$ from $\vec{w}_1 = \vec{e}_1, \dots, \vec{w}_i$; this is exactly why the first column determines the rest. Because $G$ is upper Hessenberg, each step adds at most one nonzero row, so $W$ is upper triangular, and upper triangular plus orthogonal forces diagonal. A more conceptual view: $\spn(\vec{q}_1, \dots, \vec{q}_k)$ equals the Krylov subspace $\spn(\vec{q}_1, A\vec{q}_1, \dots, A^{k-1}\vec{q}_1)$, which depends only on $A$ and $\vec{q}_1$, so $Q$ is the Q factor of the Krylov matrix (supplement of Lecture 15).
+\end{answer}
+
+\begin{question}[What survives if $H$ is reduced?]
+  \label{q:implicit-q-reduced}
+  If $Q^\T AQ = H$ is upper Hessenberg but $H_{32} = 0$, which columns of $Q$ are still determined by $\vec{q}_1$ (up to signs), and which are not?
+\end{question}
+
+\begin{answer}
+  \unanswered
+\end{answer}

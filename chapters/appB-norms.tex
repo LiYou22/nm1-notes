@@ -57,7 +57,7 @@ The $2$-norm is the Euclidean length, and its unit ball is round. Since the ball
 
 Aside from the $p$-norms, the most useful norms are the \emph{weighted norms}. Given any norm $\norm{\cdot}$ and a diagonal matrix $W = \diag(w_1, \dots, w_m)$ with all $w_i \ne 0$, we set
 \begin{equation}
-  \norm{\vec{x}}_W \doteq \norm{W\vec{x}}.
+  \norm{\vec{x}}_W \defeq \norm{W\vec{x}}.
 \end{equation}
 For example, the weighted $2$-norm is $\norm{\vec{x}}_W = \left(\sum_i\abs{w_ix_i}^2\right)^{1/2}$, and its unit ball is an axis-aligned ellipse with semiaxes $1/\abs{w_i}$. More generally, $\norm{W\vec{x}}$ is a norm for \emph{any} nonsingular $W$: properties 2 and 3 are inherited from $\norm{\cdot}$ because $W$ is linear, and $\norm{W\vec{x}} = 0$ forces $W\vec{x} = \zerovec$, hence $\vec{x} = \zerovec$. Weighted norms are natural when the entries of $\vec{x}$ are measured in different units.
 
@@ -69,7 +69,7 @@ An $m \times n$ matrix can be viewed as a vector in an $mn$-dimensional space, s
   \label{def:induced}
   Let $\norm{\cdot}_{(n)}$ and $\norm{\cdot}_{(m)}$ be norms on $\K^n$ and $\K^m$. The \emph{induced matrix norm} of $A \in \K^{m \times n}$ is the smallest $C$ such that $\norm{A\vec{x}}_{(m)} \le C\norm{\vec{x}}_{(n)}$ for all $\vec{x} \in \K^n$, that is,
   \begin{equation}
-    \norm{A}_{(m,n)} \doteq \sup_{\vec{x} \ne \zerovec}\frac{\norm{A\vec{x}}_{(m)}}{\norm{\vec{x}}_{(n)}} = \sup_{\norm{\vec{x}}_{(n)} = 1}\norm{A\vec{x}}_{(m)}.
+    \norm{A}_{(m,n)} \defeq \sup_{\vec{x} \ne \zerovec}\frac{\norm{A\vec{x}}_{(m)}}{\norm{\vec{x}}_{(n)}} = \sup_{\norm{\vec{x}}_{(n)} = 1}\norm{A\vec{x}}_{(m)}.
   \end{equation}
   When both norms are $p$-norms, we write $\norm{A}_p$.
 \end{definition}
@@ -232,7 +232,7 @@ In particular, all $p$-norms agree up to factors that depend only on the dimensi
 
 In particular, $\norm{A^k} \le \norm{A}^k$ for a square matrix in any induced norm. This is generally not an equality. For example, $A = \left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right]$ has $\norm{A}_p = 1$ for every $p$, but $A^2 = 0$.
 
-A related bound concerns eigenvalues. If $A\vec{x} = \lambda\vec{x}$ with $\vec{x} \ne \zerovec$, then $\abs{\lambda}\norm{\vec{x}} = \norm{A\vec{x}} \le \norm{A}\norm{\vec{x}}$. So the \emph{spectral radius} $\rho(A) \doteq \max\{\abs{\lambda} : \lambda \text{ an eigenvalue of } A\}$ satisfies
+A related bound concerns eigenvalues. If $A\vec{x} = \lambda\vec{x}$ with $\vec{x} \ne \zerovec$, then $\abs{\lambda}\norm{\vec{x}} = \norm{A\vec{x}} \le \norm{A}\norm{\vec{x}}$. So the \emph{spectral radius} $\rho(A) \defeq \max\{\abs{\lambda} : \lambda \text{ an eigenvalue of } A\}$ satisfies
 \begin{equation}
   \rho(A) \le \norm{A}
 \end{equation}
@@ -348,7 +348,7 @@ The reduced form is more economical for computation, while the full form is more
 \begin{definition}[Induced $2$-Norm]
   The \emph{$2$-norm} of $A \in \K^{m \times n}$ is the matrix norm induced by the vector $2$-norm (\Cref{def:induced}),
   \begin{equation}
-    \norm{A}_2 \doteq \sup_{\vec{x} \ne \zerovec}\frac{\norm{A\vec{x}}_2}{\norm{\vec{x}}_2}.
+    \norm{A}_2 \defeq \sup_{\vec{x} \ne \zerovec}\frac{\norm{A\vec{x}}_2}{\norm{\vec{x}}_2}.
   \end{equation}
 \end{definition}
 
@@ -360,7 +360,7 @@ The reduced form is more economical for computation, while the full form is more
     \item If $m \ge n$, then $\norm{A\vec{x}}_2 \ge \sigma_{\min}\norm{\vec{x}}_2$ for all $\vec{x}$, with equality for the last right singular vector.
     \item If $A$ is square and invertible, then $\norm{A^{-1}}_2 = 1/\sigma_{\min}$, and hence
     \begin{equation}
-      \kappa_2(A) \doteq \norm{A}_2\norm{A^{-1}}_2 = \frac{\sigma_{\max}}{\sigma_{\min}}.
+      \kappa_2(A) \defeq \norm{A}_2\norm{A^{-1}}_2 = \frac{\sigma_{\max}}{\sigma_{\min}}.
     \end{equation}
   \end{enumerate}
 \end{theorem}
@@ -374,7 +374,7 @@ The reduced form is more economical for computation, while the full form is more
   This is at most $\sigma_{\max}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_1$, which gives item 1. If $m \ge n$, the sum runs over all $n$ entries of $\vec{y}$, so it is at least $\sigma_{\min}^2\norm{\vec{y}}_2^2$, with equality for $\vec{y} = \vec{e}_n$; this gives item 2. For item 3, $A^{-1} = V\Sigma^{-1}U^\ast$ is an SVD up to reordering, so the singular values of $A^{-1}$ are the $1/\sigma_i$, and the largest of them is $1/\sigma_{\min}$.
 \end{proof}
 
-For a tall matrix with full column rank we \emph{define} $\kappa_2(A) \doteq \sigma_{\max}/\sigma_{\min}$; this is the condition number that governs least squares (\Cref{ch:ls}). In both cases, $\kappa_2(A)$ is the worst-case condition number of the map $\vec{x} \mapsto A\vec{x}$ from \Cref{ch:fp}:
+For a tall matrix with full column rank we \emph{define} $\kappa_2(A) \defeq \sigma_{\max}/\sigma_{\min}$; this is the condition number that governs least squares (\Cref{ch:ls}). In both cases, $\kappa_2(A)$ is the worst-case condition number of the map $\vec{x} \mapsto A\vec{x}$ from \Cref{ch:fp}:
 \begin{equation}
   \sup_{\vec{x} \ne \zerovec}\frac{\norm{A}_2\norm{\vec{x}}_2}{\norm{A\vec{x}}_2} = \frac{\sigma_{\max}}{\sigma_{\min}},
 \end{equation}
@@ -388,7 +388,7 @@ In \Cref{ch:householder} we bounded $\norm{L}_2$ through the Frobenius norm. It 
 \begin{definition}[Frobenius Norm]
   The \emph{Frobenius norm} of $A \in \K^{m \times n}$ is
   \begin{equation}
-    \norm{A}_F \doteq \left(\sum_{i=1}^{m}\sum_{j=1}^{n}\abs{A_{ij}}^2\right)^{1/2}.
+    \norm{A}_F \defeq \left(\sum_{i=1}^{m}\sum_{j=1}^{n}\abs{A_{ij}}^2\right)^{1/2}.
   \end{equation}
 \end{definition}
 

@@ -1,4 +1,4 @@
-\chapter{The Cholesky Factorization and Schur Complements}
+\chapter{Cholesky Factorization}
 \label{ch:cholesky}
 
 Supplementary reading:
@@ -53,7 +53,7 @@ The first step of LU subtracts $a_i/\alpha$ times row $1$ from row $i + 1$, for 
 \end{equation}
 The first column is now zero below the diagonal, and the lower right block has been updated to
 \begin{equation}
-  S \doteq A_{22} - \frac{\vec{a}\vec{a}^\ast}{\alpha},
+  S \defeq A_{22} - \frac{\vec{a}\vec{a}^\ast}{\alpha},
 \end{equation}
 which is $A_{2:,2:} - A_{2:,1}A_{1,2:}/A_{11}$ in slice notation. The matrix $S$ is called a \emph{Schur complement}; we will study it in \Cref{sec:schur}. Note that $\vec{a}\vec{a}^\ast$ is an outer product, so the update is a rank-one change of $A_{22}$.
 
@@ -332,7 +332,7 @@ The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. The assumption that
 
   Suppose that the first $k$ pivots are positive, so that the elimination matrices $L_1, \dots, L_k$ of the first $k$ steps are defined. (For $k = 0$ there is nothing to assume.) After $k$ symmetric steps, we have
   \begin{equation}
-    S \doteq L_k \cdots L_1AL_1^\ast \cdots L_k^\ast = \begin{bmatrix} \diag(d_1, \dots, d_k) & 0 \\ 0 & S^{(k)} \end{bmatrix},
+    S \defeq L_k \cdots L_1AL_1^\ast \cdots L_k^\ast = \begin{bmatrix} \diag(d_1, \dots, d_k) & 0 \\ 0 & S^{(k)} \end{bmatrix},
   \end{equation}
   where $S^{(k)}$ is the current Schur complement. Its top left entry is the next pivot, $d_{k+1} = S_{k+1,k+1}$.
 
@@ -481,7 +481,7 @@ The matrix on the right has a name.
 \begin{definition}[Schur Complement]
   Let $A = \left[\begin{smallmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{smallmatrix}\right]$ with $A_{11}$ square and invertible. The \emph{Schur complement} of $A_{11}$ in $A$ is
   \begin{equation}
-    A/A_{11} \doteq A_{22} - A_{21}A_{11}^{-1}A_{12}.
+    A/A_{11} \defeq A_{22} - A_{21}A_{11}^{-1}A_{12}.
   \end{equation}
 \end{definition}
 
@@ -503,7 +503,7 @@ The following lemma is the key tool for the pivot bound. It relates the Schur co
 
 \begin{lemma}[Blocks of the Inverse]
   \label{lem:schur-inverse}
-  Let $A = \left[\begin{smallmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{smallmatrix}\right]$ be invertible with $A_{11}$ invertible, let $S = A_{22} - A_{21}A_{11}^{-1}A_{12}$ be invertible, and partition $\Theta \doteq A^{-1}$ in the same way. Then
+  Let $A = \left[\begin{smallmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{smallmatrix}\right]$ be invertible with $A_{11}$ invertible, let $S = A_{22} - A_{21}A_{11}^{-1}A_{12}$ be invertible, and partition $\Theta \defeq A^{-1}$ in the same way. Then
   \begin{equation}
     \Theta_{22} = S^{-1}.
   \end{equation}

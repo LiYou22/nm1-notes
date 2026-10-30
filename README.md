@@ -23,7 +23,8 @@ chapters/
   ch11-schur.tex            L11: deflation, invariant subspaces, Jordan form, Schur factorization
   ch12-orthogonal-iteration.tex  L12: normal matrices, orthogonal iteration
   ch13-qr-algorithm.tex     L13: the QR algorithm without shifts
-  ch14-hessenberg-bulge-chasing.tex  L14: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing, implicit Q theorem
+  ch14-hessenberg-bulge-chasing.tex  L14: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing
+  ch15-shifted-qr.tex       L15: the implicit Q theorem, shifted QR iteration
   appA-linear-algebra.tex   Appendix A: Math 54-level linear algebra (products, transpose, inverses, det, rank, eigen, orthogonality, SVD)
   appB-norms.tex            Appendix B: unitary matrices, 2-norm and SVD, Frobenius norm
   appC-floating-point.tex   Appendix C: IEEE formats, machine epsilon, backward stability

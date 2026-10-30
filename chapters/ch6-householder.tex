@@ -1,4 +1,4 @@
-\chapter{Factorizations as Products and Householder Triangularization}
+\chapter{Product View on Error Bounds, Householder QR}
 \label{ch:householder}
 
 Supplementary reading:
@@ -35,7 +35,7 @@ Write $\vec{a}_j^{(k-1)}$ for the $j$-th column after $k - 1$ steps, i.e., $\vec
 \end{equation}
 the first $k - 1$ columns are orthonormal and the remaining columns are orthogonal to them, but not yet to each other. Let
 \begin{equation}
-  r_{kk} \doteq \norm{\vec{a}_k^{(k-1)}}, \qquad \vec{q}_k \doteq \vec{a}_k^{(k-1)}/r_{kk}, \qquad r_{kj} \doteq \ip{\vec{q}_k}{\vec{a}_j^{(k-1)}} \quad (j > k).
+  r_{kk} \defeq \norm{\vec{a}_k^{(k-1)}}, \qquad \vec{q}_k \defeq \vec{a}_k^{(k-1)}/r_{kk}, \qquad r_{kj} \defeq \ip{\vec{q}_k}{\vec{a}_j^{(k-1)}} \quad (j > k).
 \end{equation}
 The matrix $R_k$ equals the identity except in row $k$:
 \begin{equation}
@@ -99,7 +99,7 @@ The error $E$ is proportional to $\norm{X}\norm{A}$, \emph{not} to $\norm{XA}$. 
 
 If $X$ is invertible, we can factor $X$ out of $E = X \cdot X^{-1}E$:
 \begin{equation}
-  \fl(XA) = X(A + F) + O(\epsm^2), \qquad F \doteq X^{-1}E.
+  \fl(XA) = X(A + F) + O(\epsm^2), \qquad F \defeq X^{-1}E.
 \end{equation}
 The computed result is the \emph{exact product with a perturbed input $A + F$}; the error has been pushed back onto the input, which is the backward-error viewpoint. The perturbation satisfies
 \begin{equation}
@@ -176,7 +176,7 @@ Partial pivoting thus solves only half of the problem: it controls $\norm{L}$ bu
 
 \section{Gram--Schmidt Is Also a Lower Triangularization}
 
-The upper triangular $R_k$ is nontrivial only in row $k$, so its transpose $L_k^\T \doteq R_k$ has $L_k$ nontrivial only in column $k$: an elementary lower triangular matrix (with diagonal entry $1/r_{kk}$ instead of $1$). Then $AR_1 \cdots R_n = \hat{Q}$ reads $AL_1^\T \cdots L_n^\T = \hat{Q}$, and transposing,
+The upper triangular $R_k$ is nontrivial only in row $k$, so its transpose $L_k^\T \defeq R_k$ has $L_k$ nontrivial only in column $k$: an elementary lower triangular matrix (with diagonal entry $1/r_{kk}$ instead of $1$). Then $AR_1 \cdots R_n = \hat{Q}$ reads $AL_1^\T \cdots L_n^\T = \hat{Q}$, and transposing,
 \begin{equation}
   L_n \cdots L_1A^\T = \hat{Q}^\T.
 \end{equation}
@@ -389,4 +389,4 @@ For $m = n$ Householder costs $\frac{4}{3}n^3$, twice as much as LU ($\frac{2}{3
 
 \paragraph{Using $Q$ implicitly for least squares.} To solve $\min_{\vec{x}}\norm{A\vec{x} - \vec{b}}_2$, we never form $Q$; we apply the stored $\vec{v}_k$ to $\vec{b}$ in turn to obtain $Q^\ast\vec{b}$, then solve $\hat{R}\vec{x} = (Q^\ast\vec{b})[1{:}n]$ by back substitution. The norm of the remaining part $(Q^\ast\vec{b})[n{+}1{:}m]$ is the minimal residual. Details are in \Cref{ch:qr}.
 
-\paragraph{The complex case.} For complex data $\vec{v}^\ast\vec{a}_1$ is in general not real, so the verification above does not carry over verbatim. One takes $\sign(x_1) \doteq x_1/\abs{x_1}$ (and $1$ if $x_1 = 0$) and $\vec{v} = \sign(x_1)\norm{\vec{x}}\vec{e}_1 + \vec{x}$. Then the first entry of $\vec{v}$ adds two numbers with the same phase, again avoiding cancellation; one checks $\vec{v}^\ast\vec{x} = \norm{\vec{x}}\abs{x_1} + \norm{\vec{x}}^2 = \frac{1}{2}\vec{v}^\ast\vec{v}$, so $F\vec{x} = \vec{x} - \vec{v} = -\sign(x_1)\norm{\vec{x}}\vec{e}_1$.
+\paragraph{The complex case.} For complex data $\vec{v}^\ast\vec{a}_1$ is in general not real, so the verification above does not carry over verbatim. One takes $\sign(x_1) \defeq x_1/\abs{x_1}$ (and $1$ if $x_1 = 0$) and $\vec{v} = \sign(x_1)\norm{\vec{x}}\vec{e}_1 + \vec{x}$. Then the first entry of $\vec{v}$ adds two numbers with the same phase, again avoiding cancellation; one checks $\vec{v}^\ast\vec{x} = \norm{\vec{x}}\abs{x_1} + \norm{\vec{x}}^2 = \frac{1}{2}\vec{v}^\ast\vec{v}$, so $F\vec{x} = \vec{x} - \vec{v} = -\sign(x_1)\norm{\vec{x}}\vec{e}_1$.

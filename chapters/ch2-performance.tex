@@ -1,4 +1,4 @@
-\chapter{Storage, Performance, and Gaussian Elimination}
+\chapter{Cache Hierarchy and Tiling/Blocking, Solving Linear Systems}
 \label{ch:performance}
 
 Supplementary reading:
@@ -191,13 +191,13 @@ In matrix language, this elimination step is a \emph{left multiplication}:
 
 \begin{theorem}[Elementary Lower Triangular Matrices]
   \label{thm:elim}
-  Let $A \in \K^{m \times m}$ and suppose the first $k - 1$ columns of $A$ are already zero below the diagonal. Define the multipliers $\ell_{ik} \doteq A_{ik}/A_{kk}$ for $i = k + 1, \dots, m$, the vector
+  Let $A \in \K^{m \times m}$ and suppose the first $k - 1$ columns of $A$ are already zero below the diagonal. Define the multipliers $\ell_{ik} \defeq A_{ik}/A_{kk}$ for $i = k + 1, \dots, m$, the vector
   \begin{equation}
-    \vec{\ell}_k \doteq \begin{bmatrix} 0 & \cdots & 0 & \ell_{k+1,k} & \cdots & \ell_{mk} \end{bmatrix}^\T,
+    \vec{\ell}_k \defeq \begin{bmatrix} 0 & \cdots & 0 & \ell_{k+1,k} & \cdots & \ell_{mk} \end{bmatrix}^\T,
   \end{equation}
   whose first $k$ entries vanish, and the \emph{elementary lower triangular matrix}
   \begin{equation}
-    L_k \doteq I - \vec{\ell}_k \vec{e}_k^{\,\ast} =
+    L_k \defeq I - \vec{\ell}_k \vec{e}_k^{\,\ast} =
     \begin{bmatrix}
       1 & & & & \\
       & \ddots & & & \\
@@ -218,7 +218,7 @@ Applying \Cref{thm:elim} for $k = 1, \dots, m - 1$ gives
 \begin{equation}
   \underbrace{L_{m-1} \cdots L_1 A}_{\text{upper triangular}} = L_{m-1} \cdots L_1 \vec{b}.
 \end{equation}
-With $U \doteq L_{m-1} \cdots L_1 A$ and $L \doteq (L_{m-1} \cdots L_1)^{-1}$, we obtain $A = LU$ with $U$ upper triangular. The lecture stops here with two questions: \emph{is $L$ lower triangular, and can we compute it?} Both are answered in \Cref{ch:lu}.
+With $U \defeq L_{m-1} \cdots L_1 A$ and $L \defeq (L_{m-1} \cdots L_1)^{-1}$, we obtain $A = LU$ with $U$ upper triangular. The lecture stops here with two questions: \emph{is $L$ lower triangular, and can we compute it?} Both are answered in \Cref{ch:lu}.
 
 \section{(SUPPLEMENT) Leading Dimension}
 
@@ -234,7 +234,7 @@ where the \emph{leading dimension} $\mathrm{lda} \ge m$ is the distance between 
 The discussion of this lecture can be quantified~\cite[\S2.6]{Demmel}. Consider two levels of memory, a fast memory of size $M$ and a slow memory. Let one flop take time $t_f$ and one slow-memory access take time $t_m \gg t_f$.
 
 \begin{definition}[Computational Intensity]
-  If an algorithm performs $f$ flops and $m$ slow-memory accesses, its \emph{computational intensity} is $q \doteq f/m$.
+  If an algorithm performs $f$ flops and $m$ slow-memory accesses, its \emph{computational intensity} is $q \defeq f/m$.
 \end{definition}
 
 The total time is roughly
