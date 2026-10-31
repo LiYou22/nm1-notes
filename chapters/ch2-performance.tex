@@ -9,7 +9,7 @@ Supplementary reading:
 
 \section{Flops Are Not the Whole Story}
 
-In \Cref{ch:fp} we asked whether we compute the \emph{right} answer. Now we ask how \emph{fast} we compute it. The surprise is that speed has little to do with the number of arithmetic operations.
+In \Cref{ch:fp} we asked whether we compute the \emph{right} answer (conditioning: the problem's fundamental limit; stability: does the algorithm do something stupid?). Now we ask how \emph{fast} we compute it.
 
 \paragraph{Algorithms and computational cost.} Consider the algorithm for matrix multiplication
 \begin{equation}
@@ -37,7 +37,7 @@ The innermost line runs $\ell \times m \times n$ times, so the computational cos
   \bottomrule
 \end{tabular}
 \end{center}
-The cost grows by a factor of $1000$, so we would expect $1000 \times 0.06\text{ s} = 60$ s. It takes only $4$ s: \emph{more than $10$ times faster than expected}.
+The cost grows by a factor of $1000$, so we would expect $1000 \times 0.06\text{ s} = 60$ s. It takes only $4$ s: \emph{more than $10$ times faster than expected}. (The timings are for Julia's built-in multiplication, which calls BLAS.)
 
 \paragraph{Flops and memory access.} Does Julia use fewer operations? No: for $\ell = m = n$, the time grows roughly like the cost,
 \begin{center}
@@ -54,6 +54,7 @@ that is, about $1000$ times the cost in about $1000$ times the time. The explana
 \begin{equation}
   \operatorname{cost}(+) < \operatorname{cost}(\ast) \ll \operatorname{cost}([\ ]).
 \end{equation}
+(On modern CPUs, $+$ and $\ast$ in fact cost about the same.)
 \emph{Memory access is much slower than flops on modern hardware.}
 \begin{itemize}
   \item For $n = 1$, every entry of $B$ is read and then used only once, so almost all of the time goes into memory access.
@@ -77,7 +78,7 @@ Main memory is much slower than arithmetic, so hardware adds \emph{caches}: smal
   \item \emph{Latency}: how long one access waits (a few cycles for L1, a few hundred for main memory).
   \item \emph{Bandwidth}: how many bytes can be moved per second.
 \end{itemize}
-Latency is hidden by \emph{prefetching}: the hardware fetches nearby memory, or memory in a strided pattern, before it is needed. This only works for regular access patterns, so the \emph{regularity} of memory access often matters more than its volume. GPUs have no prefetching. Instead, many threads carry out the same instruction at once; if they access contiguous elements, the hardware combines their accesses into a single one, and otherwise the access is much slower. So on a GPU, non-contiguous access is very slow.
+Latency is hidden by \emph{prefetching}: the hardware fetches nearby memory, or memory in a strided pattern, before it is needed. This only works for regular access patterns, so the \emph{regularity} of memory access often matters more than its volume. GPUs instead hide latency by running many threads. When threads access contiguous elements, the hardware merges their accesses into one, so on a GPU non-contiguous access is very slow.
 
 \section{Loop Reordering}
 
@@ -91,10 +92,10 @@ for i = 1:m                                    for j = 1:n
     end                                            end
 end                                            end
 \end{lstlisting}
-  In column-major storage, the left loop walks along a row of $A$ (steps of $m$) and has at least two random accesses per step; the right loop walks down a column (contiguous) and has only one.
+  In column-major storage, the left loop reads $A$ along a row, in steps of $m$; in the right loop, every access is contiguous.
 \end{example}
 
-The left loop computes inner products of the rows of $A$ with $\vec{v}$ (\texttt{dot}); the right loop adds up the columns of $A$ times $v_j$ (\texttt{axpy}). Julia stores matrices by columns, so the right loop is faster. This matters most for \emph{small} matrices; for large ones, both loops spend most of their time waiting for main memory.
+The left loop computes inner products of the rows of $A$ with $\vec{v}$ (\texttt{dot}); the right loop adds up the columns of $A$ times $v_j$ (\texttt{axpy}). Julia stores matrices by columns, so the right loop is faster. The gap grows with the size of $A$: once $A$ no longer fits in the cache, each strided access uses only one number from every cache line it loads. (The board says the order matters most for small matrices; we measured the opposite: the left loop is $3\times$ slower at $m = 64$ and $20\times$ at $m = 4096$.)
 
 \section{Tiling}
 \label{sec:tiling}
@@ -117,7 +118,7 @@ for I = 1:N, J = 1:N, K = 1:N              # which blocks: C_IJ += A_IK * B_KJ
     end
 end
 \end{lstlisting}
-We do the same $m^3$ operations as before, just in a different order. The inner three loops only use three blocks, $3b^2$ numbers in total. These numbers stay in the cache, and each one is used about $b$ times before we move on to the next blocks.
+We do the same $m^3$ operations as before, just in a different order. The inner three loops only use three blocks, $3b^2$ numbers in total. They stay in the cache and are each used about $b$ times.
 
 \clearpage
 \section{Linear Systems}
@@ -224,6 +225,7 @@ A general matrix is not triangular. Gaussian elimination \emph{transforms $A$ in
   \begin{aligned} x_1 + 2x_2 &= 10 \\ 2x_1 + x_2 &= 8 \end{aligned}
   \quad \xrightarrow{\ \text{row 2} \,-\, 2 \times \text{row 1}\ } \quad
   \begin{aligned} x_1 + 2x_2 &= 10 \\ -3x_2 &= -12 \end{aligned}
+  \quad \Longrightarrow \quad x_2 = 4,\ x_1 = 2.
 \end{equation}
 In matrix language, this elimination step is a \emph{left multiplication}:
 \begin{equation}
@@ -254,7 +256,7 @@ In matrix language, this elimination step is a \emph{left multiplication}:
     \end{bmatrix}
     \begin{matrix} \\ \\ \leftarrow \text{row } k \\ \\ \\ \\ \end{matrix}
   \end{equation}
-  Then $L_k A$ is zero below the diagonal in its first $k$ columns. Its first $k$ rows equal those of $A$, and only the trailing $(m - k) \times (m - k)$ block is updated.
+  Then $L_k A$ is zero below the diagonal in its first $k$ columns. Its first $k$ rows equal those of $A$; besides zeroing column $k$ below the diagonal, only the trailing $(m - k) \times (m - k)$ block is updated.
 \end{theorem}
 
 \begin{proof}
@@ -299,13 +301,13 @@ Running near the peak rate $f t_f$ requires $q \gg t_m / t_f$, and on modern mac
   \toprule
   Level & Typical operation & Flops $f$ & Accesses $m$ & $q$ \\
   \midrule
-  Level 1 & \texttt{axpy} $\vec{y} \gets \alpha\vec{x} + \vec{y}$, \texttt{dot} & $2n$ & $3n$ & $2/3$ \\
-  Level 2 & \texttt{gemv} $\vec{y} \gets \alpha A\vec{x} + \beta\vec{y}$, triangular solve & $2n^2$ & $n^2$ & $2$ \\
+  Level 1 & \texttt{axpy} $\vec{y} \gets \alpha\vec{x} + \vec{y}$ & $2n$ & $3n$ & $2/3$ \\
+  Level 2 & \texttt{gemv} $\vec{y} \gets \alpha A\vec{x} + \beta\vec{y}$ & $2n^2$ & $n^2$ & $2$ \\
   Level 3 & \texttt{gemm} $C \gets \alpha AB + \beta C$ & $2n^3$ & $4n^2$ & $n/2$ \\
   \bottomrule
 \end{tabular}
 \end{center}
-Only Level 3 has an intensity that grows with the problem size, matching the observation that matrix multiplication performs $m^3$ flops on $m^2$ data. Triangular solves, in either loop order, are Level 2 with $q \approx 2$ and are fundamentally limited by bandwidth.
+Only Level 3 has an intensity that grows with the problem size, matching the observation that matrix multiplication performs $m^3$ multiply--adds on $m^2$ data. A \texttt{dot} has $q \approx 1$, and a triangular solve ($n^2$ flops on about $n^2/2$ entries) has $q \approx 2$; both are limited by bandwidth.
 
 For naive matrix multiplication $C \mathrel{+}= AB$ with three $n \times n$ matrices, the innermost loop scans a whole column of $B$ each time. Then $A$ is read once ($n^2$), $C$ is read and written once ($2n^2$), and $B$ is read $n$ times ($n^3$), so
 \begin{equation}
@@ -320,7 +322,7 @@ The intensity equals the block size. Three blocks must reside in fast memory sim
 \subsection{Blocked LU}
 \label{sec:blocked-lu}
 
-The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates, a Level 2 operation with $q \approx 2$, so naive Gaussian elimination is bandwidth-bound. The tiling idea fixes this~\cite[\S2.6.3]{Demmel}. Choose a block width $b$ and write
+The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates $A \gets A - \vec{x}\vec{y}^\ast$, a Level 2 operation that reads and writes all of $A$ for $2$ flops per entry, so $q \approx 1$, so naive Gaussian elimination is bandwidth-bound. The tiling idea fixes this~\cite[\S2.6.3]{Demmel}. Choose a block width $b$ and write
 \begin{equation}
   A = \begin{bmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{bmatrix}, \qquad A_{11} \in \K^{b \times b}.
 \end{equation}

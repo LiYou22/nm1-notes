@@ -164,7 +164,7 @@ Relative accuracy has one weak point: subtracting two nearly equal numbers can d
   \label{ex:cancel}
   Suppose the stored value of $10^6 + 1$ is already off by a relative error $\eps$, so it is $(10^6 + 1)(1 + \eps)$. Subtract $10^6$:
   \begin{equation}
-    (10^6 + 1)(1 + \eps) - 10^6 = 1 + 10^6 \eps.
+    (10^6 + 1)(1 + \eps) - 10^6 \approx 1 + 10^6 \eps.
   \end{equation}
   The exact answer is $1$, but we get $1 + 10^6\eps$.
   \begin{itemize}
@@ -324,6 +324,6 @@ This reduces the error to about $2u\sum_i\abs{x_i}$, essentially independent of 
 
 \subsection{Low-Precision Formats}
 
-Two 16-bit formats split their bits differently. Float16 has $5$ exponent bits and $b_p = 11$: $\eps \approx 10^{-3}$, but the largest number is only $65504$. BFloat16 has $8$ exponent bits, hence the same range as Float32 (up to $3.4 \cdot 10^{38}$), but only $b_p = 8$: $\eps \approx 8 \cdot 10^{-3}$, about two decimal digits. Deep learning prefers BFloat16: gradients span many orders of magnitude, so what fails first is \emph{range} (overflow, underflow), not precision; Float16 training needs \emph{loss scaling} (multiplying the loss by a constant), BFloat16 does not. Sums are still accumulated in Float32: by \Cref{prop:dot}, a dot product of length $n = 4096$ has error up to $nu\,\abs{\vec{x}}^\T\abs{\vec{y}}$, and $nu = 16$ for BFloat16 ($u = 2^{-8}$) but $nu \approx 2.4 \cdot 10^{-4}$ for Float32 ($u = 2^{-24}$). Hence tensor cores take BFloat16 (or FP8) inputs but accumulate in Float32.
+Two 16-bit formats split their bits differently. Float16 has $5$ exponent bits and $b_p = 11$: $\eps \approx 10^{-3}$, but the largest number is only $65504$. BFloat16 has $8$ exponent bits, hence the same range as Float32 (up to $3.4 \cdot 10^{38}$), but only $b_p = 8$: $\eps \approx 8 \cdot 10^{-3}$, about two decimal digits. Deep learning prefers BFloat16: gradients span many orders of magnitude, so what fails first is \emph{range} (overflow, underflow), not precision; Float16 training needs \emph{loss scaling} (multiplying the loss by a constant), BFloat16 does not. Sums are still accumulated in Float32: by \Cref{prop:dot}, a dot product of length $n$ has error up to about $nu\,\abs{\vec{x}}^\T\abs{\vec{y}}$. For $n = 4096$, BFloat16 ($u = 2^{-8}$) gives $nu = 16 \ge 1$, so the bound guarantees nothing, while Float32 ($u = 2^{-24}$) gives $nu \approx 2.4 \cdot 10^{-4}$. Hence tensor cores take BFloat16 (or FP8) inputs but accumulate in Float32.
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

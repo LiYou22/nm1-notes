@@ -14,7 +14,7 @@ Recall from \Cref{ch:lu} that Gaussian elimination computes $A = LU$ in place, w
 \begin{equation}
   A = \begin{bmatrix} \eps & 1 \\ 1 & 1 \end{bmatrix}, \qquad \kappa(A) \approx 2.6 \text{ as } \eps \to 0.
 \end{equation}
-Here $\eps$ is just a small number, smaller than $\epsm$; it is not the machine epsilon. The problem is well-conditioned, so the failure lies with the algorithm. The following theorem explains exactly where it comes from.
+Here $\eps$ is just a small number, much smaller than $\epsm$ (e.g., $10^{-20}$); it is not the machine epsilon. The problem is well-conditioned, so the failure lies with the algorithm. The following theorem explains exactly where it comes from.
 
 \begin{theorem}[Backward Error of LU]
   \label{thm:lu-backward}
@@ -24,7 +24,7 @@ Here $\eps$ is just a small number, smaller than $\epsm$; it is not the machine 
   \end{equation}
 \end{theorem}
 
-In other words, the computed $\tilde{L}$ and $\tilde{U}$ are the exact LU factors of the perturbed matrix $A - E$, and the perturbation is controlled by $\abs{\tilde{L}}\abs{\tilde{U}}$. The analysis ignores terms of order $O(\epsm^2)$.
+So $\tilde{L}$ and $\tilde{U}$ are the exact LU factors of a nearby matrix, $A - E$. If $\abs{\tilde{L}}\abs{\tilde{U}}$ is about as large as $\abs{A}$, then $E$ is tiny compared with $A$ and the algorithm is backward stable. If $\abs{\tilde{L}}\abs{\tilde{U}}$ is much larger than $\abs{A}$, then $E$ can be as large as $A$. (``To first order'' means we drop terms of size $\epsm^2$.)
 
 \subsection{Entrywise Formulas}
 
@@ -182,7 +182,7 @@ Since the multipliers and $U_k$ live in the same array, \emph{swapping entire ro
   \label{alg:gepp}
   \begin{algorithmic}[1]
     \State $P \gets I$
-    \For{$k = 1, \dots, m - 1$}
+    \For{$k = 1, \dots, m$}
       \State $r \gets \operatorname{argmax}_{i \ge k}\abs{A_{ik}}$
       \State swap rows $r$ and $k$ of $A$ (all columns $1, \dots, m$) and of $P$
       \For{$i = k + 1, \dots, m$}
