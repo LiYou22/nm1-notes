@@ -285,7 +285,7 @@ where the \emph{leading dimension} $\mathrm{lda} \ge m$ is the distance between 
 \subsection{Computational Intensity}
 \label{sec:intensity}
 
-The discussion of this lecture can be quantified~\cite[\S2.6]{Demmel}. Consider two levels of memory, a fast memory of size $M$ and a slow memory. Let one flop take time $t_f$ and one slow-memory access take time $t_m \gg t_f$.
+We can quantify this~\cite[\S2.6]{Demmel}. Consider two levels of memory, a fast memory of size $M$ and a slow memory. Let one flop take time $t_f$ and one slow-memory access take time $t_m \gg t_f$.
 
 \begin{definition}[Computational Intensity]
   If an algorithm performs $f$ flops and $m$ slow-memory accesses, its \emph{computational intensity} is $q \defeq f/m$.
@@ -309,7 +309,7 @@ Running near the peak rate $f t_f$ requires $q \gg t_m / t_f$, and on modern mac
 \end{center}
 Only Level 3 has an intensity that grows with the problem size, matching the observation that matrix multiplication performs $m^3$ multiply--adds on $m^2$ data. A \texttt{dot} has $q \approx 1$, and a triangular solve ($n^2$ flops on about $n^2/2$ entries) has $q \approx 2$; both are limited by bandwidth.
 
-For naive matrix multiplication $C \mathrel{+}= AB$ with three $n \times n$ matrices, the innermost loop scans a whole column of $B$ each time. Then $A$ is read once ($n^2$), $C$ is read and written once ($2n^2$), and $B$ is read $n$ times ($n^3$), so
+For naive $C \mathrel{+}= AB$ with $n \times n$ matrices, $B$ is read $n$ times ($n^3$ accesses) while $A$ and $C$ cost $3n^2$, so
 \begin{equation}
   q = \frac{2n^3}{n^3 + 3n^2} \approx 2,
 \end{equation}
@@ -317,21 +317,21 @@ no better than Level 2. For the tiled version (\Cref{sec:tiling}) the slow-memor
 \begin{equation}
   q \approx \frac{2n^3}{2Nn^2} = \frac{n}{N} = b.
 \end{equation}
-The intensity equals the block size. Three blocks must reside in fast memory simultaneously, so $3b^2 \le M$, i.e., $b \le \sqrt{M/3}$, and hence $q \approx \sqrt{M/3}$. A lower bound of Hong and Kung shows that any matrix multiplication that only reorders the sums has $q = O(\sqrt{M})$, so tiling is asymptotically optimal. Real implementations tile at \emph{several} levels (registers, L1, L2, and across nodes), each with its own $b$.
+Three blocks must fit in fast memory, so $3b^2 \le M$ and $q \approx b \le \sqrt{M/3}$. A lower bound of Hong and Kung shows that any matrix multiplication that only reorders the sums has $q = O(\sqrt{M})$, so tiling is asymptotically optimal. Real implementations tile at \emph{several} levels (registers, L1, L2, and across nodes), each with its own $b$.
 
 \subsection{Blocked LU}
 \label{sec:blocked-lu}
 
-The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates $A \gets A - \vec{x}\vec{y}^\ast$, a Level 2 operation that reads and writes all of $A$ for $2$ flops per entry, so $q \approx 1$, so naive Gaussian elimination is bandwidth-bound. The tiling idea fixes this~\cite[\S2.6.3]{Demmel}. Choose a block width $b$ and write
+The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates $A \gets A - \vec{x}\vec{y}^\ast$. These read and write all of $A$ for $2$ flops per entry ($q \approx 1$), so naive Gaussian elimination is bandwidth-bound. The tiling idea fixes this~\cite[\S2.6.3]{Demmel}. Choose a block width $b$ and write
 \begin{equation}
   A = \begin{bmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{bmatrix}, \qquad A_{11} \in \K^{b \times b}.
 \end{equation}
 \begin{enumerate}
-  \item Factor the $m \times b$ panel $\begin{bmatrix} A_{11} \\ A_{21} \end{bmatrix}$ by ordinary elimination, obtaining $L_{11}$, $L_{21}$, $U_{11}$. This is still Level 2, but it accounts for only an $O(b/m)$ fraction of the work.
+  \item Factor the $m \times b$ panel $\begin{bmatrix} A_{11} \\ A_{21} \end{bmatrix}$ by ordinary elimination, obtaining $L_{11}$, $L_{21}$, $U_{11}$ (Level 2, but only an $O(b/m)$ fraction of the work).
   \item Compute $U_{12} = L_{11}^{-1}A_{12}$, a triangular solve with many right-hand sides (Level 3).
   \item Compute $\tilde{A}_{22} = A_{22} - L_{21}U_{12}$, a matrix multiplication (Level 3) that contains most of the flops.
   \item Recurse on $\tilde{A}_{22}$.
 \end{enumerate}
-Only an $O(b/m)$ fraction of the $\tfrac{2}{3}m^3$ flops remains in bandwidth-bound Level 2 operations; the rest runs as matrix multiplication and enjoys $q \approx b$. This is where LAPACK's \texttt{getrf} gains its large speedup over the older LINPACK, and it is the first real instance of the rule ``rewrite everything as matrix multiplication''.
+Almost all the work is matrix multiplication with $q \approx b$. This is how LAPACK's \texttt{getrf} beats the older LINPACK: rewrite everything as matrix multiplication.
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

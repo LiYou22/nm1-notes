@@ -191,6 +191,10 @@ The proof is given in \Cref{ch:pivoting}. The theorem says that the computed fac
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:lu-supp}
+% keep the supplement's subsections out of the table of contents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
+
+\subsection{Lower Triangular Matrices}
 
 \paragraph{Inverses of general lower triangular matrices.} Above, we proved item 4 of \Cref{prop:lower-closure} only for matrices of the form $(L_{m-1} \cdots L_1)^{-1}$. It holds for every invertible lower triangular $T$:
 \begin{enumerate}
@@ -200,11 +204,13 @@ The proof is given in \Cref{ch:pivoting}. The theorem says that the computed fac
   \item $T = DN$, so $T^{-1} = N^{-1}D^{-1}$ is lower triangular as well.
 \end{enumerate}
 
-\paragraph{A shorter proof of item 2 of \Cref{thm:elem-inverse}~\cite[Lecture 20]{TB}.} For $k < j$ we have $\vec{e}_k^{\,\ast}\vec{\ell}_j = 0$, so multiplying two of the factors just adds their multipliers:
+\paragraph{A shorter proof of item 2 of \Cref{thm:elem-inverse}.} Following~\cite[Lecture 20]{TB}: for $k < j$ we have $\vec{e}_k^{\,\ast}\vec{\ell}_j = 0$, so multiplying two of the factors just adds their multipliers:
 \begin{equation}
   (I + \vec{\ell}_k\vec{e}_k^{\,\ast})(I + \vec{\ell}_j\vec{e}_j^{\,\ast}) = I + \vec{\ell}_k\vec{e}_k^{\,\ast} + \vec{\ell}_j\vec{e}_j^{\,\ast}.
 \end{equation}
 Multiplying in the factors one at a time from the right, the same cancellation happens at every step, and we get $L_1^{-1} \cdots L_{m-1}^{-1} = I + \sum_{k=1}^{m-1}\vec{\ell}_k\vec{e}_k^{\,\ast}$.
+
+\subsection{Cost of LU and Solving Linear Systems}
 
 \paragraph{Cost of LU.} Step $k$ of \Cref{alg:lu} updates the trailing $(m - k) \times (m - k)$ block, with one multiplication and one subtraction per entry. Adding up over all steps,
 \begin{equation}
@@ -226,7 +232,9 @@ The divisions for the multipliers add only $O(m^2)$. The update is a rank-one up
 \end{center}
 The factorization is done once. Every further right-hand side costs only $2m^2$, the same as a multiplication by $A^{-1}$. Forming $A^{-1}$ would cost about $2m^3$ up front, three times as much as LU, and is less accurate. So we never compute $A^{-1}$ to solve a linear system.
 
-\paragraph{The pivots as ratios of minors~\cite[\S2.3]{Demmel}.} Step 2 of the proof of \Cref{thm:lu-exists} gives $\det A[1{:}k, 1{:}k] = u_{11} \cdots u_{kk}$ for each $k$. Dividing two consecutive ones,
+\subsection{Pivots, Minors, and Uniqueness}
+
+\paragraph{The pivots as ratios of minors.} Following~\cite[\S2.3]{Demmel}: Step 2 of the proof of \Cref{thm:lu-exists} gives $\det A[1{:}k, 1{:}k] = u_{11} \cdots u_{kk}$ for each $k$. Dividing two consecutive ones,
 \begin{equation}
   u_{kk} = \frac{\det A[1{:}k, 1{:}k]}{\det A[1{:}k{-}1, 1{:}k{-}1]}.
 \end{equation}
@@ -238,7 +246,9 @@ So each pivot is determined by $A$ alone, before any elimination is done. For ex
 \end{equation}
 The left side is unit lower triangular and the right side is upper triangular (\Cref{prop:lower-closure}). A matrix that is both must be $I$, so $L_1 = L_2$ and $U_1 = U_2$.
 
-\paragraph{Pivoting, preview.} In the small-pivot example, swap the two rows first:
+\subsection{Pivoting Preview}
+
+\paragraph{Swapping rows.} In the small-pivot example, swap the two rows first:
 \begin{equation}
   PA = \begin{bmatrix} 1 & 1 \\ \eps & 1 \end{bmatrix} =
   \begin{bmatrix} 1 & 0 \\ \eps & 1 \end{bmatrix}
@@ -252,3 +262,5 @@ F = lu(A)                 # F.L, F.U, F.p (row permutation)
 x = F \ b                 # reuses the factorization: 2m^2 flops per b
 G = lu(A, NoPivot())      # G.L * G.U - A == [0 0; 0 -1] for this A
 \end{lstlisting}
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

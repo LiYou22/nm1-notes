@@ -26,50 +26,30 @@ Here $\eps$ is just a small number, much smaller than $\epsm$ (e.g., $10^{-20}$)
 
 So $\tilde{L}$ and $\tilde{U}$ are the exact LU factors of a nearby matrix, $A - E$. If $\abs{\tilde{L}}\abs{\tilde{U}}$ is about as large as $\abs{A}$, then $E$ is tiny compared with $A$ and the algorithm is backward stable. If $\abs{\tilde{L}}\abs{\tilde{U}}$ is much larger than $\abs{A}$, then $E$ can be as large as $A$. (``To first order'' means we drop terms of size $\epsm^2$.)
 
-\subsection{Entrywise Formulas}
+\subsection{Proof of \Cref{thm:lu-backward}}
 
-From $A = LU$ and $L_{ii} = 1$ we have $A_{ik} = \sum_{j=1}^{\min(i,k)} L_{ij}U_{jk}$. Solving for the entries of $L$ and $U$ gives formulas that produce the same numbers as Gaussian elimination, only in a different order of operations:
+\emph{Formulas for $L$ and $U$.} From $A = LU$ and $L_{ii} = 1$, solving for the entries of $L$ and $U$ gives (these are the numbers elimination computes, in a different order)
 \begin{align}
   U_{ik} &= A_{ik} - \sum_{j=1}^{i-1} L_{ij}U_{jk}, & i &\le k, \label{eq:lu-u} \\
   L_{ik} &= \frac{1}{U_{kk}}\left(A_{ik} - \sum_{j=1}^{k-1} L_{ij}U_{jk}\right), & i &> k. \label{eq:lu-l}
 \end{align}
-
-\subsection{Proof of \Cref{thm:lu-backward}}
-
-We use the following fact about inner products (see Homework 2 and \Cref{prop:dot}): an inner product of length $m$ computed in floating point satisfies
+\emph{Rounding in inner products} (Homework 2, \Cref{prop:dot}): in floating point, every term of a sum gets its own small relative error,
 \begin{equation}
-  \fl\left(\sum_{i=1}^{m} x_iy_i\right) = \sum_{i=1}^{m} x_iy_i(1 + \delta_i), \qquad \abs{\delta_i} \lesssim m\epsm,
+  \fl\Bigl(\sum_{i=1}^{m} x_iy_i\Bigr) = \sum_{i=1}^{m} x_iy_i(1 + \delta_i), \qquad \abs{\delta_i} \lesssim m\epsm.
 \end{equation}
-so each term carries its own relative perturbation, proportional to the number of terms summed.
 
 \begin{proof}
-  \emph{The $U$ part ($i \le k$).} Computing \eqref{eq:lu-u} in floating point gives
+  \emph{The $U$ part ($i \le k$).} In floating point, \eqref{eq:lu-u} becomes
   \begin{equation}
-    \tilde{U}_{ik} = \left(A_{ik} - \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\right)(1 + \delta'), \qquad \abs{\delta_j} \le (i - 1)\epsm, \quad \abs{\delta'} \le \epsm,
+    \tilde{U}_{ik} = \Bigl(A_{ik} - \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\Bigr)(1 + \delta'),
   \end{equation}
-  where $\delta'$ comes from the final subtraction. Solving for $A_{ik}$ and using $\tilde{L}_{ii} = 1$,
+  where $\delta'$ is the error of the last subtraction. Solve for $A_{ik}$, use $\tilde{L}_{ii} = 1$, and write $1/(1 + \delta') = 1 + \delta_i$:
   \begin{equation}
-    A_{ik} = \frac{1}{1 + \delta'}\tilde{L}_{ii}\tilde{U}_{ik} + \sum_{j=1}^{i-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j).
+    A_{ik} = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j) = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk} + \underbrace{\sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}\delta_j}_{\eqqcolon\, E_{ik}}.
   \end{equation}
-  Setting $1 + \delta_i \defeq (1 + \delta')^{-1}$, so that $\abs{\delta_i} \lesssim \epsm$ to first order, the $i$-th term joins the sum:
-  \begin{equation}
-    A_{ik} = \sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk} + \underbrace{\sum_{j=1}^{i}\tilde{L}_{ij}\tilde{U}_{jk}\delta_j}_{\eqqcolon\, E_{ik}}.
-  \end{equation}
-  All $\abs{\delta_j} \le m\epsm$, so
-  \begin{equation}
-    \abs{E_{ik}} \le \sum_{j=1}^{i}\abs{\tilde{L}_{ij}}\abs{\tilde{U}_{jk}}\,m\epsm = m\epsm\left(\abs{\tilde{L}}\abs{\tilde{U}}\right)_{ik},
-  \end{equation}
-  where the last step uses that $\tilde{L}$ is lower triangular, so the terms with $j > i$ vanish and summing to $i$ is the same as summing to $m$.
+  Every $\abs{\delta_j} \lesssim m\epsm$, so $\abs{E_{ik}} \le m\epsm\sum_j\abs{\tilde{L}_{ij}}\abs{\tilde{U}_{jk}} = m\epsm(\abs{\tilde{L}}\abs{\tilde{U}})_{ik}$. (The terms with $j > i$ are zero because $\tilde{L}$ is lower triangular.)
 
-  \emph{The $L$ part ($i > k$).} Similarly, computing \eqref{eq:lu-l} in floating point gives
-  \begin{equation}
-    \tilde{L}_{ik} = (1 + \delta'')\,\frac{(1 + \delta')\left(A_{ik} - \sum_{j=1}^{k-1}\tilde{L}_{ij}\tilde{U}_{jk}(1 + \delta_j)\right)}{\tilde{U}_{kk}}, \qquad \abs{\delta''} \le \epsm,
-  \end{equation}
-  with $\delta'$ from the subtraction and $\delta''$ from the division. Solving for $A_{ik}$ and setting $1 + \delta_k \defeq \left((1 + \delta')(1 + \delta'')\right)^{-1}$, so that $\abs{\delta_k} \lesssim 2\epsm \le m\epsm$, we get
-  \begin{equation}
-    A_{ik} = \sum_{j=1}^{k}\tilde{L}_{ij}\tilde{U}_{jk} + E_{ik}, \qquad \abs{E_{ik}} \le m\epsm\left(\abs{\tilde{L}}\abs{\tilde{U}}\right)_{ik}.
-  \end{equation}
-  The two cases together prove the theorem.
+  \emph{The $L$ part ($i > k$).} The same argument applied to \eqref{eq:lu-l}. The division by $\tilde{U}_{kk}$ adds one more rounding error, which is merged into $\delta_k$ in the same way, and the bound is the same.
 \end{proof}
 
 \subsection{What the Bound Says}
@@ -105,10 +85,10 @@ The numerator is determined by column $k$ and row $k$. To keep this quantity sma
 
 \section{Partial Pivoting}
 
-We must pivot when $A_{kk} = 0$, since otherwise the algorithm cannot continue. Even when $A_{kk} \ne 0$, we want to avoid \emph{small} pivots, which make the products $L_{ik}U_{kj}$ explode.
+We must pivot when $\tilde{A}_{kk} = 0$, since otherwise the algorithm cannot continue. Even when $\tilde{A}_{kk} \ne 0$, we want to avoid \emph{small} pivots, which make the products $L_{ik}U_{kj}$ explode.
 
 \begin{definition}[Partial (Row) Pivoting]
-  At step $k$ of Gaussian elimination, \emph{partial pivoting} chooses as pivot the entry of largest absolute value in column $k$, on or below the diagonal:
+  At step $k$, \emph{partial pivoting} chooses the pivot to be the entry of largest absolute value in column $k$, on or below the diagonal:
   \begin{equation}
     r = \operatorname*{argmax}_{i \ge k}\abs{\tilde{A}_{ik}}.
   \end{equation}
@@ -131,7 +111,7 @@ where $L$'s and $P$'s alternate, so we cannot directly write $PA = LU$. We need 
 
 \begin{proposition}[Commuting a Permutation Past an Elimination]
   \label{prop:perm-swap}
-  Let $\ell > k$ and let $P_\ell$ swap rows $\ell$ and $i$ for some $i \ge \ell$, so that $P_\ell = P_\ell^{-1}$. Then
+  Let $\ell > k$ and let $P_\ell$ swap rows $\ell$ and $i$ for some $i \ge \ell$. Swapping twice undoes the swap, so $P_\ell^{-1} = P_\ell$. Then
   \begin{equation}
     P_\ell L_k = (P_\ell L_kP_\ell)P_\ell, \qquad P_\ell L_kP_\ell = I - (P_\ell\vec{\ell}_k)\vec{e}_k^{\,\ast},
   \end{equation}
@@ -139,11 +119,15 @@ where $L$'s and $P$'s alternate, so we cannot directly write $PA = LU$. We need 
 \end{proposition}
 
 \begin{proof}
-  The first identity is $P_\ell^2 = I$. Since $\ell, i > k$, the permutation $P_\ell$ fixes $\vec{e}_k$, so $\vec{e}_k^{\,\ast}P_\ell = \vec{e}_k^{\,\ast}$ and
+  The first identity holds because $P_\ell P_\ell = I$. For the second, substitute $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ and expand:
   \begin{equation}
-    P_\ell(I - \vec{\ell}_k\vec{e}_k^{\,\ast})P_\ell = I - (P_\ell\vec{\ell}_k)(\vec{e}_k^{\,\ast}P_\ell) = I - (P_\ell\vec{\ell}_k)\vec{e}_k^{\,\ast}.
+    P_\ell(I - \vec{\ell}_k\vec{e}_k^{\,\ast})P_\ell
+    = P_\ell P_\ell - (P_\ell\vec{\ell}_k)(\vec{e}_k^{\,\ast}P_\ell)
+    = I - (P_\ell\vec{\ell}_k)(\vec{e}_k^{\,\ast}P_\ell).
   \end{equation}
-  Geometrically, left multiplication by $P_\ell$ swaps two rows of $L_k$, moving two diagonal ones off the diagonal, and right multiplication swaps the corresponding columns, moving them back; the net effect is to swap the multipliers in rows $\ell$ and $i$ of column $k$.
+  Multiplying the row vector $\vec{e}_k^{\,\ast}$ on the right by $P_\ell$ swaps its entries $\ell$ and $i$. Both entries are $0$, since $\ell, i > k$, so nothing changes: $\vec{e}_k^{\,\ast}P_\ell = \vec{e}_k^{\,\ast}$. This gives $P_\ell L_kP_\ell = I - (P_\ell\vec{\ell}_k)\vec{e}_k^{\,\ast}$.
+
+  Finally, $P_\ell\vec{\ell}_k$ is $\vec{\ell}_k$ with entries $\ell$ and $i$ swapped. Its first $k$ entries are still $0$, so $P_\ell L_kP_\ell$ is again elementary lower triangular.
 \end{proof}
 
 Using \Cref{prop:perm-swap} repeatedly to push every $P$ to the right,
@@ -202,10 +186,18 @@ Some remarks:
   \item In Julia, \texttt{argmax(abs.(A[k:end, k]))} returns an index into the subvector, so one adds $k - 1$ to recover the global row index.
   \item The row swap runs over all columns $1, \dots, m$, not just $k, \dots, m$: the first $k - 1$ columns hold multipliers, and swapping them is exactly $L'_j = P_{k+1}L_jP_{k+1}$.
   \item On exit the strictly lower part of $A$ holds $L$, the upper part holds $U$, and $PA = LU$.
-  \item In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (LAPACK's \texttt{ipiv}), so each swap exchanges two integers. The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops, although in column-major storage a row swap is a strided access whose cost is not negligible.
 \end{itemize}
 
-\section{(SUPPLEMENT) Growth Factor}
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:pivot-further}
+% keep the supplement's subsections out of the table of contents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
+
+\subsection{Storing $P$ and the Cost of Pivoting}
+
+In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (LAPACK's \texttt{ipiv}), so each swap exchanges two integers. The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops. In column-major storage, however, a row swap is a strided access, and its cost is not negligible.
+
+\subsection{Growth Factor}
 
 \begin{definition}[Growth Factor]
   The \emph{growth factor} of Gaussian elimination on $A$ is
@@ -214,8 +206,48 @@ Some remarks:
   \end{equation}
 \end{definition}
 
-With partial pivoting $\abs{L_{ij}} \le 1$, so $\abs{L}\abs{U}$ is governed by $U$, and the backward error is roughly $\norm{E} \lesssim m^2\rho\,\epsm\norm{A}$ (the constant depends on the norm). Since $\abs{L_{ik}} \le 1$ in each update $\tilde{A}_{ij} - L_{ik}U_{kj}$, each step can at most double an entry, so $\rho \le 2^{m-1}$. This worst case is attained~\cite[Lecture 22]{TB}; \Cref{ch:ls} opens with the example. Yet on matrices met in practice $\rho$ is almost always small, which is why partial pivoting is used as a stable algorithm in practice.
+\paragraph{Why it matters.} With partial pivoting $\abs{L_{ik}} \le 1$, so each entry of $\abs{L}\abs{U}$ is a sum of at most $m$ terms, each at most $\max\abs{U_{ij}} = \rho\max\abs{A_{ij}}$:
+\begin{equation}
+  (\abs{L}\abs{U})_{ij} \le m\rho\max_{i,j}\abs{A_{ij}}
+  \qquad\Longrightarrow\qquad
+  \abs{E_{ij}} \le m^2\rho\,\epsm\max_{i,j}\abs{A_{ij}}
+\end{equation}
+by \Cref{thm:lu-backward}. So partial pivoting is backward stable exactly when $\rho$ stays small.
 
-\section{(SUPPLEMENT) Complete Pivoting}
+\paragraph{How large can $\rho$ be?} Each step updates $\tilde{A}_{ij} \gets \tilde{A}_{ij} - L_{ik}U_{kj}$ with $\abs{L_{ik}} \le 1$, so the largest entry can at most double. After $m - 1$ steps,
+\begin{equation}
+  \rho \le 2^{m-1}.
+\end{equation}
+This bound is attained by the matrix with $1$ on the diagonal, $-1$ below it, and $1$ in the last column (\Cref{ex:growth}, Homework~2): no rows are swapped, and the last column of $U$ is $1, 2, 4, \dots, 2^{m-1}$. For $m = 8$, Julia's \texttt{lu} gives $\rho = 128 = 2^7$.
 
-Complete pivoting chooses the entry of largest absolute value in the entire trailing block as the pivot and swaps both rows and columns, giving $PAQ = LU$. Its growth factor obeys a much better (subexponential) bound, but each step searches $O((m - k)^2)$ entries, adding $O(m^3)$ comparisons in total, so it is rarely used.
+\paragraph{In practice.} Such matrices are extremely rare. For random matrices $\rho$ grows slowly; with \texttt{randn} (median of $5$ runs) we measured $\rho \approx 2, 4, 8, 19$ for $m = 16, 64, 256, 1024$. This is why partial pivoting is used as a stable algorithm in practice, although in theory it is not backward stable.
+
+\subsection{Complete Pivoting}
+
+\paragraph{The idea.} At step $k$, \emph{complete pivoting} chooses the pivot to be the entry of largest absolute value in the whole trailing block, $\max_{i,j \ge k}\abs{\tilde{A}_{ij}}$, and moves it to position $(k, k)$ by swapping two rows \emph{and} two columns. This gives
+\begin{equation}
+  PAQ = LU,
+\end{equation}
+with a row permutation $P$ and a column permutation $Q$. Swapping columns reorders the unknowns, so $A\vec{x} = \vec{b}$ is solved as $LU(Q^\T\vec{x}) = P\vec{b}$.
+
+\paragraph{Benefit.} Every entry of the trailing block is now at most the pivot, so the growth is much better controlled. Wilkinson showed a bound on $\rho$ that grows much more slowly than $2^{m-1}$, roughly like $m^{(\ln m)/4}$~\cite[Chapter 9]{Higham}.
+
+\paragraph{Cost.} Step $k$ searches all $(m - k + 1)^2$ entries of the trailing block, about $m^3/3$ comparisons in total. That is the same order as the $\tfrac{2}{3}m^3$ flops, and the column swaps add strided memory access. Since partial pivoting is almost always good enough, complete pivoting is rarely used.
+
+\paragraph{Example.} We ran complete pivoting (a short Julia implementation) on the worst-case matrix above and on random matrices, and compared with partial pivoting:
+\begin{center}
+\begin{tabular}{lcc}
+  \toprule
+  Matrix & $\rho$, partial pivoting & $\rho$, complete pivoting \\
+  \midrule
+  worst case, $m = 64$ & $2^{63} \approx 9 \cdot 10^{18}$ & $2$ \\
+  \texttt{randn}, $m = 64$ & $4.2$ & $1.9$ \\
+  \texttt{randn}, $m = 256$ & $7.8$ & $3.6$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+On the worst-case matrix, complete pivoting removes the growth entirely. On random matrices both are small, which is why the extra cost of complete pivoting is rarely worth it.
+
+\paragraph{A compromise: rook pivoting.} Search alternately along a column and a row until the entry is the largest in both. This is cheap and controls growth much better~\cite[Chapter 9]{Higham}.
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
