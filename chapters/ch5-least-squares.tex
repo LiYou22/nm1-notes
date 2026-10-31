@@ -311,9 +311,6 @@ and the sum vanishes when the $\vec{q}$'s are orthonormal, so CGS and MGS comput
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:ls-further}
-% keep the supplement's subsections out of the table of contents
-\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
-
 \subsection{The Projector View}
 
 Trefethen and Bau~\cite[Lecture 8]{TB} write both algorithms with projectors, which shows the difference in one line.
@@ -364,5 +361,3 @@ and in floating point $1 + \eps^2 = 1$. So the computed $A^\ast A$ is the all-on
 \subsection{Householder QR and Reorthogonalization}
 
 Even with MGS, how orthogonal $Q$ is depends on $\kappa(A)$. Libraries therefore use \emph{Householder QR} (\Cref{ch:householder}), whose $Q$ is orthogonal to working precision whatever $\kappa(A)$ is. Another remedy is to \emph{run CGS twice} (``twice is enough''); it parallelizes better than MGS, since the inner products of CGS form one matrix--vector product $Q_{j-1}^\ast\vec{a}_j$.
-
-\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

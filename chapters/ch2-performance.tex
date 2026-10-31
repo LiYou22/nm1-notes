@@ -271,9 +271,6 @@ With $U \defeq L_{m-1} \cdots L_1 A$ and $L \defeq (L_{m-1} \cdots L_1)^{-1}$, w
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:perf-further}
-% keep the supplement's subsections out of the table of contents
-\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
-
 \subsection{Leading Dimension}
 
 In column-major order, the entry $A_{ij}$ lives at
@@ -333,5 +330,3 @@ The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates $A
   \item Recurse on $\tilde{A}_{22}$.
 \end{enumerate}
 Almost all the work is matrix multiplication with $q \approx b$. This is how LAPACK's \texttt{getrf} beats the older LINPACK: rewrite everything as matrix multiplication.
-
-\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

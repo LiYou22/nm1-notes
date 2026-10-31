@@ -18,9 +18,7 @@ The first leads to the implicit use of $Q$, the second to Givens rotations. Fina
 
 \section{Using $Q$}
 
-\subsection{Implicit Storage}
-
-Householder QR does not store $Q$ as a matrix, only the vectors $\vec{v}_k$ defining the reflectors
+\paragraph{Implicit storage.} Householder QR does not store $Q$ as a matrix, only the vectors $\vec{v}_k$ defining the reflectors
 \begin{equation}
   Q_k = I - 2\frac{\vec{v}_k\vec{v}_k^\ast}{\vec{v}_k^\ast\vec{v}_k}.
 \end{equation}
@@ -29,9 +27,7 @@ Here $\vec{v}_k$ is regarded as a vector of length $m$ whose first $k - 1$ entri
   Q = (Q_n \cdots Q_1)^{-1} = Q_1Q_2 \cdots Q_n, \qquad Q^\ast = Q_n \cdots Q_1.
 \end{equation}
 
-\subsection{Two Algorithms}
-
-In $Q^\ast\vec{b} = Q_n \cdots Q_1\vec{b}$ the first factor to act is $Q_1$, so $k$ runs upward from $1$; in $Q\vec{x} = Q_1 \cdots Q_n\vec{x}$ the first factor to act is $Q_n$, so $k$ runs downward from $n$.
+\paragraph{Two algorithms.} In $Q^\ast\vec{b} = Q_n \cdots Q_1\vec{b}$ the first factor to act is $Q_1$, so $k$ runs upward from $1$; in $Q\vec{x} = Q_1 \cdots Q_n\vec{x}$ the first factor to act is $Q_n$, so $k$ runs downward from $n$.
 
 \begin{algorithm}[H]
   \caption{Implicit computation of $Q^\ast\vec{b}$.}
@@ -55,24 +51,19 @@ In $Q^\ast\vec{b} = Q_n \cdots Q_1\vec{b}$ the first factor to act is $Q_1$, so 
 
 As in \Cref{ch:householder}, following the parentheses we first compute the scalar $\vec{v}_k^\ast\vec{b}[k{:}m]$ and then update a vector, so each step costs only $O(m - k)$ and the total is about $4mn - 2n^2$ flops, the same order as a matrix--vector product. One should never form $\vec{v}_k\vec{v}_k^\ast$. The two algorithms differ only in the direction of the loop, much like forward and back substitution: the order of the factors in the product determines the order in which they act.
 
-\subsection{Consequences of Implicit Storage}
+\paragraph{Consequences of implicit storage.}
+\subparagraph{In place.} Scaling $\vec{v}_k$ so that its $k$-th entry is $1$ makes that entry implicit, and the remaining $m - k$ entries fit into the positions below the diagonal of column $k$ that were just zeroed. The whole factorization needs no extra matrix storage and simply overwrites $A$.
 
-\paragraph{In place.} Scaling $\vec{v}_k$ so that its $k$-th entry is $1$ makes that entry implicit, and the remaining $m - k$ entries fit into the positions below the diagonal of column $k$ that were just zeroed. The whole factorization needs no extra matrix storage and simply overwrites $A$.
+\subparagraph{A full QR factorization from only $n$ vectors.} $Q$ is $m \times m$, so storing it explicitly takes $m^2$ numbers; the implicit form takes only the roughly $mn - \frac{n^2}{2}$ positions below the diagonal of $A$. When $m \gg n$ the difference is large. If the reduced factor $\hat{Q}$ (the first $n$ columns of $Q$) is really needed, compute $Q\vec{e}_1, \dots, Q\vec{e}_n$ with \Cref{alg:qx}.
 
-\paragraph{A full QR factorization from only $n$ vectors.} $Q$ is $m \times m$, so storing it explicitly takes $m^2$ numbers; the implicit form takes only the roughly $mn - \frac{n^2}{2}$ positions below the diagonal of $A$. When $m \gg n$ the difference is large. If the reduced factor $\hat{Q}$ (the first $n$ columns of $Q$) is really needed, compute $Q\vec{e}_1, \dots, Q\vec{e}_n$ with \Cref{alg:qx}.
-
-\paragraph{$Q$ is orthogonal by definition.} We stress this point. However much rounding error the computed $\vec{v}_k$ carry, $I - 2\vec{v}_k\vec{v}_k^\ast/(\vec{v}_k^\ast\vec{v}_k)$ is an exact reflector for \emph{every} nonzero $\vec{v}_k$, hence exactly unitary. Rounding errors only affect \emph{which} orthogonal matrix $Q$ is, not \emph{whether} it is orthogonal; they are absorbed into a backward perturbation of $A$. Contrast this with Gram--Schmidt, which computes every column of $\hat{Q}$ explicitly, so rounding errors directly destroy the orthogonality between columns, by about $\epsm\kappa(A)$ for MGS and $\epsm\kappa(A)^2$ for CGS. When the Householder $Q$ is used in a computation (for example applied to $\vec{b}$ as above), the only error comes from applying exact reflectors in floating point, and this step is backward stable.
+\subparagraph{$Q$ is orthogonal by definition.} We stress this point. However much rounding error the computed $\vec{v}_k$ carry, $I - 2\vec{v}_k\vec{v}_k^\ast/(\vec{v}_k^\ast\vec{v}_k)$ is an exact reflector for \emph{every} nonzero $\vec{v}_k$, hence exactly unitary. Rounding errors only affect \emph{which} orthogonal matrix $Q$ is, not \emph{whether} it is orthogonal; they are absorbed into a backward perturbation of $A$. Contrast this with Gram--Schmidt, which computes every column of $\hat{Q}$ explicitly, so rounding errors directly destroy the orthogonality between columns, by about $\epsm\kappa(A)$ for MGS and $\epsm\kappa(A)^2$ for CGS. When the Householder $Q$ is used in a computation (for example applied to $\vec{b}$ as above), the only error comes from applying exact reflectors in floating point, and this step is backward stable.
 
 \section{Givens Rotations}
 \label{sec:givens}
 
-\subsection{Motivation: Householder Can Be Overkill}
+\paragraph{Motivation: Householder can be overkill.} A Householder reflector processes a whole column at once: step $k$ performs a rank-one update of the whole block $A[k{:}m, k{:}n]$, no matter how many nonzeros lie below the diagonal in column $k$. If the matrix is already \emph{close to upper triangular}, with only a narrow band of nonzeros below the diagonal (for example an upper Hessenberg matrix, which has a single nonzero subdiagonal), each column needs only one or two entries eliminated and Householder is wasteful. We want an orthogonal transformation that zeros \emph{one entry at a time}.
 
-A Householder reflector processes a whole column at once: step $k$ performs a rank-one update of the whole block $A[k{:}m, k{:}n]$, no matter how many nonzeros lie below the diagonal in column $k$. If the matrix is already \emph{close to upper triangular}, with only a narrow band of nonzeros below the diagonal (for example an upper Hessenberg matrix, which has a single nonzero subdiagonal), each column needs only one or two entries eliminated and Householder is wasteful. We want an orthogonal transformation that zeros \emph{one entry at a time}.
-
-\subsection{The $2 \times 2$ Case}
-
-Consider the leading $2 \times 2$ block
+\paragraph{The $2 \times 2$ case.} Consider the leading $2 \times 2$ block
 \begin{equation}
   \begin{bmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{bmatrix}.
 \end{equation}
@@ -91,9 +82,7 @@ A direct check gives
 \end{equation}
 Since $c^2 + s^2 = 1$, we have $G^\T G = I$ and $\det G = 1$, so $G$ is a rotation: if $\vec{a}_1$ makes the angle $\theta$ with the horizontal axis, then $c = \cos\theta$, $s = \sin\theta$, and $G$ rotates clockwise by $\theta$. Compare with Householder: a Householder reflector is a \emph{reflection} ($\det = -1$) that maps a whole vector onto the direction of $\vec{e}_1$ at once, whereas a Givens rotation is a \emph{rotation} ($\det = 1$) acting in a single two-dimensional plane and zeroing one entry.
 
-\subsection{QR by Givens Rotations}
-
-In the $m \times m$ setting, the Givens rotation acting on rows $i$ and $j$ is the identity except in four positions:
+\paragraph{QR by Givens rotations.} In the $m \times m$ setting, the Givens rotation acting on rows $i$ and $j$ is the identity except in four positions:
 \begin{equation}
   G(i, j) = \begin{bmatrix} 1 & & & & \\ & c & & s & \\ & & \ddots & & \\ & -s & & c & \\ & & & & 1 \end{bmatrix},
 \end{equation}
@@ -179,15 +168,14 @@ Notice that $G(1, 3)$ does not touch row $2$, so the zero created by $G(1, 2)$ s
 where $N$ is the number of subdiagonal nonzeros; for a dense $m \times n$ matrix, $N = \sum_{i=1}^{n}(m - i) = mn - \frac{n(n+1)}{2}$.
 As with Householder, $Q$ is not formed explicitly; one stores the pairs $(c, s)$ of the rotations and applies them in sequence when needed, just as in \Cref{alg:qtb,alg:qx}. Every $G$ is orthogonal with $\kappa = 1$, so by the error-amplification framework of \Cref{ch:householder}, Givens QR is backward stable as well.
 
-\subsection{Efficiency}
-
-\paragraph{Dense matrices: slower than Householder.} Each rotation acts on two rows, at $6$ flops per column ($4$ multiplications and $2$ additions). Eliminating column $i$ takes $m - i$ rotations, each acting on rows of length about $n - i$, for a total of about
+\paragraph{Efficiency.}
+\subparagraph{Dense matrices: slower than Householder.} Each rotation acts on two rows, at $6$ flops per column ($4$ multiplications and $2$ additions). Eliminating column $i$ takes $m - i$ rotations, each acting on rows of length about $n - i$, for a total of about
 \begin{equation}
   \sum_{i=1}^{n}6(m - i)(n - i) \approx 3mn^2 - n^3 \text{ flops},
 \end{equation}
 about $1.5$ times the cost of Householder ($2mn^2 - \frac{2}{3}n^3$).
 
-\paragraph{Sparse or nearly triangular matrices: possibly faster.} For an $n \times n$ upper Hessenberg matrix, only $n - 1$ rotations are needed (one per subdiagonal entry), each costing $O(n)$, for a total of about $3n^2$ flops. Givens touches only the entries that must be eliminated and so exploits sparsity naturally.
+\subparagraph{Sparse or nearly triangular matrices: possibly faster.} For an $n \times n$ upper Hessenberg matrix, only $n - 1$ rotations are needed (one per subdiagonal entry), each costing $O(n)$, for a total of about $3n^2$ flops. Givens touches only the entries that must be eliminated and so exploits sparsity naturally.
 
 \section{Full and Reduced QR}
 
@@ -303,11 +291,10 @@ The proof is constructive: run Gram--Schmidt, see where it can fail, and patch t
 
 \section{Uniqueness}
 
-\subsection{When QR Is Not Unique}
+\paragraph{When QR is not unique.}
+\subparagraph{Full QR with $m > n$ is not unique.} $\hat{Q}_\perp$ can be any orthonormal basis of $\range(\hat{Q})^\perp$, because it multiplies a zero block. For instance, replacing $\hat{Q}_\perp$ by $\hat{Q}_\perp U$ with any unitary $U \in \K^{(m-n) \times (m-n)}$ leaves the product unchanged.
 
-\paragraph{Full QR with $m > n$ is not unique.} $\hat{Q}_\perp$ can be any orthonormal basis of $\range(\hat{Q})^\perp$, because it multiplies a zero block. For instance, replacing $\hat{Q}_\perp$ by $\hat{Q}_\perp U$ with any unitary $U \in \K^{(m-n) \times (m-n)}$ leaves the product unchanged.
-
-\paragraph{Rank-deficient $A$.} When $\hat{\vec{q}}_k = \zerovec$, the choice of $\vec{q}_k$ is arbitrary.
+\subparagraph{Rank-deficient $A$.} When $\hat{\vec{q}}_k = \zerovec$, the choice of $\vec{q}_k$ is arbitrary.
 
 \begin{example}[Non-Uniqueness for a Rank-Deficient Matrix]
   Let
@@ -317,10 +304,9 @@ The proof is constructive: run Gram--Schmidt, see where it can fail, and patch t
   Both $\vec{q}_2 = \vec{e}_2$ and $\vec{q}_2 = \vec{e}_3$ work, with the same $\hat{R} = \begin{bmatrix} 1 & 1 \\ 0 & 0 \end{bmatrix}$.
 \end{example}
 
-\paragraph{Phases.} Even for full-rank $A$, given $\abs{d_k} = 1$ we may multiply $\vec{q}_k$ by $d_k$ and row $k$ of $\hat{R}$ by $\bar{d}_k$ without changing the product; in the real case, each column may flip its sign. Uniqueness therefore requires a normalization.
+\subparagraph{Phases.} Even for full-rank $A$, given $\abs{d_k} = 1$ we may multiply $\vec{q}_k$ by $d_k$ and row $k$ of $\hat{R}$ by $\bar{d}_k$ without changing the product; in the real case, each column may flip its sign. Uniqueness therefore requires a normalization.
 
-\subsection{Uniqueness of the Reduced QR Factorization}
-
+\paragraph{Uniqueness of the reduced QR factorization.}
 \begin{theorem}[Uniqueness of Reduced QR]
   \label{thm:qr-unique}
   Let $A \in \K^{m \times n}$, $m \ge n$, have full column rank. Then the reduced QR factorization $A = \hat{Q}\hat{R}$ with $r_{jj} > 0$ for all $j$ is unique.
@@ -357,8 +343,8 @@ The proof is constructive: run Gram--Schmidt, see where it can fail, and patch t
 Put differently: the part of $\spn(\vec{a}_1, \dots, \vec{a}_k)$ orthogonal to $\spn(\vec{a}_1, \dots, \vec{a}_{k-1})$ is one-dimensional, so the direction of $\vec{q}_k$ is completely determined by $A$ up to a unimodular phase, and $r_{kk} > 0$ fixes exactly that phase.
 
 \section{(SUPPLEMENT) Further Topics}
+\subsection{Three QR Algorithms}
 
-\paragraph{Three QR algorithms.}
 \begin{center}
 \begin{tabular}{lllll}
   \toprule
@@ -371,21 +357,30 @@ Put differently: the part of $\spn(\vec{a}_1, \dots, \vec{a}_k)$ orthogonal to $
 \end{tabular}
 \end{center}
 
-\paragraph{Householder as an existence proof.} The Householder algorithm never breaks down: the only case needing care is $\vec{x} = A[k{:}m, k] = \zerovec$, where one simply takes $F_k = I$. It therefore produces a full QR factorization of \emph{any} $A$, rank-deficient or not, which is a shorter existence proof than the one based on Gram--Schmidt. Trefethen and Bau prove existence with Gram--Schmidt in Lecture 7, while the algorithm of their Lecture 10 implicitly gives the second proof~\cite{TB}.
+\subsection{Householder as an Existence Proof}
 
-\paragraph{Uniqueness via Cholesky.} If $A = \hat{Q}\hat{R}$, then
+The Householder algorithm never breaks down: the only case needing care is $\vec{x} = A[k{:}m, k] = \zerovec$, where one simply takes $F_k = I$. It therefore produces a full QR factorization of \emph{any} $A$, rank-deficient or not, which is a shorter existence proof than the one based on Gram--Schmidt. Trefethen and Bau prove existence with Gram--Schmidt in Lecture 7, while the algorithm of their Lecture 10 implicitly gives the second proof~\cite{TB}.
+
+\subsection{Uniqueness via Cholesky}
+
+If $A = \hat{Q}\hat{R}$, then
 \begin{equation}
   A^\ast A = \hat{R}^\ast\hat{Q}^\ast\hat{Q}\hat{R} = \hat{R}^\ast\hat{R}.
 \end{equation}
 For $A$ of full column rank, $A^\ast A$ is Hermitian positive definite, and its Cholesky factorization with positive diagonal is unique; hence $\hat{R}$ is unique, and so is $\hat{Q} = A\hat{R}^{-1}$. This route is not suitable for \emph{computing} QR, since forming $A^\ast A$ squares the condition number (\Cref{ch:ls}).
 
-\paragraph{Computing $c$ and $s$ without overflow.} Evaluating $\sqrt{A_{ii}^2 + A_{ji}^2}$ directly can overflow for large entries and underflow for small ones. Implementations scale by the larger entry first: if $\abs{A_{ji}} > \abs{A_{ii}}$, set $\tau = A_{ii}/A_{ji}$, $s = 1/\sqrt{1 + \tau^2}$, $c = s\tau$, and symmetrically otherwise. This gives $(c, s)$ up to a common sign, which still zeros the entry. The function \texttt{hypot} available in many languages works this way. Demmel also describes how to store a rotation in a single number so that it fits into the zeroed entry~\cite[\S3.4.2]{Demmel}.
+\subsection{Computing $c$ and $s$ Without Overflow}
 
-\paragraph{Other advantages of Givens rotations.}
+Evaluating $\sqrt{A_{ii}^2 + A_{ji}^2}$ directly can overflow for large entries and underflow for small ones. Implementations scale by the larger entry first: if $\abs{A_{ji}} > \abs{A_{ii}}$, set $\tau = A_{ii}/A_{ji}$, $s = 1/\sqrt{1 + \tau^2}$, $c = s\tau$, and symmetrically otherwise. This gives $(c, s)$ up to a common sign, which still zeros the entry. The function \texttt{hypot} available in many languages works this way. Demmel also describes how to store a rotation in a single number so that it fits into the zeroed entry~\cite[\S3.4.2]{Demmel}.
+
+\subsection{Other Advantages of Givens Rotations}
+
 \begin{itemize}
   \item \emph{Parallelism}: rotations acting on disjoint pairs of rows can be applied simultaneously.
   \item \emph{Updating}: when a row is appended to an already factored $A$, the new row can be eliminated with $n$ Givens rotations instead of refactoring, which is common in recursive least squares.
   \item QR of Hessenberg matrices is the core step of the QR eigenvalue algorithm~\cite[Lectures 28--29]{TB}.
 \end{itemize}
 
-\paragraph{Correspondence with Trefethen and Bau.} Full and reduced QR and their existence and uniqueness are Theorems 7.1 and 7.2 of \cite{TB}; the two implicit algorithms are Algorithms 10.2 and 10.3; Givens rotations appear in Exercise 10.4.
+\subsection{Correspondence with Trefethen and Bau}
+
+Full and reduced QR and their existence and uniqueness are Theorems 7.1 and 7.2 of \cite{TB}; the two implicit algorithms are Algorithms 10.2 and 10.3; Givens rotations appear in Exercise 10.4.

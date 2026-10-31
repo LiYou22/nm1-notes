@@ -191,9 +191,6 @@ The proof is given in \Cref{ch:pivoting}. The theorem says that the computed fac
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:lu-supp}
-% keep the supplement's subsections out of the table of contents
-\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
-
 \subsection{Lower Triangular Matrices}
 
 \paragraph{Inverses of general lower triangular matrices.} Above, we proved item 4 of \Cref{prop:lower-closure} only for matrices of the form $(L_{m-1} \cdots L_1)^{-1}$. It holds for every invertible lower triangular $T$:
@@ -262,5 +259,3 @@ F = lu(A)                 # F.L, F.U, F.p (row permutation)
 x = F \ b                 # reuses the factorization: 2m^2 flops per b
 G = lu(A, NoPivot())      # G.L * G.U - A == [0 0; 0 -1] for this A
 \end{lstlisting}
-
-\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

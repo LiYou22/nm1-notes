@@ -189,11 +189,18 @@ The name refers to how the theorem is used. To know the whole transformation $Q$
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:hessenberg-supp}
+\subsection{The Hermitian Case: Tridiagonal Form}
 
-\paragraph{The Hermitian case: tridiagonal form.} If $A$ is Hermitian, so is $H = Q^\ast AQ$, and a Hermitian Hessenberg matrix is tridiagonal. Exploiting the zeros and the symmetry reduces the cost from $\tfrac{10}{3}m^3$ to $\sim\tfrac{4}{3}m^3$ flops, and each subsequent QR step on a tridiagonal matrix costs only $O(m)$~\cite[Lecture 26]{TB}, \cite[Section 4.4.7]{Demmel}.
+If $A$ is Hermitian, so is $H = Q^\ast AQ$, and a Hermitian Hessenberg matrix is tridiagonal. Exploiting the zeros and the symmetry reduces the cost from $\tfrac{10}{3}m^3$ to $\sim\tfrac{4}{3}m^3$ flops, and each subsequent QR step on a tridiagonal matrix costs only $O(m)$~\cite[Lecture 26]{TB}, \cite[Section 4.4.7]{Demmel}.
 
-\paragraph{Stability.} Like Householder QR, \Cref{alg:hessenberg} is backward stable: the computed $\tilde{H}$ and the exactly unitary $\tilde{Q}$ defined by the computed reflection vectors satisfy $\tilde{Q}\tilde{H}\tilde{Q}^\ast = A + \delta A$ with $\norm{\delta A}/\norm{A} = O(\eps)$~\cite[Theorem 26.1]{TB}. So the eigenvalues of $\tilde{H}$ are the exact eigenvalues of a nearby matrix.
+\subsection{Stability}
 
-\paragraph{The ``bad idea'' revisited.} Applying a full Householder reflector from both sides, as in the first step of Householder QR, destroys the zeros it creates. It does, however, typically make the entries below the diagonal smaller; this is exactly what one step of the QR iteration does, which is the sense in which the QR algorithm ``triangularizes in the limit''~\cite[Lecture 26]{TB}.
+Like Householder QR, \Cref{alg:hessenberg} is backward stable: the computed $\tilde{H}$ and the exactly unitary $\tilde{Q}$ defined by the computed reflection vectors satisfy $\tilde{Q}\tilde{H}\tilde{Q}^\ast = A + \delta A$ with $\norm{\delta A}/\norm{A} = O(\eps)$~\cite[Theorem 26.1]{TB}. So the eigenvalues of $\tilde{H}$ are the exact eigenvalues of a nearby matrix.
 
-\paragraph{In practice.} LAPACK computes the Hessenberg reduction with blocked Householder updates (\texttt{xGEHRD}) and the QR iteration with multishift bulge chasing and aggressive early deflation (\texttt{xHSEQR}). In Julia, \texttt{hessenberg(A)} returns the reduction, and \texttt{eigvals(A)} runs the whole pipeline.
+\subsection{The ``Bad Idea'' Revisited}
+
+Applying a full Householder reflector from both sides, as in the first step of Householder QR, destroys the zeros it creates. It does, however, typically make the entries below the diagonal smaller; this is exactly what one step of the QR iteration does, which is the sense in which the QR algorithm ``triangularizes in the limit''~\cite[Lecture 26]{TB}.
+
+\subsection{In Practice}
+
+LAPACK computes the Hessenberg reduction with blocked Householder updates (\texttt{xGEHRD}) and the QR iteration with multishift bulge chasing and aggressive early deflation (\texttt{xHSEQR}). In Julia, \texttt{hessenberg(A)} returns the reduction, and \texttt{eigvals(A)} runs the whole pipeline.

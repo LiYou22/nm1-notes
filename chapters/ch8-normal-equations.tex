@@ -16,9 +16,7 @@ Last lecture we finished the computation of the QR factorization.
   \item \emph{Full and reduced QR}, and the \emph{existence and uniqueness} of QR.
 \end{itemize}
 
-\subsection{Solving Overdetermined Least Squares}
-
-We now return to the problem that motivated QR in the first place: given $A \in \K^{m \times n}$ with $m > n$ and $\vec{b} \in \K^m$, find $\vec{x}$ minimizing
+\paragraph{Solving overdetermined least squares.} We now return to the problem that motivated QR in the first place: given $A \in \K^{m \times n}$ with $m > n$ and $\vec{b} \in \K^m$, find $\vec{x}$ minimizing
 \begin{equation}
   \norm{A\vec{x} - \vec{b}}^2.
 \end{equation}
@@ -219,30 +217,21 @@ The two halves of the proof also have different characters.
 \small When the residual $A\vec{x} - \vec{b}$ is orthogonal to $\range(A)$, \eqref{eq:ls-pythagoras} is the Pythagorean theorem: every other point $A\vec{y}$ of $\range(A)$ is at least as far from $\vec{b}$.
 \end{center}
 
-\subsection{Geometric Meaning}
-
-The vectors $A\vec{d}$ for $\vec{d} \in \K^n$ are exactly the elements of $\range(A)$. So the optimality condition says that the residual is orthogonal to every vector in the column space, $A\vec{x} - \vec{b} \perp \range(A)$. Geometrically: drop a perpendicular from $\vec{b}$ to $\range(A)$; its foot is $A\vec{x}$, the orthogonal projection of $\vec{b}$ onto $\range(A)$. This is the picture of \Cref{ch:ls}, now with a proof.
+\paragraph{Geometric meaning.} The vectors $A\vec{d}$ for $\vec{d} \in \K^n$ are exactly the elements of $\range(A)$. So the optimality condition says that the residual is orthogonal to every vector in the column space, $A\vec{x} - \vec{b} \perp \range(A)$. Geometrically: drop a perpendicular from $\vec{b}$ to $\range(A)$; its foot is $A\vec{x}$, the orthogonal projection of $\vec{b}$ onto $\range(A)$. This is the picture of \Cref{ch:ls}, now with a proof.
 
 \section{What the Optimality Condition Says}
 
 What do the optimality conditions mean in concrete cases? The key point is that (Q) tests the residual only against vectors of the form $A\vec{d}$. How much this tells us depends on how many vectors have that form.
 
-\subsection{Invertible Square Matrices: Solving a Linear System}
-
-Let $m = n$ and $A$ be invertible (full rank), and let $\vec{x}$ be a minimizer. By necessity, it satisfies the orthogonality condition. The condition holds for \emph{every} $\vec{d}$, so we may pick a special direction: $\vec{d} = A^{-1}(A\vec{x} - \vec{b})$, which has $A\vec{d} = A\vec{x} - \vec{b}$. Then
+\paragraph{Invertible square matrices: solving a linear system.} Let $m = n$ and $A$ be invertible (full rank), and let $\vec{x}$ be a minimizer. By necessity, it satisfies the orthogonality condition. The condition holds for \emph{every} $\vec{d}$, so we may pick a special direction: $\vec{d} = A^{-1}(A\vec{x} - \vec{b})$, which has $A\vec{d} = A\vec{x} - \vec{b}$. Then
 \begin{equation}
   0 = \ip{A\vec{d}}{A\vec{x} - \vec{b}} = \ip{A\vec{x} - \vec{b}}{A\vec{x} - \vec{b}} = \norm{A\vec{x} - \vec{b}}^2,
 \end{equation}
 so $A\vec{x} = \vec{b}$. In words: for invertible square matrices, least squares is just solving the linear system, and the minimal residual is zero.
 
-\subsection{Singular or Tall Matrices: Only Some Directions Are Tested}
+\paragraph{Singular or tall matrices: only some directions are tested.} If $A$ is singular or $m > n$, not every $\vec{y} \in \K^m$ can be written as $A\vec{d}$. Then $\range(A)$ is a proper subspace, and the optimality condition only checks some directions (some equations). The residual generally does not lie in $\range(A)$, so we cannot conclude $\vec{r} = \zerovec$, only $\vec{r} \perp \range(A)$.
 
-If $A$ is singular or $m > n$, not every $\vec{y} \in \K^m$ can be written as $A\vec{d}$. Then $\range(A)$ is a proper subspace, and the optimality condition only checks some directions (some equations). The residual generally does not lie in $\range(A)$, so we cannot conclude $\vec{r} = \zerovec$, only $\vec{r} \perp \range(A)$.
-
-\subsection{Verifying the QR Solution}
-\label{sec:verify-qr}
-
-We can now make the intuitive QR argument rigorous. Let $A = \hat{Q}\hat{R}$ be a reduced QR factorization with $\hat{Q}^\ast\hat{Q} = I$ and $\hat{R}$ upper triangular and invertible ($A$ of full column rank). Take $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$. We check (Q), moving $\hat{Q}$ to the right with \Cref{lem:adjoint}:
+\paragraph{Verifying the QR solution.}\label{sec:verify-qr} We can now make the intuitive QR argument rigorous. Let $A = \hat{Q}\hat{R}$ be a reduced QR factorization with $\hat{Q}^\ast\hat{Q} = I$ and $\hat{R}$ upper triangular and invertible ($A$ of full column rank). Take $\vec{x} = \hat{R}^{-1}\hat{Q}^\ast\vec{b}$. We check (Q), moving $\hat{Q}$ to the right with \Cref{lem:adjoint}:
 \begin{equation}
   \begin{aligned}
     \ip{A\vec{d}}{A\vec{x} - \vec{b}} &= \ip{\hat{Q}\hat{R}\vec{d}}{\hat{Q}\hat{R}\hat{R}^{-1}\hat{Q}^\ast\vec{b} - \vec{b}} \\
@@ -289,8 +278,7 @@ The normal equations have clear advantages and one serious drawback.
 
 Solving the normal equations means solving a system whose matrix has the form $B^\ast B$. (We switch to the letter $B$ so that $A$ is free for the coefficient matrix.) So it pays to study the structure of such matrices. We begin with the larger class they belong to.
 
-\subsection{Hermitian and Anti-Hermitian Matrices}
-
+\paragraph{Hermitian and anti-Hermitian matrices.}
 \begin{definition}[Hermitian and Anti-Hermitian Matrices]
   A matrix $A \in \K^{m \times m}$ is \emph{Hermitian} if $A^\ast = A$ and \emph{anti-Hermitian} (or skew-Hermitian) if $A^\ast = -A$. For $\K = \R$, these are called \emph{symmetric} and \emph{antisymmetric} (or skew-symmetric).
 \end{definition}
@@ -336,9 +324,7 @@ These matrices behave a lot like complex numbers.
 
 Geometrically, $S$ stretches space along the orthogonal directions given by the columns of $V$, and $U$ then rotates (or reflects) the result. The factor $S$ is always determined by $A$: since $A^\ast A = SU^\ast US = S^2$, $S$ is the positive semidefinite square root of $A^\ast A$. If $A$ is invertible, so is $S$, and $U = AS^{-1}$ is determined as well.
 
-\subsection{Gram Matrices}
-
-A matrix of the form $B^\ast B$ is called a \emph{Gram matrix} (or inner product matrix), because its entries are the inner products of the columns $B_{:,1}, \dots, B_{:,n}$ of $B$ with each other. Using $B\vec{e}_j = B_{:,j}$,
+\paragraph{Gram matrices.} A matrix of the form $B^\ast B$ is called a \emph{Gram matrix} (or inner product matrix), because its entries are the inner products of the columns $B_{:,1}, \dots, B_{:,n}$ of $B$ with each other. Using $B\vec{e}_j = B_{:,j}$,
 \begin{equation}
   (B^\ast B)_{ij} = \vec{e}_i^\ast B^\ast B\vec{e}_j = \ip{B\vec{e}_i}{B\vec{e}_j} = \ip{B_{:,i}}{B_{:,j}}.
 \end{equation}
@@ -402,9 +388,7 @@ The matrix $B = U\sqrt{\Lambda}\,U^\ast$ is the \emph{matrix square root} $A^{1/
   By item 1, $B^\ast B$ is positive semidefinite, so $\vec{x}^\ast B^\ast B\vec{x} \ge 0$ always holds. Hence $B^\ast B$ fails to be positive definite exactly when $\vec{x}^\ast B^\ast B\vec{x} = 0$ for some $\vec{x} \ne \zerovec$. So $B$ is column rank deficient if and only if $B^\ast B$ is not positive definite; negating both sides gives item 2.
 \end{proof}
 
-\subsection{Consequences for Least Squares}
-
-Putting \Cref{thm:normal,thm:gram} together,
+\paragraph{Consequences for least squares.} Putting \Cref{thm:normal,thm:gram} together,
 \begin{equation}
   \begin{aligned}
     A \text{ has full column rank} &\iff A^\ast A \text{ is positive definite} \\
@@ -414,8 +398,9 @@ Putting \Cref{thm:normal,thm:gram} together,
 consistent with the uniqueness statement of \Cref{thm:ls-optimality}. A positive definite system can be solved with the Cholesky factorization $A^\ast A = R^\ast R$, which costs about $\frac{1}{3}n^3$ flops, half of LU, and needs no pivoting.
 
 \section{(SUPPLEMENT) Further Topics}
+\subsection{Relation to the Projection Argument}
 
-\paragraph{Relation to the projection argument.} Introductory linear algebra texts (for example Lay's) derive the normal equations differently. Let $\hat{\vec{b}}$ be the orthogonal projection of $\vec{b}$ onto $\range(A)$. By the properties of the projection, $\vec{b} - A\hat{\vec{x}} \perp \range(A)$, that is, $\vec{b} - A\hat{\vec{x}} \in \nullsp(A^\ast)$, which rearranges to the normal equations. Here $\hat{\vec{b}} \in \K^m$ is the projected point, while $\hat{\vec{x}} \in \K^n$ holds the coefficients that combine the columns of $A$ into it, $\hat{\vec{b}} = A\hat{\vec{x}}$. The point $\hat{\vec{b}}$ is always unique; $\hat{\vec{x}}$ is unique if and only if $A$ has full column rank.
+Introductory linear algebra texts (for example Lay's) derive the normal equations differently. Let $\hat{\vec{b}}$ be the orthogonal projection of $\vec{b}$ onto $\range(A)$. By the properties of the projection, $\vec{b} - A\hat{\vec{x}} \perp \range(A)$, that is, $\vec{b} - A\hat{\vec{x}} \in \nullsp(A^\ast)$, which rearranges to the normal equations. Here $\hat{\vec{b}} \in \K^m$ is the projected point, while $\hat{\vec{x}} \in \K^n$ holds the coefficients that combine the columns of $A$ into it, $\hat{\vec{b}} = A\hat{\vec{x}}$. The point $\hat{\vec{b}}$ is always unique; $\hat{\vec{x}}$ is unique if and only if $A$ has full column rank.
 
 This derivation is shorter, but it relies on the \emph{best approximation theorem}: if $W$ is a subspace and $\hat{\vec{b}}$ is the orthogonal projection of $\vec{b}$ onto $W$, then $\norm{\vec{b} - \hat{\vec{b}}} < \norm{\vec{b} - \vec{w}}$ for all $\vec{w} \in W$ with $\vec{w} \ne \hat{\vec{b}}$. Its proof takes two steps.
 \begin{enumerate}
@@ -427,14 +412,18 @@ This derivation is shorter, but it relies on the \emph{best approximation theore
 \end{enumerate}
 So the best approximation theorem is ``orthogonal $\Rightarrow$ closest'', our sufficiency, while our perturbation argument is ``closest $\Rightarrow$ orthogonal'', our necessity. Our proof is self-contained: it needs no basis, no Gram--Schmidt, and no existence result for projections.
 
-\paragraph{Why the perturbation argument.} Its structure, ``at a minimizer, the first-order change in every direction is nonnegative'', generalizes to settings that the projection argument does not reach:
+\subsection{Why the Perturbation Argument}
+
+Its structure, ``at a minimizer, the first-order change in every direction is nonnegative'', generalizes to settings that the projection argument does not reach:
 \begin{itemize}
   \item first-order conditions for general differentiable functions (the gradient vanishes);
   \item constrained problems, where $\vec{d}$ can no longer be replaced by $-\vec{d}$, so the conclusion stays an inequality; this leads to variational inequalities and the KKT conditions;
   \item infinite-dimensional problems, such as the Galerkin orthogonality of finite elements, ``$\ip{v}{\text{residual}} = 0$ for every test function $v$'', which has the same structure as ``for all $\vec{d}$'' here.
 \end{itemize}
 
-\paragraph{A numerical warning about the normal equations.} The normal equations are elegant, but by \Cref{thm:twonorm} the singular values of $A^\ast A$ are the squares of those of $A$, so
+\subsection{A Numerical Warning About the Normal Equations}
+
+The normal equations are elegant, but by \Cref{thm:twonorm} the singular values of $A^\ast A$ are the squares of those of $A$, so
 \begin{equation}
   \kappa_2(A^\ast A) = \kappa_2(A)^2.
 \end{equation}

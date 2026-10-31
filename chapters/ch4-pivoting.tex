@@ -190,9 +190,6 @@ Some remarks:
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:pivot-further}
-% keep the supplement's subsections out of the table of contents
-\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
-
 \subsection{Storing $P$ and the Cost of Pivoting}
 
 In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (LAPACK's \texttt{ipiv}), so each swap exchanges two integers. The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops. In column-major storage, however, a row swap is a strided access, and its cost is not negligible.
@@ -249,5 +246,3 @@ with a row permutation $P$ and a column permutation $Q$. Swapping columns reorde
 On the worst-case matrix, complete pivoting removes the growth entirely. On random matrices both are small, which is why the extra cost of complete pivoting is rarely worth it.
 
 \paragraph{A compromise: rook pivoting.} Search alternately along a column and a row until the entry is the largest in both. This is cheap and controls growth much better~\cite[Chapter 9]{Higham}.
-
-\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

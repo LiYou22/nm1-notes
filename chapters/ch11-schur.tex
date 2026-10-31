@@ -538,16 +538,21 @@ so $\vec{x}$ is an eigenvector of $T$ if and only if $Q\vec{x}$ is an eigenvecto
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:schur-supp}
+\subsection{Deflation for Non-Hermitian Matrices}
 
-\paragraph{Deflation for non-Hermitian matrices.} Hotelling deflation (\Cref{prop:hotelling}) uses orthogonal eigenvectors. For general $A$ with $A\vec{x}_1 = \lambda_1\vec{x}_1$, let $\vec{w} \in \K^m$ be arbitrary. Then the eigenvalues of $A - \vec{x}_1\vec{w}^\ast$ are $\lambda_1 - \vec{w}^\ast\vec{x}_1, \lambda_2, \dots, \lambda_m$, counted with multiplicity (Brauer's theorem). The proof is one step of the Schur proof: with $\hat{\vec{x}}_1 = \vec{x}_1/\norm{\vec{x}_1}$ and a unitary $U = [\hat{\vec{x}}_1\ \tilde{U}]$,
+Hotelling deflation (\Cref{prop:hotelling}) uses orthogonal eigenvectors. For general $A$ with $A\vec{x}_1 = \lambda_1\vec{x}_1$, let $\vec{w} \in \K^m$ be arbitrary. Then the eigenvalues of $A - \vec{x}_1\vec{w}^\ast$ are $\lambda_1 - \vec{w}^\ast\vec{x}_1, \lambda_2, \dots, \lambda_m$, counted with multiplicity (Brauer's theorem). The proof is one step of the Schur proof: with $\hat{\vec{x}}_1 = \vec{x}_1/\norm{\vec{x}_1}$ and a unitary $U = [\hat{\vec{x}}_1\ \tilde{U}]$,
 \begin{equation}
   U^\ast(A - \vec{x}_1\vec{w}^\ast)U = \begin{bmatrix} \lambda_1 & \ast \\ \zerovec & A_2 \end{bmatrix} - \begin{bmatrix} \norm{\vec{x}_1} \\ \zerovec \end{bmatrix}\vec{w}^\ast U = \begin{bmatrix} \lambda_1 - \vec{w}^\ast\vec{x}_1 & \ast \\ \zerovec & A_2 \end{bmatrix},
 \end{equation}
 since $U^\ast\vec{x}_1 = \norm{\vec{x}_1}\vec{e}_1$ and the $(1,1)$ entry of the correction is $\norm{\vec{x}_1}\vec{w}^\ast\hat{\vec{x}}_1 = \vec{w}^\ast\vec{x}_1$. Choosing $\vec{w} = \lambda_1\vec{v}$ with $\vec{v}^\ast\vec{x}_1 = 1$ moves $\lambda_1$ to $0$ and keeps the rest of the spectrum (Wielandt deflation); $\vec{v} = \vec{x}_1/\norm{\vec{x}_1}^2$ recovers Hotelling's formula. Unlike the Hermitian case, the eigenvectors change: if $B\vec{w}_i = \lambda_i\vec{w}_i$ for $B = A - \lambda_1\vec{x}_1\vec{v}^\ast$ and $\lambda_i \ne \lambda_1$, a direct computation shows that $\vec{x}_i = \vec{w}_i + c\,\vec{x}_1$ with $c = \lambda_1\vec{v}^\ast\vec{w}_i/(\lambda_i - \lambda_1)$ is an eigenvector of $A$.
 
-\paragraph{How ill-conditioned eigenvalues near a Jordan block are.} In \Cref{ex:jordan-unstable} the eigenvalues moved by only $O(\eps)$ while the Jordan structure and $S$ broke down. A different perturbation moves the eigenvalues themselves much more. Put $\eps$ in the bottom left corner of an $n \times n$ Jordan block with eigenvalue $0$. The result is the companion matrix (\Cref{lem:companion}) of $z^n - \eps$, whose eigenvalues are the $n$ complex $n$-th roots of $\eps$, all of modulus $\eps^{1/n}$~\cite[Example~4.4]{Demmel}. For $n = 10$ and $\eps = 10^{-10}$, a perturbation of size $10^{-10}$ moves the eigenvalues by $0.1$. A multiple eigenvalue in a nontrivial Jordan block has infinite condition number.
+\subsection{How Ill-Conditioned Eigenvalues Near a Jordan Block Are}
 
-\paragraph{The Bauer--Fike theorem.} The role of $\kappa(X)$ can be made quantitative. Let $A = X\Lambda X^{-1}$ be diagonalizable and let $\mu$ be an eigenvalue of $A + E$. Then
+In \Cref{ex:jordan-unstable} the eigenvalues moved by only $O(\eps)$ while the Jordan structure and $S$ broke down. A different perturbation moves the eigenvalues themselves much more. Put $\eps$ in the bottom left corner of an $n \times n$ Jordan block with eigenvalue $0$. The result is the companion matrix (\Cref{lem:companion}) of $z^n - \eps$, whose eigenvalues are the $n$ complex $n$-th roots of $\eps$, all of modulus $\eps^{1/n}$~\cite[Example~4.4]{Demmel}. For $n = 10$ and $\eps = 10^{-10}$, a perturbation of size $10^{-10}$ moves the eigenvalues by $0.1$. A multiple eigenvalue in a nontrivial Jordan block has infinite condition number.
+
+\subsection{The Bauer--Fike Theorem}
+
+The role of $\kappa(X)$ can be made quantitative. Let $A = X\Lambda X^{-1}$ be diagonalizable and let $\mu$ be an eigenvalue of $A + E$. Then
 \begin{equation}
   \min_i\abs{\mu - \lambda_i} \le \kappa_2(X)\norm{E}_2.
 \end{equation}
@@ -557,4 +562,6 @@ To see this, assume $\mu$ is not an eigenvalue of $A$. Since $A + E - \mu I$ is 
 \end{equation}
 For normal matrices, $X$ can be unitary, $\kappa_2(X) = 1$, and the eigenvalues move by at most $\norm{E}_2$. This is the eigenvalue analogue of the remark after \Cref{thm:spectral}. When $A$ approaches a defective matrix, $\kappa_2(X) \to \infty$ and the bound becomes useless, consistent with the $\eps^{1/n}$ behavior above. See~\cite[\S4.3]{Demmel}.
 
-\paragraph{From the Schur form to the QR algorithm.} The Schur factorization is what practical eigenvalue solvers compute. Subspace iteration with $n = m$ vectors and a QR factorization after each multiplication by $A$ produces, under suitable conditions, a $Q^{(k)}$ whose leading columns converge to the nested invariant subspaces of \Cref{sec:schur-fact}, so that $(Q^{(k)})^\ast AQ^{(k)}$ converges to an upper triangular $T$. Rewritten in terms of $(Q^{(k)})^\ast AQ^{(k)}$ alone, this becomes the QR algorithm. Combined with an initial reduction to Hessenberg form and with shifts (the Rayleigh quotient idea of \Cref{ch:eigen}), it computes the Schur form in $O(m^3)$ flops, and the real version produces the real Schur form in real arithmetic. See~\cite[Lectures~25 and 28]{TB}.
+\subsection{From the Schur Form to the QR Algorithm}
+
+The Schur factorization is what practical eigenvalue solvers compute. Subspace iteration with $n = m$ vectors and a QR factorization after each multiplication by $A$ produces, under suitable conditions, a $Q^{(k)}$ whose leading columns converge to the nested invariant subspaces of \Cref{sec:schur-fact}, so that $(Q^{(k)})^\ast AQ^{(k)}$ converges to an upper triangular $T$. Rewritten in terms of $(Q^{(k)})^\ast AQ^{(k)}$ alone, this becomes the QR algorithm. Combined with an initial reduction to Hessenberg form and with shifts (the Rayleigh quotient idea of \Cref{ch:eigen}), it computes the Schur form in $O(m^3)$ flops, and the real version produces the real Schur form in real arithmetic. See~\cite[Lectures~25 and 28]{TB}.
