@@ -9,7 +9,7 @@ Supplementary reading:
 
 \section{Recap: From Orthogonal Iteration to the QR Algorithm}
 
-The lecture opens with a recap of \Cref{ch:qr-alg}. If $A = X\Lambda X^{-1}$ and $X = QR$, then $A = Q(R\Lambda R^{-1})Q^\ast$ with $R\Lambda R^{-1}$ upper triangular, so the Schur vectors span the same nested subspaces as the eigenvectors (\Cref{sec:schur-eig}). Orthogonal iteration finds these subspaces without knowing $X$: since $\spn(Q_k) = \spn(A^kQ_0)$, the span of the first $p$ columns converges to $\spn(\vec{x}_1, \dots, \vec{x}_p)$ at the rate $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}). Splitting $Q_k = [\bar{Q}_k\ \tilde{Q}_k]$ after every column $p$ shows that $\tilde{Q}_k^\ast A\bar{Q}_k \to 0$, so $T_k \defeq Q_k^\ast AQ_k$ converges to the triangular factor of a Schur factorization (\Cref{thm:orth-iter-schur}). Finally, with $U_{k+1} \defeq Q_k^\ast Q_{k+1}$ the iteration can be written in terms of $T_k$ alone,
+We begin with a recap of \Cref{ch:qr-alg}. If $A = X\Lambda X^{-1}$ and $X = QR$, then $A = Q(R\Lambda R^{-1})Q^\ast$ with $R\Lambda R^{-1}$ upper triangular, so the Schur vectors span the same nested subspaces as the eigenvectors (\Cref{sec:schur-eig}). Orthogonal iteration finds these subspaces without knowing $X$: since $\spn(Q_k) = \spn(A^kQ_0)$, the span of the first $p$ columns converges to $\spn(\vec{x}_1, \dots, \vec{x}_p)$ at the rate $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}). Splitting $Q_k = [\bar{Q}_k\ \tilde{Q}_k]$ after every column $p$ shows that $\tilde{Q}_k^\ast A\bar{Q}_k \to 0$, so $T_k \defeq Q_k^\ast AQ_k$ converges to the triangular factor of a Schur factorization (\Cref{thm:orth-iter-schur}). Finally, with $U_{k+1} \defeq Q_k^\ast Q_{k+1}$ the iteration can be written in terms of $T_k$ alone,
 \begin{equation}
   T_k = U_{k+1}R_{k+1} \quad\longrightarrow\quad T_{k+1} = R_{k+1}U_{k+1},
 \end{equation}
@@ -172,7 +172,7 @@ Each step changes only two rows and two columns, so one QR step still costs $O(m
 \section{The Implicit Q Theorem}
 \label{sec:implicit-q}
 
-The lecture closes with the statement of the theorem that justifies bulge chasing. Its proof is given in \Cref{sec:implicit-q-proof}.
+We close with the statement of the theorem that justifies bulge chasing. Its proof is given in \Cref{sec:implicit-q-proof}.
 
 \begin{definition}[Unreduced Hessenberg Matrix]
   An upper Hessenberg matrix $H$ is \emph{unreduced} if all its subdiagonal entries are nonzero, $h_{j+1,j} \ne 0$ for $j = 1, \dots, m - 1$. Equivalently, $H$ is not block upper triangular.

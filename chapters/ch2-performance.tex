@@ -9,26 +9,56 @@ Supplementary reading:
 
 \section{Flops Are Not the Whole Story}
 
-\Cref{ch:fp} was about accuracy: floating-point numbers have finite resolution, the condition number bounds the accuracy any algorithm can reach (a property of the problem), and stability measures whether an algorithm makes things worse (a property of the algorithm). Both concern whether we compute the \emph{right} answer.
+In \Cref{ch:fp} we asked whether we compute the \emph{right} answer. Now we ask how \emph{fast} we compute it. The surprise is that speed has little to do with the number of arithmetic operations.
 
-Writing real numerical code runs into a second wall: how \emph{fast} we compute it. This wall has surprisingly little to do with the number of floating-point operations (flops). The lecture illustrates this with a Julia experiment timing $C \mathrel{+}= AB$ with $A \in \R^{\ell \times m}$, $B \in \R^{m \times n}$, for $\ell = 2 \cdot 10^4$, $m = 3 \cdot 10^4$ and varying $n$:
+\paragraph{Algorithms and computational cost.} Consider the algorithm for matrix multiplication
+\begin{equation}
+  A \mathrel{+}= BC, \qquad A \in \R^{\ell \times n},\ B \in \R^{\ell \times m},\ C \in \R^{m \times n}:
+\end{equation}
+\begin{lstlisting}
+function matmuladd!(A, B, C)          # A += B*C
+    for i = 1:l
+        for j = 1:m
+            for k = 1:n
+                A[i,k] += B[i,j] * C[j,k]
+            end
+        end
+    end
+end
+\end{lstlisting}
+The innermost line runs $\ell \times m \times n$ times, so the computational cost is $\ell \times m \times n$. We set $\ell = 2 \cdot 10^4$, $m = 3 \cdot 10^4$ and time it with \texttt{@btime}:
 \begin{center}
-\begin{tabular}{cccc}
+\begin{tabular}{ccc}
   \toprule
-  Size & Flops & Measured time & Throughput \\
+  $n$ & Cost $\ell mn$ & Time \\
   \midrule
-  $n = 1$ & $6 \cdot 10^8$ & $6 \cdot 10^{-2}$ s & $\approx 10^{10}$ flop/s \\
-  $n = 10^3$ & $6 \cdot 10^{11}$ & $4$ s & $\approx 1.5 \cdot 10^{11}$ flop/s \\
+  $1$ & $6 \cdot 10^8$ & $6 \cdot 10^{-2}$ s \\
+  $10^3$ & $6 \cdot 10^{11}$ & $4$ s \\
   \bottomrule
 \end{tabular}
 \end{center}
-The flop count grows by a factor of $1000$, but the time grows only by a factor of about $70$: the cost per flop drops by more than an order of magnitude. When instead $\ell = m = n$ grows from $10^3$ ($7 \cdot 10^{-3}$ s) to $10^4$ ($6$ s), the throughput stays essentially constant, because the code already runs near the machine's peak.
+The cost grows by a factor of $1000$, so we would expect $1000 \times 0.06\text{ s} = 60$ s. It takes only $4$ s: \emph{more than $10$ times faster than expected}.
 
-The explanation is that an algorithm performs four kinds of operations whose costs are not remotely comparable:
+\paragraph{Flops and memory access.} Does Julia use fewer operations? No: for $\ell = m = n$, the time grows roughly like the cost,
+\begin{center}
+\begin{tabular}{ccc}
+  \toprule
+  $\ell = m = n$ & Cost $\ell mn$ & Time \\
+  \midrule
+  $10^3$ & $10^9$ & $7 \cdot 10^{-3}$ s \\
+  $10^4$ & $10^{12}$ & $6$ s \\
+  \bottomrule
+\end{tabular}
+\end{center}
+that is, about $1000$ times the cost in about $1000$ times the time. The explanation is that four operations appear in the algorithm: additions, multiplications, and reading and writing entries of the arrays (both written $[\ ]$). Their costs are very different:
 \begin{equation}
   \operatorname{cost}(+) < \operatorname{cost}(\ast) \ll \operatorname{cost}([\ ]).
 \end{equation}
-In other words, \emph{fetching a number costs more than computing with it}. The case $n = 1$ is slow not because its multiply--adds are more expensive, but because its inner loop has length $1$: every number that is fetched is used once and discarded, so the code degenerates into pure data movement.
+\emph{Memory access is much slower than flops on modern hardware.}
+\begin{itemize}
+  \item For $n = 1$, every entry of $B$ is read and then used only once, so almost all of the time goes into memory access.
+  \item For $n = 10^3$, every entry of $B$ is used $10^3$ times, so the cost of reading it is shared by many operations.
+\end{itemize}
 
 \section{Memory Is One-Dimensional}
 
@@ -42,17 +72,17 @@ Since the storage is just a contiguous block, the same memory can be \emph{reint
 
 \section{The Memory Hierarchy}
 
-Main memory is much slower than arithmetic, and hardware responds with caches: small, fast layers of memory close to the processor. A useful picture is a small warehouse next door (the cache) and a huge warehouse far away that must be reached by truck (RAM). Two different bottlenecks arise:
+Main memory is much slower than arithmetic, so hardware adds \emph{caches}: small, fast memory close to the processor. Two bottlenecks remain:
 \begin{itemize}
-  \item \emph{Latency}: how many cycles a single access waits. An L1 hit costs a few cycles; main memory costs two or three hundred.
-  \item \emph{Bandwidth}: how many bytes can be moved per unit time.
+  \item \emph{Latency}: how long one access waits (a few cycles for L1, a few hundred for main memory).
+  \item \emph{Bandwidth}: how many bytes can be moved per second.
 \end{itemize}
-Latency is fought with \emph{prefetching}: the hardware guesses what will be needed next and fetches it early. The guesses are good only when the access pattern is regular, i.e., contiguous or with a fixed stride. The \emph{regularity} of memory access is therefore often more important than its \emph{volume}. GPUs have no prefetcher in the traditional sense; instead, the threads of a warp (SIMT) execute the same instruction on consecutive elements, and the hardware coalesces their accesses into a single transaction. On a CPU contiguous access is faster; on a GPU it is close to mandatory.
+Latency is hidden by \emph{prefetching}: the hardware fetches nearby memory, or memory in a strided pattern, before it is needed. This only works for regular access patterns, so the \emph{regularity} of memory access often matters more than its volume. GPUs have no prefetching. Instead, many threads carry out the same instruction at once; if they access contiguous elements, the hardware combines their accesses into a single one, and otherwise the access is much slower. So on a GPU, non-contiguous access is very slow.
 
-\subsection{Loop Order Determines the Access Pattern}
+\section{Loop Reordering}
 
 \begin{example}[Two Loop Orders for a Matrix--Vector Product]
-  The two loops below compute $\vec{u} = A\vec{v}$ with identical flop counts.
+  Both loops compute $\vec{u} = A\vec{v}$ with the same number of operations.
 \begin{lstlisting}
 # i outer: inner loop along a row of A       # j outer: inner loop down a column
 for i = 1:m                                    for j = 1:n
@@ -61,43 +91,59 @@ for i = 1:m                                    for j = 1:n
     end                                            end
 end                                            end
 \end{lstlisting}
-  In column-major storage, the left version walks along a row of $A$ in the inner loop, jumping $m$ entries at each step and landing on a new cache line every time. The right version walks down a column of $A$ contiguously, and \texttt{u[i]} is contiguous as well; only \texttt{v[j]} changes in the outer loop. In the lecture's words, $j$-inside-$i$ has at least two random accesses, whereas $i$-inside-$j$ has only one.
+  In column-major storage, the left loop walks along a row of $A$ (steps of $m$) and has at least two random accesses per step; the right loop walks down a column (contiguous) and has only one.
 \end{example}
 
-The two versions are two different decompositions into vector operations. With $j$ inside, each row contributes an inner product (\texttt{dot}); with $i$ inside, the columns of $A$ are accumulated with weights $v_j$ (\texttt{axpy}). Column-major languages should use the \texttt{axpy} form and row-major languages the \texttt{dot} form. The lecture adds an important qualification: this matters most for \emph{small} matrices. For large matrices both versions are limited by bandwidth and the gap narrows; at small sizes such constant factors dominate.
+The left loop computes inner products of the rows of $A$ with $\vec{v}$ (\texttt{dot}); the right loop adds up the columns of $A$ times $v_j$ (\texttt{axpy}). Julia stores matrices by columns, so the right loop is faster. This matters most for \emph{small} matrices; for large ones, both loops spend most of their time waiting for main memory.
 
 \section{Tiling}
+\label{sec:tiling}
 
-Matrix multiplication requires $\sim m^3$ flops but has only $m^2$ data. If $\approx m^2$ floating-point numbers fit into the cache, the $m^3$ flops can be performed after moving each number into the cache once. For larger matrices, we \emph{tile}: split $A$, $B$, $C$ into $b \times b$ blocks, $N = n/b$ blocks per side, and perform the multiplication block by block, choosing $b$ so that the blocks being worked on fit into the cache.
+Even without cache misses, the limited bandwidth slows us down. The key observation: multiplying two $m \times m$ matrices takes about $m^3$ operations but involves only about $m^2$ numbers, so each number is used about $m$ times.
+\begin{itemize}
+  \item If all $m^2$ numbers fit into the cache, we load each of them from main memory only once, and then do all $m^3$ operations in the fast cache.
+  \item If the matrices are too large, we \emph{tile}: split $A$, $B$, $C$ into $b \times b$ blocks, $N = m/b$ along each side, and multiply block by block. (For simplicity, assume $b$ divides $m$; otherwise the blocks at the edges are smaller.) We choose $b$ so that the three blocks we are working on fit into the cache; \Cref{sec:intensity} quantifies the gain.
+\end{itemize}
 
-\begin{algorithm}[H]
-  \caption{Tiled matrix multiplication $C \gets C + AB$.}
-  \label{alg:tiled-matmul}
-  \begin{algorithmic}[1]
-    \For{$i = 1, \dots, N$}
-      \For{$j = 1, \dots, N$}
-        \State read block $C_{ij}$ into fast memory
-        \For{$k = 1, \dots, N$}
-          \State read blocks $A_{ik}$ and $B_{kj}$ into fast memory
-          \State $C_{ij} \gets C_{ij} + A_{ik}B_{kj}$ \Comment{block product, entirely in fast memory}
-        \EndFor
-        \State write block $C_{ij}$ back to slow memory
-      \EndFor
-    \EndFor
-  \end{algorithmic}
-\end{algorithm}
+Written out entry by entry, the tiled algorithm has \emph{six} nested loops: the outer three choose the blocks ($I, J, K$ count blocks, not entries), and the inner three multiply them.
+\begin{lstlisting}
+for I = 1:N, J = 1:N, K = 1:N              # which blocks: C_IJ += A_IK * B_KJ
+    for i = (I-1)*b+1 : I*b                # multiply the two b x b blocks
+        for j = (J-1)*b+1 : J*b
+            for k = (K-1)*b+1 : K*b
+                C[i,j] += A[i,k] * B[k,j]
+            end
+        end
+    end
+end
+\end{lstlisting}
+We do the same $m^3$ operations as before, just in a different order. The inner three loops only use three blocks, $3b^2$ numbers in total. These numbers stay in the cache, and each one is used about $b$ times before we move on to the next blocks.
 
-\Cref{sec:intensity} quantifies how much this helps.
-
+\clearpage
 \section{Linear Systems}
 
-Given $A \in \K^{m \times n}$ and $\vec{b} \in \range(A) \subseteq \K^m$, we seek $\vec{x} \in \K^n$ with $A\vec{x} = \vec{b}$. This \emph{can} be done by computing $A^{-1}$, but it need not and should not be: forming $A^{-1}$ costs $2n^3$ flops (versus $\tfrac{2}{3}n^3$ for the LU factorization below), still requires a matrix--vector product afterwards, and comes with a worse error bound.
-
-For square $A \in \K^{m \times m}$, the following are equivalent:
+\paragraph{Problem.} Given $A \in \K^{m \times n}$ and $\vec{b} \in \range(A) \subseteq \K^m$, find $\vec{x} \in \K^n$ with
 \begin{equation}
-  \nullsp(A) = \{\zerovec\} \iff \text{the columns of } A \text{ are linearly independent} \iff \range(A) = \K^m.
+  A\vec{x} = \vec{b}.
 \end{equation}
-The left condition says that $\vec{x} \mapsto A\vec{x}$ is injective (if $A\vec{x} = A\vec{y}$ then $A(\vec{x} - \vec{y}) = \zerovec$, so $\vec{x} = \vec{y}$), and the right condition says that it is surjective. We then call $A$ full rank, invertible, or nonsingular. The equivalence of injectivity and surjectivity holds only for square matrices; rectangular systems are treated in \Cref{ch:ls}.
+The condition $\vec{b} \in \range(A)$ just says that a solution exists.
+\begin{itemize}
+  \item Linear systems appear in virtually all of mathematics.
+  \item They \emph{can} be solved by computing $A^{-1}$, but they \emph{need not} be. Computing $A^{-1}$ is in fact the wrong way: it costs more ($2m^3$ flops for a square matrix, versus $\tfrac{2}{3}m^3$ for the LU factorization of \Cref{ch:lu}), and it usually gives a less accurate answer.
+\end{itemize}
+
+\paragraph{Square matrices.} We begin with $A \in \K^{m \times m}$. Then the following three conditions are equivalent:
+\begin{equation}
+  \underbrace{\nullsp(A) = \{\zerovec\}}_{\vec{x} \mapsto A\vec{x} \text{ injective}}
+  \iff \text{the columns of } A \text{ are linearly independent} \iff
+  \underbrace{\range(A) = \K^m}_{\vec{x} \mapsto A\vec{x} \text{ surjective}}
+\end{equation}
+In words:
+\begin{itemize}
+  \item \emph{Left}: only $\vec{x} = \zerovec$ is mapped to $\zerovec$. Then different inputs give different outputs: if $A\vec{x} = A\vec{y}$, then $A(\vec{x} - \vec{y}) = \zerovec$, so $\vec{x} = \vec{y}$. Hence a solution, if it exists, is unique.
+  \item \emph{Right}: every $\vec{b} \in \K^m$ is of the form $A\vec{x}$. Hence a solution always exists.
+\end{itemize}
+If these conditions hold, we say that \emph{$A$ has full rank}, \emph{is invertible}, or \emph{is nonsingular}; then $A\vec{x} = \vec{b}$ has exactly one solution for every $\vec{b}$. For rectangular matrices, injective and surjective are no longer the same; they are treated in \Cref{ch:ls}.
 
 \section{Triangular Systems}
 
@@ -125,7 +171,7 @@ Upper triangular systems are solved in reverse order by \emph{back substitution}
 \end{algorithm}
 
 \begin{algorithm}[H]
-  \caption{Forward substitution, column-oriented (\texttt{axpy} form), the lecture's efficient variant.}
+  \caption{Forward substitution, column-oriented (\texttt{axpy} form), the efficient variant.}
   \begin{algorithmic}[1]
     \State $\vec{x} \gets \vec{b}$
     \For{$j = 1, \dots, m$}
@@ -173,7 +219,7 @@ In column-major storage the row forms walk along rows (strided) and the column f
 
 \section{Gaussian Elimination}
 
-A general matrix is not triangular. Gaussian elimination \emph{transforms $A$ into upper triangular form by a sequence of simple operations}, reducing the general problem to a triangular one. A $2 \times 2$ example:
+A general matrix is not triangular. Gaussian elimination \emph{transforms $A$ into upper triangular form by a sequence of row operations}, reducing the general problem to a triangular one. A $2 \times 2$ example:
 \begin{equation}
   \begin{aligned} x_1 + 2x_2 &= 10 \\ 2x_1 + x_2 &= 8 \end{aligned}
   \quad \xrightarrow{\ \text{row 2} \,-\, 2 \times \text{row 1}\ } \quad
@@ -191,7 +237,7 @@ In matrix language, this elimination step is a \emph{left multiplication}:
 
 \begin{theorem}[Elementary Lower Triangular Matrices]
   \label{thm:elim}
-  Let $A \in \K^{m \times m}$ and suppose the first $k - 1$ columns of $A$ are already zero below the diagonal. Define the multipliers $\ell_{ik} \defeq A_{ik}/A_{kk}$ for $i = k + 1, \dots, m$, the vector
+  Let $A \in \K^{m \times m}$ and suppose the first $k - 1$ columns of $A$ are already zero below the diagonal, and $A_{kk} \ne 0$. Define the multipliers $\ell_{ik} \defeq A_{ik}/A_{kk}$ for $i = k + 1, \dots, m$, the vector
   \begin{equation}
     \vec{\ell}_k \defeq \begin{bmatrix} 0 & \cdots & 0 & \ell_{k+1,k} & \cdots & \ell_{mk} \end{bmatrix}^\T,
   \end{equation}
@@ -199,13 +245,14 @@ In matrix language, this elimination step is a \emph{left multiplication}:
   \begin{equation}
     L_k \defeq I - \vec{\ell}_k \vec{e}_k^{\,\ast} =
     \begin{bmatrix}
-      1 & & & & \\
-      & \ddots & & & \\
-      & & 1 & & \\
-      & & -\ell_{k+1,k} & \ddots & \\
-      & & \vdots & & \\
-      & & -\ell_{mk} & & 1
-    \end{bmatrix}.
+      1 & & & & & \\
+      & \ddots & & & & \\
+      & & 1 & & & \\
+      & & -\ell_{k+1,k} & 1 & & \\
+      & & \vdots & & \ddots & \\
+      & & -\ell_{mk} & & & 1
+    \end{bmatrix}
+    \begin{matrix} \\ \\ \leftarrow \text{row } k \\ \\ \\ \\ \end{matrix}
   \end{equation}
   Then $L_k A$ is zero below the diagonal in its first $k$ columns. Its first $k$ rows equal those of $A$, and only the trailing $(m - k) \times (m - k)$ block is updated.
 \end{theorem}
@@ -214,13 +261,18 @@ In matrix language, this elimination step is a \emph{left multiplication}:
   Left multiplication by $L_k$ performs, for each $i > k$, the row operation ``row $i$ minus $\ell_{ik}$ times row $k$''. The $(i, k)$ entry becomes $A_{ik} - \ell_{ik}A_{kk} = 0$. Row $k$ is zero in its first $k - 1$ columns, so the columns that have already been eliminated are not disturbed.
 \end{proof}
 
-Applying \Cref{thm:elim} for $k = 1, \dots, m - 1$ gives
+Applying \Cref{thm:elim} for $k = 1, \dots, m - 1$ (assuming that each $A_{kk}$ is nonzero when we reach it) to both sides of $A\vec{x} = \vec{b}$ gives
 \begin{equation}
-  \underbrace{L_{m-1} \cdots L_1 A}_{\text{upper triangular}} = L_{m-1} \cdots L_1 \vec{b}.
+  \underbrace{L_{m-1} \cdots L_1 A}_{\text{upper triangular}}\,\vec{x} = L_{m-1} \cdots L_1 \vec{b}.
 \end{equation}
-With $U \defeq L_{m-1} \cdots L_1 A$ and $L \defeq (L_{m-1} \cdots L_1)^{-1}$, we obtain $A = LU$ with $U$ upper triangular. The lecture stops here with two questions: \emph{is $L$ lower triangular, and can we compute it?} Both are answered in \Cref{ch:lu}.
+With $U \defeq L_{m-1} \cdots L_1 A$ and $L \defeq (L_{m-1} \cdots L_1)^{-1}$, we obtain $A = LU$ with $U$ upper triangular. We stop here with two questions: \emph{is $L$ lower triangular, and can we compute it?} Both are answered in \Cref{ch:lu}.
 
-\section{(SUPPLEMENT) Leading Dimension}
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:perf-further}
+% keep the supplement's subsections out of the table of contents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
+
+\subsection{Leading Dimension}
 
 In column-major order, the entry $A_{ij}$ lives at
 \begin{equation}
@@ -228,7 +280,7 @@ In column-major order, the entry $A_{ij}$ lives at
 \end{equation}
 where the \emph{leading dimension} $\mathrm{lda} \ge m$ is the distance between consecutive columns. Allowing $\mathrm{lda} \ne m$ lets us describe a \emph{submatrix} of a larger matrix by the quadruple (start address, $m$, $n$, $\mathrm{lda}$) without copying any data. This is what Julia's \texttt{view} and \texttt{@views} do, whereas \texttt{A[1:100, 1:100]} makes a copy.
 
-\section{(SUPPLEMENT) Computational Intensity}
+\subsection{Computational Intensity}
 \label{sec:intensity}
 
 The discussion of this lecture can be quantified~\cite[\S2.6]{Demmel}. Consider two levels of memory, a fast memory of size $M$ and a slow memory. Let one flop take time $t_f$ and one slow-memory access take time $t_m \gg t_f$.
@@ -253,19 +305,19 @@ Running near the peak rate $f t_f$ requires $q \gg t_m / t_f$, and on modern mac
   \bottomrule
 \end{tabular}
 \end{center}
-Only Level 3 has an intensity that grows with the problem size, which is the ``$m^3$ flops on $m^2$ data'' remark of the lecture. Triangular solves, in either loop order, are Level 2 with $q \approx 2$ and are fundamentally limited by bandwidth.
+Only Level 3 has an intensity that grows with the problem size, matching the observation that matrix multiplication performs $m^3$ flops on $m^2$ data. Triangular solves, in either loop order, are Level 2 with $q \approx 2$ and are fundamentally limited by bandwidth.
 
 For naive matrix multiplication $C \mathrel{+}= AB$ with three $n \times n$ matrices, the innermost loop scans a whole column of $B$ each time. Then $A$ is read once ($n^2$), $C$ is read and written once ($2n^2$), and $B$ is read $n$ times ($n^3$), so
 \begin{equation}
   q = \frac{2n^3}{n^3 + 3n^2} \approx 2,
 \end{equation}
-no better than Level 2. For the tiled version (\Cref{alg:tiled-matmul}) the slow-memory traffic is $m = 2n^2 + 2Nn^2$, so
+no better than Level 2. For the tiled version (\Cref{sec:tiling}) the slow-memory traffic is $m = 2n^2 + 2Nn^2$, so
 \begin{equation}
   q \approx \frac{2n^3}{2Nn^2} = \frac{n}{N} = b.
 \end{equation}
 The intensity equals the block size. Three blocks must reside in fast memory simultaneously, so $3b^2 \le M$, i.e., $b \le \sqrt{M/3}$, and hence $q \approx \sqrt{M/3}$. A lower bound of Hong and Kung shows that any matrix multiplication that only reorders the sums has $q = O(\sqrt{M})$, so tiling is asymptotically optimal. Real implementations tile at \emph{several} levels (registers, L1, L2, and across nodes), each with its own $b$.
 
-\section{(SUPPLEMENT) Blocked LU}
+\subsection{Blocked LU}
 \label{sec:blocked-lu}
 
 The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates, a Level 2 operation with $q \approx 2$, so naive Gaussian elimination is bandwidth-bound. The tiling idea fixes this~\cite[\S2.6.3]{Demmel}. Choose a block width $b$ and write
@@ -279,3 +331,5 @@ The in-place LU algorithm of \Cref{ch:lu} spends its time in rank-one updates, a
   \item Recurse on $\tilde{A}_{22}$.
 \end{enumerate}
 Only an $O(b/m)$ fraction of the $\tfrac{2}{3}m^3$ flops remains in bandwidth-bound Level 2 operations; the rest runs as matrix multiplication and enjoys $q \approx b$. This is where LAPACK's \texttt{getrf} gains its large speedup over the older LINPACK, and it is the first real instance of the rule ``rewrite everything as matrix multiplication''.
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

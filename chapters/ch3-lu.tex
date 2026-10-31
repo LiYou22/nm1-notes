@@ -9,7 +9,7 @@ Supplementary reading:
 
 \section{Recap: From Triangular Systems to Elimination}
 
-The lecture opens with a recap of \Cref{ch:performance}: matrices are stored column by column, memory access costs far more than arithmetic, and the loop order and tiling of an algorithm should match the storage. It then returns to linear systems. Triangular systems are solved by forward or back substitution in $O(m^2)$ flops, and Gaussian elimination reduces a general system to a triangular one: by \Cref{thm:elim}, applying elementary lower triangular matrices $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ for $k = 1, \dots, m - 1$ gives
+We begin with a recap of \Cref{ch:performance}: matrices are stored column by column, memory access costs far more than arithmetic, and the loop order and tiling of an algorithm should match the storage. It then returns to linear systems. Triangular systems are solved by forward or back substitution in $O(m^2)$ flops, and Gaussian elimination reduces a general system to a triangular one: by \Cref{thm:elim}, applying elementary lower triangular matrices $L_k = I - \vec{\ell}_k\vec{e}_k^{\,\ast}$ for $k = 1, \dots, m - 1$ gives
 \begin{equation}
   U \defeq L_{m-1} \cdots L_1 A \ \text{ upper triangular}, \qquad L \defeq (L_{m-1} \cdots L_1)^{-1}, \qquad A = LU.
 \end{equation}
@@ -156,7 +156,7 @@ The proof is given in \Cref{ch:pivoting}. The theorem says that the computed fac
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:lu-supp}
 
-\paragraph{Inverses of general lower triangular matrices.} The lecture proves item 4 of \Cref{prop:lower-closure} only for matrices of the form $(L_{m-1} \cdots L_1)^{-1}$. It holds for every invertible lower triangular $T$. Invertibility forces the diagonal entries to be nonzero; let $D = \diag(T)$, so that $D^{-1}T$ is unit lower triangular. By item 2 of \Cref{thm:elem-inverse}, every unit lower triangular matrix can be written as $L_1^{-1} \cdots L_{m-1}^{-1}$ (take its strictly lower entries as the multipliers), so its inverse $L_{m-1} \cdots L_1$ is lower triangular. Therefore $T^{-1} = (D^{-1}T)^{-1}D^{-1}$ is a product of lower triangular matrices and is lower triangular.
+\paragraph{Inverses of general lower triangular matrices.} Above, we proved item 4 of \Cref{prop:lower-closure} only for matrices of the form $(L_{m-1} \cdots L_1)^{-1}$. It holds for every invertible lower triangular $T$. Invertibility forces the diagonal entries to be nonzero; let $D = \diag(T)$, so that $D^{-1}T$ is unit lower triangular. By item 2 of \Cref{thm:elem-inverse}, every unit lower triangular matrix can be written as $L_1^{-1} \cdots L_{m-1}^{-1}$ (take its strictly lower entries as the multipliers), so its inverse $L_{m-1} \cdots L_1$ is lower triangular. Therefore $T^{-1} = (D^{-1}T)^{-1}D^{-1}$ is a product of lower triangular matrices and is lower triangular.
 
 \paragraph{A shorter proof of item 2 of \Cref{thm:elem-inverse}~\cite[Lecture 20]{TB}.} For $k < j$ we have $\vec{e}_k^{\,\ast}\vec{\ell}_j = 0$, so
 \begin{equation}

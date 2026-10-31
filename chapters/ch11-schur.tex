@@ -87,7 +87,7 @@ The alternative is to run power iteration on \emph{multiple vectors simultaneous
 
 Simply iterating $Z \mapsto AZ$ is not enough, though. Every column is then an independent power iteration, so every column converges to the same direction $\vec{x}_1$. The columns must be kept linearly independent, for example by orthonormalizing them with a QR factorization after each multiplication. The algorithm and its convergence come in a later lecture; the end of \Cref{ch:eigen} gave a preview.
 
-This lecture answers a prior question: \emph{when we iterate a whole set of vectors, what object does the iteration converge to?} The answer (\Cref{sec:schur-fact}) is an orthonormal basis of nested invariant subspaces, i.e., a Schur factorization. The rest of the lecture builds up to it.
+This lecture answers a prior question: \emph{when we iterate a whole set of vectors, what object does the iteration converge to?} The answer (\Cref{sec:schur-fact}) is an orthonormal basis of nested invariant subspaces, i.e., a Schur factorization. We build up to it in the rest of this chapter.
 
 \section{Eigenvalue Problems as Matrix Factorizations}
 \label{sec:eig-factorization}
@@ -223,7 +223,7 @@ For the matrix $J$ above, $p_J(z) = (z - \lambda)^2$, so the algebraic multiplic
 
 \subsection{Invariant Subspaces}
 
-A defective matrix does not have enough eigenvectors to fill $\K^m$. But intuitively, all vectors still show ``$\lambda$-growth'' under $J$. The idea of the lecture is to generalize the $\lambda$-eigenspace to an \emph{invariant subspace with $\lambda$-growth}: a subspace that $A$ maps into itself, but on which $A$ need not act as a multiple of the identity. For $J$, the whole plane $\spn(\vec{e}_1, \vec{e}_2)$ is mapped into itself, and on it $J$ acts as $\lambda I + N$ rather than as $\lambda I$.
+A defective matrix does not have enough eigenvectors to fill $\K^m$. But intuitively, all vectors still show ``$\lambda$-growth'' under $J$. Our idea is to generalize the $\lambda$-eigenspace to an \emph{invariant subspace with $\lambda$-growth}: a subspace that $A$ maps into itself, but on which $A$ need not act as a multiple of the identity. For $J$, the whole plane $\spn(\vec{e}_1, \vec{e}_2)$ is mapped into itself, and on it $J$ acts as $\lambda I + N$ rather than as $\lambda I$.
 
 \begin{definition}[Invariant Subspace]
   \label{def:invariant}
@@ -295,7 +295,7 @@ If we collect invariant subspaces on which $A$ acts like a single eigenvalue, we
   \item Splitting $S = [S_1\ \cdots\ S_k]$ conformally with $J$ gives $AS_\ell = S_\ell J_\ell$. So each block is an invariant subspace in the sense of \Cref{def:invariant}, with $B = J_\ell$.
 \end{itemize}
 
-\paragraph{Where the proof comes from.} The proof is pure linear algebra and is not given in the lecture; see~\cite[Chapter~8]{Axler}. Here is the outline.
+\paragraph{Where the proof comes from.} The proof is pure linear algebra, and we do not give it in full; see~\cite[Chapter~8]{Axler}. Here is the outline.
 \begin{itemize}
   \item A nonzero $\vec{v}$ with $(A - \lambda I)^p\vec{v} = \zerovec$ for some $p \ge 1$ is a \emph{generalized eigenvector}~\cite[8.8]{Axler}.
   \item The space $\K^m$ (over $\C$) is the direct sum of the generalized eigenspaces $\nullsp(A - \lambda I)^m$, and on each of them $A - \lambda I$ is nilpotent~\cite[8.14]{Axler}, i.e., some power of it is zero.

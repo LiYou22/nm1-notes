@@ -16,7 +16,6 @@
 *.vrb
 
 # Build output (rebuild with latexmk)
-nm1-notes.pdf
 nm1-questions.pdf
 
 # macOS

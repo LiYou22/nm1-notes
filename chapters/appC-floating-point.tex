@@ -41,7 +41,7 @@ Two different quantities are both called ``machine epsilon'' in the literature, 
   \label{def:eps}
   Let $b_p$ be the precision of a floating-point format.
   \begin{itemize}
-    \item The \emph{machine epsilon} $\eps = \epsm \defeq 2^{-(b_p - 1)}$ is the distance from $1$ to the next larger floating-point number. For Float64, $\eps = 2^{-52} \approx 2.22 \times 10^{-16}$. This is the convention of the lecture, of Julia's \texttt{eps(Float64)}, and of C's \texttt{DBL\_EPSILON}.
+    \item The \emph{machine epsilon} $\eps = \epsm \defeq 2^{-(b_p - 1)}$ is the distance from $1$ to the next larger floating-point number. For Float64, $\eps = 2^{-52} \approx 2.22 \times 10^{-16}$. This is the convention we use, as do Julia's \texttt{eps(Float64)}, and of C's \texttt{DBL\_EPSILON}.
     \item The \emph{unit roundoff} $u \defeq 2^{-b_p} = \eps/2$ is the largest relative rounding error, i.e., half a spacing. For Float64, $u = 2^{-53} \approx 1.11 \times 10^{-16}$. Trefethen and Bau~\cite{TB} call this quantity $\epsilon_{\text{machine}}$, and Golub and Van Loan~\cite{GVL} call it the unit roundoff.
   \end{itemize}
 \end{definition}

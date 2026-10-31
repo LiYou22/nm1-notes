@@ -12,7 +12,7 @@ Supplementary reading:
 
 The topics of the semester are: numerical representation of vectors and matrices; solving linear systems by Gaussian elimination; solving least squares problems by orthogonalization; computing eigendecompositions; low-rank approximation; iterative methods; and structured matrices.
 
-This lecture covers the first topic. A computer cannot store real numbers exactly: every number is rounded when it is stored, and every arithmetic operation rounds again, so even $(x + a) - a = x$ can fail. The lecture proceeds in two parts.
+This lecture covers the first topic. A computer cannot store real numbers exactly: every number is rounded when it is stored, and every arithmetic operation rounds again, so even $(x + a) - a = x$ can fail. We proceed in two parts.
 \begin{enumerate}
   \item \emph{Representation} (\Cref{sec:repr,sec:fp-geometry,sec:cancellation}): how real numbers are stored (floating point) and what errors this causes.
   \item \emph{Error analysis} (\Cref{sec:conditioning,sec:stability}): how to tell whether an error comes from the problem (\emph{conditioning}) or from the algorithm (\emph{stability}).
@@ -71,7 +71,7 @@ The idea of floating point is to store the order of magnitude separately as an e
 \end{equation}
 The three parts are the sign bit $p_1$, the \emph{significand} (or \emph{mantissa}) in $[1, 2)$, and the power of two. The leading $1$ of the significand is \emph{implicit} and takes no storage. The decimal analogue is $\pm 1.123 \cdot 10^{-4}$.
 
-This solves the problem of fixed point: to cover numbers from $s^{-1}$ to $s$, the exponent only has to reach $\pm\log_2(s)$, which takes about $\log_2(\log_2(s))$ bits. Fixed point needs about $\log_2(s)$ bits for the same range. So floating point covers huge ranges cheaply, which is why scientific computing uses it. A complex number is stored as two floating-point numbers. For details, the lecture recommends \cite{Overton}.
+This solves the problem of fixed point: to cover numbers from $s^{-1}$ to $s$, the exponent only has to reach $\pm\log_2(s)$, which takes about $\log_2(\log_2(s))$ bits. Fixed point needs about $\log_2(s)$ bits for the same range. So floating point covers huge ranges cheaply, which is why scientific computing uses it. A complex number is stored as two floating-point numbers. For details, see \cite{Overton}.
 
 \paragraph{In memory.} The picture below shows how the bits are laid out, for single precision (Float32, $b_p = 24$, $b_e = 8$).
 \begin{center}
@@ -191,7 +191,7 @@ How do errors \emph{propagate}? Consider computing $y = f(x)$ for $f : \R \to \R
   The problem is \emph{well-conditioned} at $x$ if $\kappa_f(x) \approx 1$ and \emph{ill-conditioned} if $\kappa_f(x) \gg 1$.
 \end{definition}
 
-The condition number depends only on the problem and the input, not on the algorithm. This is the most important point of the lecture: no algorithm can rescue an ill-conditioned problem, because the difficulty is intrinsic.
+The condition number depends only on the problem and the input, not on the algorithm. This is the most important point here: no algorithm can rescue an ill-conditioned problem, because the difficulty is intrinsic.
 
 \begin{example}[Conditioning of Subtraction]
   Let $f(x) = x - 10^6$ at $x = 10^6 + 1$. Then
@@ -259,6 +259,8 @@ The IEEE formats, the two conventions for machine epsilon, the standard model of
 \clearpage
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:fp-further}
+% keep the supplement's subsections out of the table of contents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
 
 \subsection{Rewriting Formulas to Avoid Cancellation}
 
@@ -323,3 +325,5 @@ This reduces the error to about $2u\sum_i\abs{x_i}$, essentially independent of 
 \subsection{Low-Precision Formats}
 
 Two 16-bit formats split their bits differently. Float16 has $5$ exponent bits and $b_p = 11$: $\eps \approx 10^{-3}$, but the largest number is only $65504$. BFloat16 has $8$ exponent bits, hence the same range as Float32 (up to $3.4 \cdot 10^{38}$), but only $b_p = 8$: $\eps \approx 8 \cdot 10^{-3}$, about two decimal digits. Deep learning prefers BFloat16: gradients span many orders of magnitude, so what fails first is \emph{range} (overflow, underflow), not precision; Float16 training needs \emph{loss scaling} (multiplying the loss by a constant), BFloat16 does not. Sums are still accumulated in Float32: by \Cref{prop:dot}, a dot product of length $n = 4096$ has error up to $nu\,\abs{\vec{x}}^\T\abs{\vec{y}}$, and $nu = 16$ for BFloat16 ($u = 2^{-8}$) but $nu \approx 2.4 \cdot 10^{-4}$ for Float32 ($u = 2^{-24}$). Hence tensor cores take BFloat16 (or FP8) inputs but accumulate in Float32.
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}

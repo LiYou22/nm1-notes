@@ -23,7 +23,7 @@ The factor $B$ in $M = B^\ast B$ is far from unique. For any unitary $U$, $(UB)^
 \end{center}
 If yes, then $A = R^\ast R$ with $R$ upper triangular, and solving $A\vec{x} = \vec{c}$ takes only two triangular solves: first $R^\ast\vec{y} = \vec{c}$, then $R\vec{x} = \vec{y}$. The answer of this lecture is yes, and the resulting factorization is called the \emph{Cholesky factorization}. Even better, we will see that it needs no pivoting and is always backward stable.
 
-Here is the plan for the lecture.
+Here is our plan.
 \begin{enumerate}
   \item Derive Cholesky from LU by making elimination \emph{symmetric}, and turn it into an algorithm.
   \item Prove that the algorithm never breaks down (existence) and that it does not amplify rounding errors (stability).
