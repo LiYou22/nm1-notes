@@ -1,46 +1,23 @@
 # Numerical Methods I Notes
 
-My LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I) at NYU Courant, Fall 2026, taught by Prof. Florian Schaefer.
+LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I), NYU Courant, Fall 2026, Prof. Florian Schaefer. The compiled notes are in `nm1-notes.pdf`.
 
-Each chapter is one lecture. Things that come up again and again (norms, the SVD, floating point) are collected in the appendices so I don't have to repeat them. Sections marked (SUPPLEMENT) go past what was said in class; for those I mostly used Trefethen & Bau, Demmel, and Golub & Van Loan, with Axler for linear algebra background.
+## Chapters
 
-## Files
+1. **Numerical Representation of Vectors and Matrices**: integers, fixed and floating point, cancellation, condition number, stability.
+2. **Cache Hierarchy and Tiling/Blocking, Solving Linear Systems**: memory access costs, loop order, tiling, triangular solves, Gaussian elimination.
+3. **Solving Linear Systems and Stability**: the LU factorization.
+4. **LU Factorization with Pivoting**: error analysis of LU, growth factor, partial pivoting.
+5. **Least Squares Problems, Gram–Schmidt, and QR**: least squares, classical and modified Gram–Schmidt.
+6. **Product View on Error Bounds, Householder QR**: error amplification in products, Householder reflections.
+7. **Modified Gram–Schmidt**: using Q implicitly, Givens rotations, existence and uniqueness of QR.
+8. **Overdetermined Least Squares and the Normal Equations**: optimality conditions, normal equations, Gram matrices.
+9. **Cholesky Factorization**: Cholesky, Schur complements.
+10. **Eigen-like Decompositions, Computing a Single Eigenvalue**: power, inverse, and Rayleigh quotient iteration.
+11. **Schur Factorization**: deflation, invariant subspaces, Jordan form, Schur factorization.
+12. **Orthogonal Iteration**: normal matrices, orthogonal iteration.
+13. **QR without Shifts**: convergence of orthogonal iteration, the basic QR algorithm.
+14. **Hessenberg QR**: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing.
+15. **Shifted QR**: implicit Q theorem, shifted QR iteration, choosing the shift.
 
-```
-main.tex          title page, notation, bibliography
-nm1notes.sty      layout, the theorem/definition boxes, macros
-chapters/
-  ch1-floating-point.tex    L1: floating point, conditioning, stability
-  ch2-performance.tex       L2: storage, performance, Gaussian elimination
-  ch3-lu.tex                L3: LU factorization
-  ch4-pivoting.tex          L4: error analysis of LU, partial pivoting
-  ch5-least-squares.tex     L5: least squares, Gram–Schmidt
-  ch6-householder.tex       L6: Householder QR
-  ch7-qr.tex                L7: implicit Q, Givens rotations, existence and uniqueness of QR
-  ch8-normal-equations.tex  L8: normal equations, Gram matrices
-  ch9-cholesky.tex          L9: Cholesky, Schur complements
-  ch10-eigenvalues.tex      L10: eigenvalue problems, power/inverse/Rayleigh quotient iteration
-  ch11-schur.tex            L11: deflation, invariant subspaces, Jordan form, Schur factorization
-  ch12-orthogonal-iteration.tex  L12: normal matrices, orthogonal iteration
-  ch13-qr-algorithm.tex     L13: the QR algorithm without shifts
-  ch14-hessenberg-bulge-chasing.tex  L14: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing
-  ch15-shifted-qr.tex       L15: the implicit Q theorem, shifted QR iteration
-  appA-linear-algebra.tex   Appendix A: Math 54-level linear algebra (products, transpose, inverses, det, rank, eigen, orthogonality, SVD)
-  appB-norms.tex            Appendix B: unitary matrices, 2-norm and SVD, Frobenius norm
-  appC-floating-point.tex   Appendix C: IEEE formats, machine epsilon, backward stability
-```
-
-## Building
-
-You need TeX Live with `latexmk`.
-
-```sh
-latexmk -pdf main.tex   # builds nm1-notes.pdf
-latexmk -c              # cleans up the aux files
-```
-
-For a new lecture, add `chapters/chN-topic.tex` (starting with `\chapter{...}`) and an `\include` line in `main.tex`.
-
-## Questions
-
-`questions/` is a separate little document where I keep questions I have about the course, one file per lecture (`questions/lectures/lecNN.tex`). Each one goes in a `question` environment with an `answer` after it; if I haven't figured it out yet, the answer is just `\unanswered`. Build it the same way from inside `questions/`; its `.latexmkrc` points at `../nm1notes.sty`.
+Appendices: A. linear algebra basics; B. norms, unitary matrices, and the SVD; C. the floating-point model and backward stability.

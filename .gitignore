@@ -15,8 +15,5 @@
 *.snm
 *.vrb
 
-# Build output (rebuild with latexmk)
-nm1-questions.pdf
-
 # macOS
 .DS_Store
