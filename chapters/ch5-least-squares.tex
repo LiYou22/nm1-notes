@@ -29,7 +29,7 @@ Supplementary reading:
     L = \begin{bmatrix} 1 & & & \\ -1 & 1 & & \\ -1 & -1 & 1 & \\ -1 & -1 & -1 & 1 \end{bmatrix}, \qquad
     U = \begin{bmatrix} 1 & & & 1 \\ & 1 & & 2 \\ & & 1 & 4 \\ & & & 8 \end{bmatrix}.
   \end{equation}
-  For general $m$, $U_{mm} = 2^{m-1}$, so $\abs{L}\abs{U} \gtrsim 2^m$ and the error bound $m\epsm\abs{L}\abs{U}$ can reach $m2^m\epsm$. In double precision, all accuracy is lost for $m \approx 60$.
+  For general $m$, $U_{mm} = 2^{m-1}$, so $\abs{L}\abs{U} \gtrsim 2^m$ and the error bound $m\epsm\abs{L}\abs{U}$ can reach $m2^m\epsm$. In double precision, $2^{m-1}\epsm \approx 1$ already for $m \approx 53$, so all accuracy can be lost.
 \end{example}
 
 This is the worst case $\rho = 2^{m-1}$ of the growth factor mentioned in \Cref{ch:pivoting}. Fortunately, such matrices are extremely rare in practice.
@@ -38,26 +38,28 @@ This is the worst case $\rho = 2^{m-1}$ of the growth factor mentioned in \Cref{
 
 So far we have only considered $A \in \K^{m \times n}$ with $m = n$. If $m \ne n$, there are two cases.
 
-\paragraph{Overdetermined systems ($m > n$).} $A$ is tall: there are more equations than unknowns. Then $\range(A) \ne \K^m$, since $n$ columns span at most an $n$-dimensional subspace. Hence for a general $\vec{b}$ the equation $A\vec{x} = \vec{b}$ \emph{need not have a solution}. Such a system is called an \emph{overdetermined linear system}.
+\paragraph{Overdetermined systems ($m > n$).} $A$ is tall: there are more equations than unknowns. Then $\range(A) \ne \K^m$, since $n$ columns span at most an $n$-dimensional subspace. Hence for a general $\vec{b}$ the equation $A\vec{x} = \vec{b}$ \emph{does not have a solution}. Such a system is called an \emph{overdetermined linear system}.
 
 \paragraph{Underdetermined systems ($m < n$).} $A$ is wide: there are more unknowns than equations. Then $\nullsp(A) \ne \{\zerovec\}$, since the rank is at most $m < n$. Hence even when a solution exists, it is \emph{never unique}: adding any vector of the null space to a solution gives another solution. Such a system is called an \emph{underdetermined linear system}.
 
 \section{Least Squares Problems}
 
-Each case lacks one property, existence or uniqueness, and a minimization problem restores it:
+Overdetermined systems usually have no solution, and underdetermined systems have many. In both cases we replace the equation by a minimization problem:
 \begin{equation}
   \text{overdetermined:}\quad \min_{\vec{x}} \norm{A\vec{x} - \vec{b}}, \qquad\qquad \text{underdetermined:}\quad \min_{\vec{x} \,:\, A\vec{x} = \vec{b}} \norm{\vec{x}}.
 \end{equation}
-In the overdetermined case we look for the $\vec{x}$ that comes closest to satisfying the equations; in the underdetermined case we pick the ``smallest'' of all solutions.
+In the overdetermined case we take the $\vec{x}$ that comes closest to satisfying the equations; in the underdetermined case we take the smallest of all solutions.
 
-\subsection{Which Norm?}
+Which norm should we use? There are many choices, depending on the application. In linear regression, for example, the norm in the overdetermined case measures the \emph{fitting error}, and in the underdetermined case it measures how \emph{complex} the model is.
 
-There are many choices, depending on the application. In linear regression, for instance, the norm in the overdetermined case says how we measure the \emph{fitting error}, and in the underdetermined case how we measure the \emph{complexity of the model}.
-
-The key fact is that \emph{the solution depends linearly on $\vec{b}$ only when the norm is induced by an inner product}, $\norm{\cdot} = \sqrt{\ip{\cdot}{\cdot}}$. This gives the \emph{least squares problem}, which can be solved with the tools of linear algebra.
+The key fact: the solution depends linearly on $\vec{b}$ \emph{only if the norm comes from an inner product}, $\norm{\cdot} = \sqrt{\ip{\cdot}{\cdot}}$. This case is the \emph{least squares problem}, and we can solve it with linear algebra.
 
 \begin{example}[Mean Versus Median]
-  Let $A = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^\T$, so that $\min_x \norm{Ax - \vec{b}}$ fits a single number to $b_1, b_2, b_3$. In the $2$-norm the answer is the mean $\frac{1}{3}(b_1 + b_2 + b_3)$, which is linear in $\vec{b}$. In the $1$-norm the answer is the median, which is not a linear function of $\vec{b}$.
+  Let $A = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^\T$. Then $\min_x \norm{Ax - \vec{b}}$ looks for the single number $x$ closest to all of $b_1, b_2, b_3$.
+  \begin{itemize}
+    \item In the $2$-norm, the best $x$ is the mean $\frac{1}{3}(b_1 + b_2 + b_3)$, which is linear in $\vec{b}$.
+    \item In the $1$-norm, the best $x$ is the median, which is not linear in $\vec{b}$.
+  \end{itemize}
 \end{example}
 
 \section{The Geometry of Least Squares}
@@ -91,21 +93,21 @@ Writing ``the residual is orthogonal to every column of $A$'' as an equation giv
   A^\ast(A\vec{x} - \vec{b}) = \zerovec \quad\iff\quad A^\ast A\vec{x} = A^\ast\vec{b}. \label{eq:normal}
 \end{equation}
 
-\subsection{Orthonormal Columns}
-
-If the columns of $A$ are orthonormal ($A^\ast A = I$), the solution is particularly simple:
+\paragraph{Orthonormal columns.} If the columns of $A$ are orthonormal, then $A^\ast A = I$ and the normal equations give the solution directly:
 \begin{equation}
-  \vec{x} = A^\ast\vec{b}.
+  \vec{x} = A^\ast\vec{b}, \qquad\text{i.e.,}\qquad x_i = \ip{\vec{a}_i}{\vec{b}}.
 \end{equation}
-Intuitively, $x_i = \ip{\vec{a}_i}{\vec{b}}$ measures the ``length'' of $\vec{b}$ in the ``direction'' of the $i$-th column. Since the columns are mutually orthogonal, the component along each direction can be computed \emph{independently of the others} and the results simply added.
+Since $\vec{a}_i$ is a unit vector, $x_i$ is how much of $\vec{b}$ points along the $i$-th column. The columns are orthogonal, so each $x_i$ is computed on its own, and $A\vec{x} = \sum_i x_i\vec{a}_i$ is the projection of $\vec{b}$ onto $\range(A)$. Without orthogonality the coefficients depend on each other, and we must solve $A^\ast A\vec{x} = A^\ast\vec{b}$.
 
 \begin{example}[Projection onto a Coordinate Plane]
   For
   \begin{equation}
-    A = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \end{bmatrix},
+    A = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \end{bmatrix}
   \end{equation}
-  we get $A^\ast\vec{b} = (b_1, b_2)^\T$, the coordinates of the projection of $\vec{b}$ onto the $xy$-plane; the discarded component $b_3$ is the residual.
+  we get $\vec{x} = (b_1, b_2)^\T$ and $A\vec{x} = (b_1, b_2, 0)^\T$, the closest point of the $xy$-plane to $\vec{b}$. The residual $(0, 0, b_3)^\T$ is orthogonal to the plane.
 \end{example}
+
+This motivates the next section: since orthonormal columns make least squares easy, we first \emph{make} the columns orthonormal.
 
 \section{Orthogonalization: The QR Factorization}
 
@@ -131,16 +133,20 @@ Algebraically, in the normal equations \eqref{eq:normal} we have $A^\ast A = R^\
   \item subtract from $\vec{a}_j$ its components along $\vec{q}_1, \dots, \vec{q}_{j-1}$;
   \item normalize what is left.
 \end{enumerate}
-By the orthonormal case above, the component of $\vec{a}_j$ along $\vec{q}_i$ is $\ip{\vec{q}_i}{\vec{a}_j}\vec{q}_i$. Writing $\vec{v}_j$ for the vector before normalization,
-\begin{alignat}{2}
-  \vec{v}_1 &= \vec{a}_1, &\qquad \vec{q}_1 &= \vec{v}_1 / \norm{\vec{v}_1}_2, \nonumber \\
-  \vec{v}_2 &= \vec{a}_2 - \ip{\vec{q}_1}{\vec{a}_2}\vec{q}_1, & \vec{q}_2 &= \vec{v}_2 / \norm{\vec{v}_2}_2, \nonumber \\
-  \vec{v}_3 &= \vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1 - \ip{\vec{q}_2}{\vec{a}_3}\vec{q}_2, & \vec{q}_3 &= \vec{v}_3 / \norm{\vec{v}_3}_2, \nonumber \\
-  &\;\;\vdots \nonumber \\
-  \vec{v}_j &= \vec{a}_j - \sum_{i=1}^{j-1} \ip{\vec{q}_i}{\vec{a}_j}\vec{q}_i, & \vec{q}_j &= \vec{v}_j / \norm{\vec{v}_j}_2. \label{eq:cgs}
-\end{alignat}
+We first make $\vec{v}_j$ orthogonal to the previous vectors and normalize afterwards. The component of $\vec{a}_j$ along $\vec{v}_i$ is $\frac{\ip{\vec{v}_i}{\vec{a}_j}}{\ip{\vec{v}_i}{\vec{v}_i}}\vec{v}_i$, so
+\begin{equation}
+  \label{eq:cgs}
+  \begin{aligned}
+    \vec{v}_1 &= \vec{a}_1, \\
+    \vec{v}_2 &= \vec{a}_2 - \frac{\ip{\vec{v}_1}{\vec{a}_2}}{\ip{\vec{v}_1}{\vec{v}_1}}\vec{v}_1, \\
+    \vec{v}_3 &= \vec{a}_3 - \frac{\ip{\vec{v}_1}{\vec{a}_3}}{\ip{\vec{v}_1}{\vec{v}_1}}\vec{v}_1 - \frac{\ip{\vec{v}_2}{\vec{a}_3}}{\ip{\vec{v}_2}{\vec{v}_2}}\vec{v}_2, \\
+    &\;\;\vdots \\
+    \vec{v}_j &= \vec{a}_j - \sum_{i=1}^{j-1}\frac{\ip{\vec{v}_i}{\vec{a}_j}}{\ip{\vec{v}_i}{\vec{v}_i}}\vec{v}_i,
+  \end{aligned}
+\end{equation}
+and finally $\vec{q}_j = \vec{v}_j/\norm{\vec{v}_j}_2$. Since $\vec{q}_i = \vec{v}_i/\norm{\vec{v}_i}_2$, each term equals $\ip{\vec{q}_i}{\vec{a}_j}\vec{q}_i$, the component of $\vec{a}_j$ along $\vec{q}_i$.
 
-\paragraph{Where $R$ comes from.} Give the coefficients in \eqref{eq:cgs} names:
+\paragraph{Where $R$ comes from.} Write each term of \eqref{eq:cgs} as $\ip{\vec{q}_i}{\vec{a}_j}\vec{q}_i$ and name the coefficients:
 \begin{equation}
   r_{ij} = \ip{\vec{q}_i}{\vec{a}_j} \quad (i < j), \qquad r_{jj} = \norm{\vec{v}_j}_2, \qquad r_{ij} = 0 \quad (i > j).
 \end{equation}
@@ -154,10 +160,9 @@ that is, column $j$ of $A$ is $Q$ times column $j$ of $R$. For all columns at on
   = \underbrace{\begin{bmatrix} \vec{q}_1 & \vec{q}_2 & \cdots & \vec{q}_n \end{bmatrix}}_{Q}
   \underbrace{\begin{bmatrix} r_{11} & r_{12} & \cdots & r_{1n} \\ & r_{22} & \cdots & r_{2n} \\ & & \ddots & \vdots \\ & & & r_{nn} \end{bmatrix}}_{R}.
 \end{equation}
-$R$ is upper triangular because $\vec{a}_j$ involves only $\vec{q}_1, \dots, \vec{q}_j$, and it is invertible because $r_{jj} > 0$. Entry $r_{ij}$ above the diagonal is the amount of $\vec{q}_i$ in $\vec{a}_j$; the diagonal entry $r_{jj}$ is the length of the part of $\vec{a}_j$ that is new, i.e., not already in $\spn(\vec{q}_1, \dots, \vec{q}_{j-1})$.
+$R$ is upper triangular because $\vec{a}_j$ involves only $\vec{q}_1, \dots, \vec{q}_j$, and invertible because $r_{jj} > 0$. Entry $r_{ij}$ ($i < j$) is the amount of $\vec{q}_i$ in $\vec{a}_j$; $r_{jj}$ is the length of the new part of $\vec{a}_j$.
 
 \paragraph{The algorithm.} Computing the sum in \eqref{eq:cgs} one term at a time:
-
 \begin{algorithm}[H]
   \caption{Classical Gram--Schmidt (CGS).}
   \label{alg:cgs}
@@ -174,20 +179,13 @@ $R$ is upper triangular because $\vec{a}_j$ involves only $\vec{q}_1, \dots, \ve
   \end{algorithmic}
 \end{algorithm}
 
-The variable $\vec{v}_j$ is overwritten in the inner loop. When we need to refer to its intermediate values, we write $\vec{v}_j^{\,(i)}$ for its value after $i$ subtractions:
-\begin{equation}
-  \vec{v}_j^{\,(0)} = \vec{a}_j, \qquad \vec{v}_j^{\,(i)} = \vec{v}_j^{\,(i-1)} - r_{ij}\vec{q}_i, \qquad \vec{v}_j^{\,(j-1)} = \vec{v}_j. \label{eq:gs-partial}
-\end{equation}
-
 \begin{theorem}[Gram--Schmidt]
   \label{thm:gs}
   Let $\vec{a}_1, \dots, \vec{a}_n \in \K^m$ ($m \ge n$) be linearly independent. Then the vectors $\vec{q}_1, \dots, \vec{q}_n$ produced by \Cref{alg:cgs} form an orthonormal basis of $\spn(\vec{a}_1, \dots, \vec{a}_n)$, and $\spn(\vec{q}_1, \dots, \vec{q}_j) = \spn(\vec{a}_1, \dots, \vec{a}_j)$ for every $j$.
 \end{theorem}
 
 \begin{proof}
-  By induction on $j$, we show that $\vec{q}_1, \dots, \vec{q}_j$ are orthonormal and span $\spn(\vec{a}_1, \dots, \vec{a}_j)$.
-
-  \emph{Base case.} $\vec{a}_1 \ne \zerovec$ by linear independence, so $\vec{q}_1 = \vec{a}_1 / \norm{\vec{a}_1}_2$ is a unit vector spanning the same line.
+  By induction on $j$: $\vec{q}_1, \dots, \vec{q}_j$ are orthonormal and span $\spn(\vec{a}_1, \dots, \vec{a}_j)$. \emph{Base case:} $\vec{a}_1 \ne \zerovec$ by linear independence, so $\vec{q}_1 = \vec{a}_1 / \norm{\vec{a}_1}_2$ is a unit vector spanning the same line.
 
   \emph{Inductive step.} Assume the claim for $j$, and let $\vec{v}_{j+1} = \vec{a}_{j+1} - \sum_{i=1}^{j}\ip{\vec{q}_i}{\vec{a}_{j+1}}\vec{q}_i$.
   \begin{enumerate}
@@ -198,7 +196,7 @@ The variable $\vec{v}_j$ is overwritten in the inner loop. When we need to refer
       = \ip{\vec{q}_k}{\vec{a}_{j+1}} - \ip{\vec{q}_k}{\vec{a}_{j+1}} = 0.
     \end{equation}
     \item \emph{Nonzero.} If $\vec{v}_{j+1} = \zerovec$, then $\vec{a}_{j+1} \in \spn(\vec{q}_1, \dots, \vec{q}_j) = \spn(\vec{a}_1, \dots, \vec{a}_j)$, contradicting linear independence. So $\vec{q}_{j+1} = \vec{v}_{j+1} / \norm{\vec{v}_{j+1}}_2$ is defined, and $\vec{q}_1, \dots, \vec{q}_{j+1}$ are orthonormal.
-    \item \emph{Span.} $\vec{q}_{j+1}$ is a combination of $\vec{a}_{j+1}$ and $\vec{q}_1, \dots, \vec{q}_j$, so it lies in $\spn(\vec{a}_1, \dots, \vec{a}_{j+1})$. Orthonormal vectors are linearly independent, so $\vec{q}_1, \dots, \vec{q}_{j+1}$ are $j + 1$ independent vectors in a $(j + 1)$-dimensional space and hence a basis of it. \qedhere
+    \item \emph{Span.} $\vec{q}_{j+1} \in \spn(\vec{a}_1, \dots, \vec{a}_{j+1})$, and $\vec{q}_1, \dots, \vec{q}_{j+1}$ are $j + 1$ orthonormal, hence independent, vectors in this $(j + 1)$-dimensional space, so they span it. \qedhere
   \end{enumerate}
 \end{proof}
 
@@ -208,7 +206,7 @@ The variable $\vec{v}_j$ is overwritten in the inner loop. When we need to refer
   \begin{equation}
     A = \begin{bmatrix} 1 & 1 & 1 \\ \eps & 0 & 0 \\ 0 & \eps & 0 \\ 0 & 0 & \eps \end{bmatrix},
   \end{equation}
-  with $\eps$ small enough that $1 + \eps^2 = 1$ in floating point, i.e., $\eps < \sqrt{\epsm}$, for example $\eps = 10^{-10}$.
+  with $\eps$ small enough that $1 + \eps^2 = 1$ in floating point, i.e., $\eps < \sqrt{u} \approx 10^{-8}$, for example $\eps = 10^{-10}$.
 
   \emph{Step 1.} $\vec{v}_1 = \vec{a}_1 = (1, \eps, 0, 0)^\T$ and $\vec{q}_1 = (1 + \eps^2)^{-1/2}(1, \eps, 0, 0)^\T$, which in floating point is $(1, \eps, 0, 0)^\T$.
 
@@ -232,15 +230,22 @@ The variable $\vec{v}_j$ is overwritten in the inner loop. When we need to refer
 
 \section{Modified Gram--Schmidt}
 
-\paragraph{What went wrong.} In step 3, $\vec{a}_3 - r_{13}\vec{q}_1$ subtracts two $O(1)$ vectors and leaves only an $O(\eps)$ remainder: severe cancellation, so the \emph{relative error} of the result is large. The culprit is that the computed $\vec{q}_1$ and $\vec{q}_2$ are not exactly orthogonal: $\ip{\vec{q}_1}{\vec{q}_2} = -\eps/\sqrt{2}$. This is tiny in absolute terms, but relative to the $O(\eps)$ remainder it is $O(1)$.
+\paragraph{What went wrong.} Look at step 3 of \Cref{ex:cgs-lauchli}.
+\begin{itemize}
+  \item First CGS removes the $\vec{q}_1$-component: $\vec{a}_3 - r_{13}\vec{q}_1 = (0, -\eps, 0, \eps)^\T$. Two vectors of size $1$ cancel, and only a vector of size $\eps$ is left. So any error of size $\eps$ is now as large as what is left.
+  \item Such an error is there: the computed $\vec{q}_1$ and $\vec{q}_2$ are not exactly orthogonal, $\ip{\vec{q}_1}{\vec{q}_2} = -\eps/\sqrt{2}$.
+  \item Next CGS removes the $\vec{q}_2$-component, but it measures this component in the \emph{original} column: $r_{23} = \ip{\vec{q}_2}{\vec{a}_3} = 0$. What we actually need to remove is the $\vec{q}_2$-component of \emph{what is left}:
+  \begin{equation}
+    r_{23} = \ip{\vec{q}_2}{\vec{a}_3 - r_{13}\vec{q}_1} = \frac{\eps}{\sqrt{2}} \ne 0.
+  \end{equation}
+\end{itemize}
+The two values differ by $-r_{13}\ip{\vec{q}_2}{\vec{q}_1}$, which is exactly the orthogonality error. In exact arithmetic it is $0$ and the two agree; in floating point it is not.
 
-In the notation \eqref{eq:gs-partial}, the vector that $\vec{q}_2$ is about to be subtracted from is $\vec{v}_3^{\,(1)} = \vec{a}_3 - r_{13}\vec{q}_1$, so what we really want is
+\paragraph{Notation.} To write the fix, we name the intermediate values of $\vec{v}_j$ in \Cref{alg:cgs}: $\vec{v}_j^{\,(i)}$ is $\vec{v}_j$ after $i$ subtractions,
 \begin{equation}
-  \underbrace{r_{23} = \ip{\vec{q}_2}{\vec{v}_3^{\,(1)}} = \frac{\eps}{\sqrt{2}}}_{\text{$\vec{q}_2$-component of what is left}}
-  \qquad \text{rather than} \qquad
-  \underbrace{r_{23} = \ip{\vec{q}_2}{\vec{a}_3} = 0}_{\text{what CGS computes}}.
+  \vec{v}_j^{\,(0)} = \vec{a}_j, \qquad \vec{v}_j^{\,(i)} = \vec{v}_j^{\,(i-1)} - r_{ij}\vec{q}_i, \qquad \vec{v}_j^{\,(j-1)} = \vec{v}_j. \label{eq:gs-partial}
 \end{equation}
-The two differ by $\ip{\vec{q}_2}{\vec{v}_3^{\,(1)}} - \ip{\vec{q}_2}{\vec{a}_3} = -r_{13}\ip{\vec{q}_2}{\vec{q}_1}$, which is exactly the orthogonality error. In exact arithmetic it vanishes; in floating point it does not.
+For example, $\vec{v}_3^{\,(1)} = \vec{a}_3 - r_{13}\vec{q}_1$ is the ``what is left'' above.
 
 \paragraph{The fix.} Change a single line: compute $r_{ij}$ from the \emph{partially orthogonalized} vector instead of the original column.
 \begin{equation}
@@ -248,6 +253,21 @@ The two differ by $\ip{\vec{q}_2}{\vec{v}_3^{\,(1)}} - \ip{\vec{q}_2}{\vec{a}_3}
   \text{MGS:}\quad r_{ij} = \ip{\vec{q}_i}{\vec{v}_j^{\,(i-1)}}.
 \end{equation}
 Everything else, including the update $\vec{v}_j^{\,(i)} = \vec{v}_j^{\,(i-1)} - r_{ij}\vec{q}_i$, stays the same.
+
+To compare with CGS directly, we write MGS in the same unnormalized form. MGS subtracts one direction at a time, and each inner product uses the vector \emph{as it is now}:
+\begin{equation}
+  \label{eq:mgs}
+  \begin{alignedat}{2}
+    &\vec{v}_1 &&= \vec{a}_1, \\
+    &\vec{v}_2 &&= \vec{a}_2 - \frac{\langle\vec{v}_{1}, \vec{a}_{2}\rangle}{\langle\vec{v}_{1}, \vec{v}_{1}\rangle}\vec{v}_1, \\
+    &\vec{v}_3^{\,(1)} &&= \vec{a}_3 - \frac{\langle\vec{v}_{1}, \vec{a}_{3}\rangle}{\langle\vec{v}_{1}, \vec{v}_{1}\rangle}\vec{v}_1, \\
+    &\vec{v}_3 &&= \vec{v}_3^{\,(1)} - \frac{\langle\vec{v}_{2}, \vec{v}_3^{\,(1)}\rangle}{\langle\vec{v}_{2}, \vec{v}_{2}\rangle}\vec{v}_2, \\
+    &\;\;\vdots \\
+    &\vec{v}_j^{\,(i)} &&= \vec{v}_j^{\,(i-1)} - \frac{\langle\vec{v}_i, \vec{v}_j^{\,(i-1)}\rangle}{\langle\vec{v}_i, \vec{v}_i\rangle}\vec{v}_i, \qquad i = 1, \dots, j - 1,
+  \end{alignedat}
+\end{equation}
+
+In terms of the normalized $\vec{q}_i$, this gives the following algorithm. It differs from \Cref{alg:cgs} only in line 4.
 
 \begin{algorithm}[H]
   \caption{Modified Gram--Schmidt (MGS).}
@@ -269,11 +289,7 @@ Everything else, including the update $\vec{v}_j^{\,(i)} = \vec{v}_j^{\,(i-1)} -
 \begin{equation}
   \ip{\vec{q}_i}{\vec{v}_j^{\,(i-1)}} = \ip{\vec{q}_i}{\vec{a}_j} - \sum_{k=1}^{i-1} r_{kj}\ip{\vec{q}_i}{\vec{q}_k},
 \end{equation}
-and the sum vanishes when the $\vec{q}$'s are orthonormal, so CGS and MGS compute the same $r_{ij}$. The point is that CGS \emph{relies} on $\ip{\vec{q}_i}{\vec{q}_k} = 0$ while MGS does not: each $r_{ij}$ is the $\vec{q}_i$-component of what is actually left, so errors made in earlier steps are projected out by later ones.
-
-\begin{remark}[Orthogonality Is Fragile]
-  Arguments based on orthogonality are often fragile in floating-point arithmetic. The identity $\ip{\vec{q}_i}{\vec{q}_k} = 0$ holds only approximately, and any manipulation that relies on it can fail as soon as cancellation occurs.
-\end{remark}
+and the sum vanishes when the $\vec{q}$'s are orthonormal, so CGS and MGS compute the same $r_{ij}$. The point is that CGS \emph{relies} on $\ip{\vec{q}_i}{\vec{q}_k} = 0$, which holds only approximately in floating point; as soon as cancellation occurs, this small error becomes large. MGS does not rely on it: each $r_{ij}$ is the $\vec{q}_i$-component of what is actually left, so errors made in earlier steps are projected out by later ones.
 
 \begin{example}[MGS on the Same Matrix]
   \label{ex:mgs-lauchli}
@@ -293,45 +309,60 @@ and the sum vanishes when the $\vec{q}$'s are orthonormal, so CGS and MGS comput
   Now $\ip{\vec{q}_2}{\vec{q}_3} = \frac{1}{\sqrt{12}} - \frac{1}{\sqrt{12}} = 0$, and the remaining inner products $\ip{\vec{q}_1}{\vec{q}_2} = -\eps/\sqrt{2}$ and $\ip{\vec{q}_1}{\vec{q}_3} = -\eps/\sqrt{6}$ are $O(\eps)$: the columns are \emph{nearly orthogonal}.
 \end{example}
 
-\subsection{(SUPPLEMENT) The Projector View}
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:ls-further}
+% keep the supplement's subsections out of the table of contents
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
 
-\cite[Lecture 8]{TB} writes both algorithms with orthogonal projectors, which makes the difference visible in one line. Let $Q_{j-1} = \begin{bmatrix} \vec{q}_1 & \cdots & \vec{q}_{j-1} \end{bmatrix}$, and let $P_i$ remove the $\vec{q}_i$-component of a vector, $P_i\vec{x} = \vec{x} - \ip{\vec{q}_i}{\vec{x}}\vec{q}_i$. Then
+\subsection{The Projector View}
+
+Trefethen and Bau~\cite[Lecture 8]{TB} write both algorithms with projectors, which shows the difference in one line.
+
+\paragraph{Two kinds of projectors.} Let $Q_{j-1} = \begin{bmatrix} \vec{q}_1 & \cdots & \vec{q}_{j-1} \end{bmatrix}$.
+\begin{itemize}
+  \item $P_i\vec{x} \defeq \vec{x} - \ip{\vec{q}_i}{\vec{x}}\vec{q}_i$ removes the $\vec{q}_i$-component of $\vec{x}$: \emph{one} direction.
+  \item $(I - Q_{j-1}Q_{j-1}^\ast)\vec{x} = \vec{x} - \sum_{i<j}\ip{\vec{q}_i}{\vec{x}}\vec{q}_i$ removes the components along $\vec{q}_1, \dots, \vec{q}_{j-1}$: \emph{all} of them at once.
+\end{itemize}
+Then the two algorithms compute
 \begin{align}
-  \text{CGS:}\quad \vec{v}_j &= (I - Q_{j-1}Q_{j-1}^\ast)\,\vec{a}_j, \\
-  \text{MGS:}\quad \vec{v}_j &= P_{j-1}\cdots P_2P_1\,\vec{a}_j.
+  \text{CGS:}\quad \vec{v}_j &= (I - Q_{j-1}Q_{j-1}^\ast)\,\vec{a}_j, & &\text{all directions at once, using } \vec{a}_j, \\
+  \text{MGS:}\quad \vec{v}_j &= P_{j-1}\cdots P_2P_1\,\vec{a}_j, & &\text{one direction at a time, using the current vector}.
 \end{align}
-CGS applies one projector onto $\spn(\vec{q}_1, \dots, \vec{q}_{j-1})^\perp$; MGS applies $j - 1$ rank-$(m-1)$ projectors in sequence, each removing a single direction. For $j = 3$, applying $P_1$ and then $P_2$,
-\begin{equation}
-  P_2P_1\vec{a}_3 = \underbrace{\vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1 - \ip{\vec{q}_2}{\vec{a}_3}\vec{q}_2}_{(I - Q_2Q_2^\ast)\vec{a}_3} + \ip{\vec{q}_2}{\vec{q}_1}\ip{\vec{q}_1}{\vec{a}_3}\vec{q}_2.
-\end{equation}
-The last term is the one CGS drops; it vanishes exactly when $\vec{q}_1 \perp \vec{q}_2$. In \Cref{ex:cgs-lauchli}, $\ip{\vec{q}_2}{\vec{q}_1} = -\eps/\sqrt{2}$ and $\ip{\vec{q}_1}{\vec{a}_3} = 1$, so the MGS vector should be the CGS vector plus $-\frac{\eps}{\sqrt{2}}\vec{q}_2$:
+If the $\vec{q}_i$ are exactly orthonormal, both give the same result.
+
+\paragraph{Where they differ.} Take $j = 3$ and apply $P_1$, then $P_2$:
+\begin{align}
+  P_1\vec{a}_3 &= \vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1, \\
+  P_2P_1\vec{a}_3 &= \vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1 - \ip{\vec{q}_2}{\vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1}\vec{q}_2 \\
+  &= \underbrace{\vec{a}_3 - \ip{\vec{q}_1}{\vec{a}_3}\vec{q}_1 - \ip{\vec{q}_2}{\vec{a}_3}\vec{q}_2}_{\text{CGS}} + \ip{\vec{q}_2}{\vec{q}_1}\ip{\vec{q}_1}{\vec{a}_3}\,\vec{q}_2.
+\end{align}
+So MGS equals CGS plus one extra term. That term is zero when $\vec{q}_1 \perp \vec{q}_2$. When rounding has made $\vec{q}_1$ and $\vec{q}_2$ slightly non-orthogonal, the extra term is exactly the correction that CGS misses.
+
+\paragraph{Check on the example.} In \Cref{ex:cgs-lauchli}, $\ip{\vec{q}_2}{\vec{q}_1} = -\eps/\sqrt{2}$ and $\ip{\vec{q}_1}{\vec{a}_3} = 1$, so the MGS vector should be the CGS vector plus $-\frac{\eps}{\sqrt{2}}\vec{q}_2$:
 \begin{equation}
   \underbrace{\begin{bmatrix} 0 \\ -\eps \\ 0 \\ \eps \end{bmatrix}}_{\text{CGS}} - \frac{\eps}{\sqrt{2}}\begin{bmatrix} 0 \\ -1/\sqrt{2} \\ 1/\sqrt{2} \\ 0 \end{bmatrix} = \underbrace{\begin{bmatrix} 0 \\ -\eps/2 \\ -\eps/2 \\ \eps \end{bmatrix}}_{\text{MGS}},
 \end{equation}
-in agreement with \Cref{ex:mgs-lauchli}.
+which matches \Cref{ex:mgs-lauchli}.
 
-\section{(SUPPLEMENT) Further Topics}
+\subsection{How Much Orthogonality Is Lost?}
 
-\paragraph{Gram--Schmidt in a first linear algebra course.} The usual textbook formula, with unnormalized vectors,
-\begin{equation}
-  \vec{v}_3 = \vec{x}_3 - \frac{\vec{x}_3 \cdot \vec{v}_1}{\vec{v}_1 \cdot \vec{v}_1}\vec{v}_1 - \frac{\vec{x}_3 \cdot \vec{v}_2}{\vec{v}_2 \cdot \vec{v}_2}\vec{v}_2,
-\end{equation}
-is \eqref{eq:cgs} with $\vec{x}_j$ in place of $\vec{a}_j$: since $\vec{q}_i = \vec{v}_i / \norm{\vec{v}_i}_2$,
-\begin{equation}
-  \frac{\vec{x}_j \cdot \vec{v}_i}{\vec{v}_i \cdot \vec{v}_i}\vec{v}_i = (\vec{q}_i \cdot \vec{x}_j)\,\vec{q}_i,
-\end{equation}
-so normalizing only at the end gives the same vectors. \cite[6.32]{Axler} uses the same form, with $\vec{v}_k, \vec{f}_k, \vec{e}_k$ for our $\vec{a}_k, \vec{v}_k, \vec{q}_k$; note that there the inner product is linear in the \emph{first} slot, so its $\ip{\vec{v}_k}{\vec{f}_i}$ is our $\ip{\vec{v}_i}{\vec{a}_k}$. The formula takes both inner products with the \emph{original} $\vec{x}_3$, so it is classical Gram--Schmidt. The modified version proceeds in two stages,
-\begin{equation}
-  \vec{v}_3^{\,(1)} = \vec{x}_3 - \frac{\vec{x}_3 \cdot \vec{v}_1}{\vec{v}_1 \cdot \vec{v}_1}\vec{v}_1, \qquad \vec{v}_3 = \vec{v}_3^{\,(1)} - \frac{\vec{v}_3^{\,(1)} \cdot \vec{v}_2}{\vec{v}_2 \cdot \vec{v}_2}\vec{v}_2,
-\end{equation}
-and the two agree in exact arithmetic because $\vec{v}_3^{\,(1)} \cdot \vec{v}_2 = \vec{x}_3 \cdot \vec{v}_2$ when $\vec{v}_1 \cdot \vec{v}_2 = 0$. A course working in exact arithmetic loses nothing by writing CGS, but the step uses $\vec{v}_1 \cdot \vec{v}_2 = 0$, which is exactly what fails in \Cref{ex:cgs-lauchli}. For $\vec{v}_2$ only one projection is subtracted, so CGS and MGS differ only from the third vector on.
+The quantity $\norm{I - Q^\ast Q}$ measures how far the computed $Q$ is from having orthonormal columns. A result of Bj\"orck states:
+\begin{itemize}
+  \item MGS: $\norm{I - Q^\ast Q} \approx \epsm\,\kappa(A)$;
+  \item CGS: the loss can be as bad as $\epsm\,\kappa(A)^2$.
+\end{itemize}
+The matrix of \Cref{ex:cgs-lauchli} has $\kappa(A) \approx \sqrt{3}/\eps$. With $\eps = 10^{-10}$, $\epsm\kappa(A)^2 \approx 7 \cdot 10^{4} \gg 1$, so CGS may lose orthogonality completely, while for MGS $\epsm\kappa(A) \approx 4 \cdot 10^{-6}$. In Julia we measured $\norm{I - Q^\ast Q} \approx 0.71$ for CGS (with $\ip{\vec{q}_2}{\vec{q}_3} = 0.5$) and $\approx 1.2 \cdot 10^{-10}$ for MGS.
 
-\paragraph{Quantifying the loss of orthogonality.} A result of Bj\"orck states that MGS produces $Q$ with $\norm{I - Q^\ast Q} \approx \epsm\kappa(A)$, while for CGS the loss can be as bad as $\epsm\kappa(A)^2$. The matrix of \Cref{ex:cgs-lauchli} (the L\"auchli matrix) has $\kappa(A) \approx \sqrt{3}/\eps$, so MGS loses about $\epsm/\eps \sim \eps$ when $\eps \approx \sqrt{\epsm}$, in agreement with $\ip{\vec{q}_1}{\vec{q}_2} = O(\eps)$; CGS loses everything.
+\subsection{Why Not Solve the Normal Equations?}
 
-\paragraph{Why not solve the normal equations?} Solving $A^\ast A\vec{x} = A^\ast\vec{b}$ looks most direct, but $\kappa(A^\ast A) = \kappa(A)^2$~\cite[Lecture 11]{TB}. For the matrix of \Cref{ex:cgs-lauchli},
+Solving $A^\ast A\vec{x} = A^\ast\vec{b}$ looks most direct, but forming $A^\ast A$ squares the condition number, $\kappa(A^\ast A) = \kappa(A)^2$~\cite[Lecture 11]{TB}. For the matrix of \Cref{ex:cgs-lauchli},
 \begin{equation}
   A^\ast A = \begin{bmatrix} 1 + \eps^2 & 1 & 1 \\ 1 & 1 + \eps^2 & 1 \\ 1 & 1 & 1 + \eps^2 \end{bmatrix},
 \end{equation}
-and in floating point $1 + \eps^2 = 1$, so the computed $A^\ast A$ is the singular all-ones matrix and all information is lost. Forming $A^\ast A$ discards information that is still present in $A$; QR works on $A$ directly~\cite[\S3.3]{Demmel}.
+and in floating point $1 + \eps^2 = 1$. So the computed $A^\ast A$ is the all-ones matrix, which has rank $1$: the information is lost before we even start solving. QR works on $A$ directly and avoids this~\cite[\S3.3]{Demmel}.
 
-\paragraph{Householder QR and reorthogonalization.} Even for MGS, the orthogonality of $Q$ depends on $\kappa(A)$. In practice QR is usually computed with Householder reflections (\Cref{ch:householder}), whose $Q$ is orthogonal to working precision independently of $\kappa(A)$. Another common remedy is to run CGS twice (``twice is enough''), which parallelizes better than MGS because the inner products of CGS can be computed at once as a matrix--vector product $Q^\ast\vec{a}_j$.
+\subsection{Householder QR and Reorthogonalization}
+
+Even with MGS, how orthogonal $Q$ is depends on $\kappa(A)$. Libraries therefore use \emph{Householder QR} (\Cref{ch:householder}), whose $Q$ is orthogonal to working precision whatever $\kappa(A)$ is. Another remedy is to \emph{run CGS twice} (``twice is enough''); it parallelizes better than MGS, since the inner products of CGS form one matrix--vector product $Q_{j-1}^\ast\vec{a}_j$.
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
