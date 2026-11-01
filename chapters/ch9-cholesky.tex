@@ -12,16 +12,20 @@ Supplementary reading:
 
 Last lecture we solved the least squares problem $\min_{\vec{x}}\norm{A\vec{x} - \vec{b}}^2$ in two ways.
 \begin{itemize}
-  \item \emph{By QR.} With a full QR factorization, $\norm{A\vec{x} - \vec{b}}^2 = \norm{\hat{R}\vec{x} - (Q^\ast\vec{b})_{1:n}}^2 + \norm{(Q^\ast\vec{b})_{n+1:m}}^2$. We make the first term zero by solving $\hat{R}\vec{x} = (Q^\ast\vec{b})_{1:n}$. The second term does not depend on $\vec{x}$; it is the squared distance from $\vec{b}$ to $\range(A)$.
+  \item \emph{By QR.} With a full QR factorization,
+  \begin{equation*}
+    \norm{A\vec{x} - \vec{b}}^2 = \norm{\hat{R}\vec{x} - (Q^\ast\vec{b})_{1:n}}^2 + \norm{(Q^\ast\vec{b})_{n+1:m}}^2.
+  \end{equation*}
+  We make the first term zero by solving $\hat{R}\vec{x} = (Q^\ast\vec{b})_{1:n}$. The second term does not depend on $\vec{x}$. It is the squared distance from $\vec{b}$ to $\range(A)$.
   \item \emph{By the optimality condition.} At the minimizer, the residual is orthogonal to $\range(A)$: $\ip{A\vec{d}}{A\vec{x}} = \ip{A\vec{d}}{\vec{b}}$ for all $\vec{d}$ (\Cref{thm:ls-optimality}). Written as a linear system, these are the normal equations $A^\ast A\vec{x} = A^\ast\vec{b}$ (\Cref{thm:normal}).
 \end{itemize}
-The matrix $A^\ast A$ of the normal equations is a Gram matrix, and we saw that such matrices are exactly the positive semidefinite ones: $M$ is Hermitian positive semidefinite if and only if $M = B^\ast B$ for some $B$ (\Cref{thm:gram}).
+The matrix $A^\ast A$ of the normal equations is a Gram matrix. We saw that Gram matrices are exactly the positive semidefinite matrices: $M$ is Hermitian positive semidefinite if and only if $M = B^\ast B$ for some $B$ (\Cref{thm:gram}).
 
-The factor $B$ in $M = B^\ast B$ is far from unique. For any unitary $U$, $(UB)^\ast(UB) = B^\ast U^\ast UB = B^\ast B$. With this much freedom, a natural question is:
+The factor $B$ in $M = B^\ast B$ is not unique at all. For any unitary $U$, $(UB)^\ast(UB) = B^\ast U^\ast UB = B^\ast B$. Since we have so much freedom, we can ask:
 \begin{center}
   \emph{If $A = B^\ast B$ is positive definite, can we choose $B$ to be upper triangular?}
 \end{center}
-If yes, then $A = R^\ast R$ with $R$ upper triangular, and solving $A\vec{x} = \vec{c}$ takes only two triangular solves: first $R^\ast\vec{y} = \vec{c}$, then $R\vec{x} = \vec{y}$. The answer of this lecture is yes, and the resulting factorization is called the \emph{Cholesky factorization}. Even better, we will see that it needs no pivoting and is always backward stable.
+If yes, then $A = R^\ast R$ with $R$ upper triangular. Then solving $A\vec{x} = \vec{c}$ takes only two triangular solves: first $R^\ast\vec{y} = \vec{c}$, then $R\vec{x} = \vec{y}$. In this lecture we show that the answer is yes. The resulting factorization is called the \emph{Cholesky factorization}. Even better, we will see that it needs no pivoting and is always backward stable.
 
 Here is our plan.
 \begin{enumerate}
@@ -31,7 +35,7 @@ Here is our plan.
   \item Show that Cholesky and QR compute the same triangular factor.
 \end{enumerate}
 
-\paragraph{Conventions.} In this lecture $A \in \K^{m \times m}$ is a square matrix; it has nothing to do with the $m \times n$ matrix of least squares. We say that $A$ is \emph{s.p.d.}\ if it is Hermitian positive definite, i.e., $A = A^\ast$ and $\vec{x}^\ast A\vec{x} > 0$ for all $\vec{x} \ne \zerovec$. (In the real case this means symmetric positive definite, hence the name.) We write the Cholesky factorization as $A = LL^\ast$ with $L$ lower triangular; this is the same as $A = R^\ast R$ with $R = L^\ast$.
+\paragraph{Conventions.} In this lecture $A \in \K^{m \times m}$ is a square matrix. It is not related to the $m \times n$ matrix of least squares. We say that $A$ is \emph{s.p.d.}\ if it is Hermitian positive definite, i.e., $A = A^\ast$ and $\vec{x}^\ast A\vec{x} > 0$ for all $\vec{x} \ne \zerovec$. (In the real case this means symmetric positive definite, hence the name.) We write the Cholesky factorization as $A = LL^\ast$ with $L$ lower triangular; this is the same as $A = R^\ast R$ with $R = L^\ast$.
 
 Since $A$ is Hermitian, its first row is the conjugate transpose of its first column. So we can split off the first row and column as
 \begin{equation}
@@ -41,51 +45,57 @@ Since $A$ is Hermitian, its first row is the conjugate transpose of its first co
 In slice notation, $\vec{a} = A_{2:,1}$, $\vec{a}^\ast = A_{1,2:}$, and $A_{22} = A_{2:,2:}$.
 
 \section{Deriving Cholesky by Symmetric Elimination}
+\label{sec:chol-derive}
 
-The idea is simple. We already know how to factor a matrix by Gaussian elimination. We will run elimination on $A$, but at every step we do the \emph{same} operation on the rows and on the columns, so that the matrix stays Hermitian. Let us go through one step.
+The idea is simple. We already know how to factor a matrix by Gaussian elimination. We run elimination on $A$. But at every step we do the \emph{same} operation on the rows and on the columns. This way the matrix stays Hermitian. Let us go through one step.
 
 \paragraph{Step 1: one step of LU.} The first step of LU subtracts $a_i/\alpha$ times row $1$ from row $i + 1$, for every row below the first. In matrix form, this is multiplication from the left by a unit lower triangular $L_1$:
 \begin{equation}
   L_1 = \begin{bmatrix} 1 & 0 \\ -\vec{a}/\alpha & I \end{bmatrix}, \qquad
   L_1A = \begin{bmatrix} \alpha & \vec{a}^\ast \\ 0 & A_{22} - \dfrac{\vec{a}\vec{a}^\ast}{\alpha} \end{bmatrix}.
 \end{equation}
-The first column is now zero below the diagonal, and the lower right block has been updated to
+The first column is now zero below the diagonal. The lower right block has changed to
 \begin{equation}
-  S \defeq A_{22} - \frac{\vec{a}\vec{a}^\ast}{\alpha},
+  S \defeq A_{22} - \frac{\vec{a}\vec{a}^\ast}{\alpha}.
 \end{equation}
-which is $A_{2:,2:} - A_{2:,1}A_{1,2:}/A_{11}$ in slice notation. The matrix $S$ is called a \emph{Schur complement}; we will study it in \Cref{sec:schur}. Note that $\vec{a}\vec{a}^\ast$ is an outer product, so the update is a rank-one change of $A_{22}$.
+In slice notation, this is $A_{2:,2:} - A_{2:,1}A_{1,2:}/A_{11}$. The matrix $S$ is called a \emph{Schur complement}. We study it in \Cref{sec:schur}. Note that $\vec{a}\vec{a}^\ast$ is an outer product. So the update is a rank-one change of $A_{22}$.
 
 Can we divide by $\alpha$? Yes: $\alpha = A_{11} = \vec{e}_1^\ast A\vec{e}_1 > 0$ by positive definiteness.
 
-\paragraph{Step 2: add the matching column operation.} If we continued with LU on $S$, we would get $A = LU$ where $L$ and $U$ have nothing to do with each other. To end up with $A = LL^\ast$, we keep the matrix symmetric: after the row operation $L_1$ on the left, we apply the matching column operation $L_1^\ast$ on the right. The result is
+\paragraph{Step 2: add the matching column operation.} If we continued with LU on $S$, we would get $A = LU$, where $L$ and $U$ are not related. We want $A = LL^\ast$ instead. So we keep the matrix symmetric. After the row operation $L_1$ on the left, we apply the matching column operation $L_1^\ast$ on the right. The result is
 \begin{equation}
   L_1AL_1^\ast = \begin{bmatrix} \alpha & 0 \\ 0 & S \end{bmatrix}.
 \end{equation}
 Let us check this. Right multiplication by $L_1^\ast$ subtracts $\overline{a_j}/\alpha$ times column $1$ from column $j + 1$.
 \begin{itemize}
   \item It does not change the lower right block, since column $1$ of $L_1A$ is zero below the diagonal.
-  \item It zeros out the first row. The $(1, j + 1)$ entry of $L_1A$ is $\overline{a_j}$, because $A$ is Hermitian, so it becomes $\overline{a_j} - (\overline{a_j}/\alpha)\alpha = 0$.
+  \item It makes the first row zero. Since $A$ is Hermitian, the $(1, j + 1)$ entry of $L_1A$ is $\overline{a_j}$. So it becomes $\overline{a_j} - (\overline{a_j}/\alpha)\alpha = 0$.
 \end{itemize}
-This is exactly where symmetry helps: the first row is the conjugate of the first column, so the column operation that clears the row uses the same multipliers as the row operation that cleared the column. One matrix $L_1$ handles both sides.
+This is where symmetry helps. The first row is the conjugate of the first column. So the column operation that clears the row uses the same multipliers as the row operation that cleared the column. One matrix $L_1$ handles both sides.
 
-\paragraph{Step 3: normalize by \texorpdfstring{$\sqrt{\alpha}$}{the Square Root of the Pivot}.} It remains to scale the top left entry to $1$. Divide the first row and the first column by $\sqrt{\alpha}$, i.e., replace $L_1$ by $\bar{L}_1 = \diag(1/\sqrt{\alpha}, 1, \dots, 1)L_1$. Then
+\paragraph{Step 3: normalize by \texorpdfstring{$\sqrt{\alpha}$}{the Square Root of the Pivot}.} Finally, we scale the top left entry to $1$. We divide the first row and the first column by $\sqrt{\alpha}$. In matrix form, we replace $L_1$ by $\bar{L}_1 = \diag(1/\sqrt{\alpha}, 1, \dots, 1)L_1$. Then
 \begin{equation}
   \bar{L}_1A\bar{L}_1^\ast = \begin{bmatrix} 1 & 0 \\ 0 & S \end{bmatrix}, \qquad
   \bar{L}_1^{-1} = \begin{bmatrix} \sqrt{\alpha} & 0 \\ \vec{a}/\sqrt{\alpha} & I \end{bmatrix}.
 \end{equation}
-(To invert $\bar{L}_1$, undo the scaling and then flip the sign of the multipliers.) Moving $\bar{L}_1$ and $\bar{L}_1^\ast$ to the other side,
+(To invert $\bar{L}_1$, undo the scaling and then flip the sign of the multipliers.) We move $\bar{L}_1$ and $\bar{L}_1^\ast$ to the other side and get
 \begin{equation}
   \label{eq:chol-step}
   A = \begin{bmatrix} \sqrt{\alpha} & 0 \\ \vec{a}/\sqrt{\alpha} & I \end{bmatrix}\begin{bmatrix} 1 & 0 \\ 0 & S \end{bmatrix}\begin{bmatrix} \sqrt{\alpha} & \vec{a}^\ast/\sqrt{\alpha} \\ 0 & I \end{bmatrix}.
 \end{equation}
-Now suppose that $S$ has a Cholesky factorization $S = L_SL_S^\ast$. Substituting it into \eqref{eq:chol-step} and multiplying out, we get
+Now suppose that $S$ has a Cholesky factorization $S = L_SL_S^\ast$. We put it into \eqref{eq:chol-step} and multiply out:
 \begin{equation}
   A = LL^\ast, \qquad L = \begin{bmatrix} \sqrt{\alpha} & 0 \\ \vec{a}/\sqrt{\alpha} & L_S \end{bmatrix}.
 \end{equation}
-In words: \emph{the first column of $L$ is the first column of $A$ divided by $\sqrt{\alpha}$, and the rest of $L$ is the Cholesky factor of the Schur complement $S$.} So Cholesky is a recursion: compute one column, update the remaining block to $S$, and repeat on $S$. The only thing that could go wrong is that some later $S$ is not s.p.d., so that its top left entry is not positive. We will rule this out in \Cref{sec:chol-exists}.
+In words: \emph{the first column of $L$ is the first column of $A$ divided by $\sqrt{\alpha}$, and the rest of $L$ is the Cholesky factor of the Schur complement $S$.} So Cholesky is a recursion: compute one column, update the remaining block to $S$, and repeat on $S$. Only one thing can go wrong: some later $S$ might not be s.p.d., and then its top left entry might not be positive. We rule this out in \Cref{sec:chol-exists}.
 
 \begin{strategy}[Computing a Cholesky Factorization by Hand]
-  Repeat for $k = 1, \dots, m$: let $d_k$ be the top left entry of the current matrix. Column $k$ of $L$ is the current first column divided by $\sqrt{d_k}$. Then replace the current matrix by its Schur complement, i.e., delete the first row and column and subtract $\vec{a}\vec{a}^\ast/d_k$ from what is left.
+  Repeat for $k = 1, \dots, m$:
+  \begin{itemize}
+    \item Let $d_k$ be the top left entry of the current matrix.
+    \item Column $k$ of $L$ is the current first column divided by $\sqrt{d_k}$.
+    \item Replace the current matrix by its Schur complement: delete the first row and column, and subtract $\vec{a}\vec{a}^\ast/d_k$ from what is left.
+  \end{itemize}
 \end{strategy}
 
 \begin{example}[A $3 \times 3$ Example]
@@ -98,16 +108,16 @@ In words: \emph{the first column of $L$ is the first column of $A$ divided by $\
   \begin{equation}
     \begin{bmatrix} 5 & 3 \\ 3 & 6 \end{bmatrix} - \frac{1}{4}\begin{bmatrix} 2 \\ 2 \end{bmatrix}\begin{bmatrix} 2 & 2 \end{bmatrix} = \begin{bmatrix} 4 & 2 \\ 2 & 5 \end{bmatrix}.
   \end{equation}
-  \emph{Step 2.} $d_2 = 4$, so the next column is $(4, 2)^\T/2 = (2, 1)^\T$, and the Schur complement is $5 - 2 \cdot 2/4 = 4$.
+  \emph{Step 2.} $d_2 = 4$, so the next column is $(4, 2)^\T/2 = (2, 1)^\T$. The Schur complement is $5 - 2 \cdot 2/4 = 4$.
 
   \emph{Step 3.} $d_3 = 4$, so the last entry is $\sqrt{4} = 2$. Altogether,
   \begin{equation}
     L = \begin{bmatrix} 2 & 0 & 0 \\ 1 & 2 & 0 \\ 1 & 1 & 2 \end{bmatrix},
   \end{equation}
-  and one can check that $LL^\T = A$.
+  We can check that $LL^\T = A$.
 \end{example}
 
-\paragraph{Why the square root?} LU and Cholesky do the same elimination; the only difference is how the pivots are distributed between the two factors. Suppose we eliminate symmetrically but skip the normalization. Then we get
+\paragraph{Why the square root?} LU and Cholesky do the same elimination. They differ only in how the pivots are split between the two factors. Suppose we eliminate symmetrically but skip the normalization. Then we get
 \begin{equation}
   A = \tilde{L}D\tilde{L}^\ast,
 \end{equation}
@@ -119,7 +129,7 @@ where $\tilde{L}$ is unit lower triangular and $D = \diag(d_1, \dots, d_m)$ hold
   \item LU puts the whole pivot $d_k$ into $U$, so column $k$ of $L$ is divided by $d_k$.
   \item Cholesky puts half of the pivot on each side, so column $k$ of $L$ is divided by $\sqrt{d_k}$.
 \end{itemize}
-For the last step to work, every $d_k$ must be positive: then $\sqrt{d_k}$ is real, $(D^{1/2})^\ast = D^{1/2}$, and indeed $(\tilde{L}D^{1/2})^\ast = D^{1/2}\tilde{L}^\ast$. If some $d_k < 0$, then $\sqrt{d_k}$ is imaginary, and $LL^\ast = \tilde{L}\abs{D}\tilde{L}^\ast \ne A$.
+For the last step to work, every $d_k$ must be positive. Then $\sqrt{d_k}$ is real and $(D^{1/2})^\ast = D^{1/2}$, so indeed $(\tilde{L}D^{1/2})^\ast = D^{1/2}\tilde{L}^\ast$. If some $d_k < 0$, then $\sqrt{d_k}$ is imaginary. In that case $LL^\ast = \tilde{L}\abs{D}\tilde{L}^\ast \ne A$.
 
 \section{The Cholesky Algorithm}
 
@@ -147,36 +157,40 @@ A few remarks on this algorithm.
 \begin{itemize}
   \item In line 2, $A_{kk}$ is \emph{not} an entry of the original matrix. After $k - 1$ updates it is the top left entry of the current Schur complement, i.e., the pivot $d_k$.
   \item Lines 2--4 divide the current column $k$ by $\sqrt{d_k}$.
-  \item In the update, both $A_{ik}$ and $A_{jk}$ have already been divided by $\sqrt{d_k}$, so their product is $a_i\overline{a_j}/d_k$, which is exactly the $(i, j)$ entry of $\vec{a}\vec{a}^\ast/\alpha$.
-  \item On exit, the lower triangle of $A$ holds $L$.
+  \item In the update, $A_{ik}$ and $A_{jk}$ have both already been divided by $\sqrt{d_k}$. So their product is $a_i\overline{a_j}/d_k$. This is exactly the $(i, j)$ entry of $\vec{a}\vec{a}^\ast/\alpha$.
+  \item At the end, the lower triangle of $A$ holds $L$.
 \end{itemize}
-In compact form, the algorithm reads \texttt{A[:,k] /= sqrt(A[k,k])} followed by \texttt{A[i,j] -= A[i,k]*A[k,j]}; \Cref{alg:chol-right} spells out the index ranges and the conjugate.
+In short form (as on the board), the algorithm is
+\begin{center}
+  \texttt{A[:,k] /= sqrt(A[k,k])}, \quad then \quad \texttt{A[i,j] -= A[i,k]*A[k,j]}.
+\end{center}
+Since only column $k$ is scaled, the exact update uses \texttt{A[i,k]*conj(A[j,k])}. \Cref{alg:chol-right} writes out the index ranges and the conjugate.
 
-\paragraph{Comparison with LU.} Compared with LU, Cholesky differs in three ways.
+\paragraph{Comparison with LU.} Cholesky differs from LU in three ways.
 \begin{itemize}
   \item \emph{Normalization.} Columns are divided by the square root of the pivot, as explained above.
-  \item \emph{Half the work and storage.} Every Schur complement is Hermitian, so we only need to keep track of one triangle; the other one is its conjugate transpose. The cost drops from about $\frac{2}{3}m^3$ flops for LU to about $\frac{1}{3}m^3$.
+  \item \emph{Half the work and storage.} Every Schur complement is Hermitian. So we only need to keep one triangle. The other one is its conjugate transpose. The cost drops from about $\frac{2}{3}m^3$ flops for LU to about $\frac{1}{3}m^3$.
   \item \emph{No pivoting.} We prove in \Cref{sec:chol-exists,sec:chol-errors} that Cholesky without pivoting never breaks down and is stable.
 \end{itemize}
 
-\paragraph{Where positive definiteness enters.} The algorithm uses positive definiteness in exactly one place: the square root $\sqrt{A_{kk}}$ in line 2. Every \emph{updated} pivot must be positive, both to have a real square root and to divide by it. Positive definiteness of $A$ directly tells us only that the \emph{original} diagonal entries are positive. That the updated pivots are positive too needs an argument, which is the existence theorem below. The following example shows that something does need to be proved.
+\paragraph{Where positive definiteness enters.} The algorithm uses positive definiteness in exactly one place: the square root $\sqrt{A_{kk}}$ in line 2. Every \emph{updated} pivot must be positive. Then it has a real square root, and we can divide by it. Positive definiteness of $A$ directly tells us only that the \emph{original} diagonal entries are positive. To show that the updated pivots are also positive, we need a proof. This is the existence theorem below. The next example shows that a proof is really needed.
 
 \begin{example}[A Symmetric Matrix That Is Not Positive Definite]
   Run \Cref{alg:chol-right} on
   \begin{equation}
     A = \begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}.
   \end{equation}
-  For $k = 1$, $\sqrt{1} = 1$, the first column becomes $(1, 2)^\T$, and the update gives $A_{22} = 1 - 2 \cdot 2 = -3$. For $k = 2$, we need $\sqrt{-3}$, and the algorithm fails. Both original diagonal entries are $1$; the trouble is the updated pivot.
+  For $k = 1$: $\sqrt{1} = 1$, the first column becomes $(1, 2)^\T$, and the update gives $A_{22} = 1 - 2 \cdot 2 = -3$. For $k = 2$ we need $\sqrt{-3}$, so the algorithm fails. Both original diagonal entries are $1$. The problem is the updated pivot.
 \end{example}
 
-\Cref{alg:chol-right} assumes a positive definite input and does no checking. In real arithmetic, \texttt{sqrt} of a negative number returns \texttt{NaN}, which then contaminates everything after it. LAPACK's \texttt{potrf} checks whether $A_{kk} \le 0$ before taking the square root, and if so stops and reports the index at which it failed.
+\Cref{alg:chol-right} assumes a positive definite input and does no checking. In real arithmetic, \texttt{sqrt} of a negative number returns \texttt{NaN}. This \texttt{NaN} then spreads to everything computed after it. LAPACK's \texttt{potrf} checks whether $A_{kk} \le 0$ before it takes the square root. If so, it stops and reports the index where it failed.
 
-\paragraph{Left-looking and up-looking variants.} The right-looking algorithm is not the only way to organize the computation. Cholesky can be implemented with especially nice memory access patterns. To see the options, compare entries on both sides of $A = LL^\ast$ for $i \ge j$:
+\paragraph{Left-looking and up-looking variants.} The right-looking algorithm is not the only possible order of computation. Other orders give especially good memory access patterns. To see the options, we compare entries on both sides of $A = LL^\ast$ for $i \ge j$:
 \begin{equation}
   \label{eq:chol-entries}
   L_{jj} = \sqrt{A_{jj} - \sum_{k<j}\abs{L_{jk}}^2}, \qquad L_{ij} = \frac{1}{L_{jj}}\left(A_{ij} - \sum_{k<j}L_{ik}\overline{L_{jk}}\right) \quad (i > j).
 \end{equation}
-Any loop order that evaluates these formulas, using only entries of $L$ that are already finished, gives a valid algorithm. All variants below do exactly the same floating-point operations and, in exact arithmetic, produce the same $L$. They differ only in the order of the three nested loops over $i$, $j$, $k$.
+Any loop order gives a valid algorithm, as long as it evaluates these formulas using only entries of $L$ that are already finished. All variants below do exactly the same floating-point operations. In exact arithmetic they produce the same $L$. They differ only in the order of the three nested loops over $i$, $j$, $k$.
 
 \begin{center}
 \small
@@ -233,7 +247,7 @@ The picture below shows one step of each variant.
 \end{tikzpicture}
 \end{center}
 
-\subparagraph{Left-looking.} The right-looking algorithm is \emph{eager}: as soon as a column is finished, it pushes its contribution into the whole trailing block. The left-looking algorithm is \emph{lazy}: when it reaches column $j$, it pulls in all the updates owed by the finished columns to its left at once, and then normalizes the column. As a result, each entry is written in its final form exactly once, whereas in the right-looking variant the entries of the Schur complement are read and written $O(m)$ times. The innermost loop runs down a column, which suits column-major languages (Julia, Fortran, MATLAB).
+\subparagraph{Left-looking.} The right-looking algorithm is \emph{eager}. As soon as a column is finished, it applies that column's update to the whole trailing block. The left-looking algorithm is \emph{lazy}. When it reaches column $j$, it applies all the updates from the finished columns to its left at once. Then it normalizes the column. So during step $j$ it writes only to column $j$, and after that step column $j$ is never touched again. In the right-looking variant, by contrast, every step writes to the whole trailing block. The innermost loop runs down a column. This suits column-major languages (Julia, Fortran, MATLAB).
 
 \begin{algorithm}[H]
   \caption{Cholesky factorization, left-looking, in place (lower triangle).}
@@ -253,11 +267,11 @@ The picture below shows one step of each variant.
   \end{algorithmic}
 \end{algorithm}
 
-\subparagraph{Up-looking.} Here $L$ is computed row by row. Row $i$ depends only on its own earlier entries and on the finished rows above it. Since row $i$ of $L$ is column $i$ of $R = L^\ast$, a column-major code stores the upper triangular factor $R$ instead; then walking along a row of $L$ becomes walking down a column of $R$. In \emph{packed storage}, the upper triangle is stored column by column, with column $i$ (of length $i$) right after column $i - 1$:
+\subparagraph{Up-looking.} Here $L$ is computed row by row. Row $i$ depends only on its own earlier entries and on the finished rows above it. Row $i$ of $L$ is column $i$ of $R = L^\ast$. So a column-major code stores the upper triangular factor $R$ instead. Then walking along a row of $L$ becomes walking down a column of $R$. In \emph{packed storage}, we store the upper triangle column by column. Column $i$ has length $i$ and comes right after column $i - 1$:
 \begin{equation}
   \begin{bmatrix} 1 & 2 & 4 & 7 & 11 \\ & 3 & 5 & 8 & 12 \\ & & 6 & 9 & 13 \\ & & & 10 & 14 \\ & & & & 15 \end{bmatrix}.
 \end{equation}
-Computing column $i$ uses only earlier data. So when $A$ grows by one row and one column, the factor grows by appending one segment at the end, and nothing computed before has to change.
+Computing column $i$ uses only earlier data. So when $A$ grows by one row and one column, we just append one new segment at the end of the factor. Nothing computed before has to change.
 
 \begin{algorithm}[H]
   \caption{Cholesky factorization, up-looking, in place (lower triangle).}
@@ -278,14 +292,18 @@ Computing column $i$ uses only earlier data. So when $A$ grows by one row and on
   \end{algorithmic}
 \end{algorithm}
 
-In \Cref{alg:chol-left,alg:chol-up} it is tempting to divide by $\sqrt{A_{jj}}$ in every case, but this is wrong: in the left-looking loop, $A_{jj}$ itself is overwritten when $i = j$, and in the up-looking loop, for $j < i$ the entry $A_{jj}$ already holds $L_{jj}$. This is why the algorithms above save $s$ and divide by $A_{jj}$, respectively.
+In \Cref{alg:chol-left,alg:chol-up} it is tempting to divide by $\sqrt{A_{jj}}$ in every case. This is wrong.
+\begin{itemize}
+  \item In the left-looking loop, $A_{jj}$ itself is overwritten when $i = j$. This is why that algorithm saves $s$ first.
+  \item In the up-looking loop, for $j < i$ the entry $A_{jj}$ already holds $L_{jj}$. This is why that algorithm divides by $A_{jj}$.
+\end{itemize}
 
 \section{Existence: Cholesky Never Breaks Down}
 \label{sec:chol-exists}
 
-We have seen that LU without pivoting can meet a zero pivot; for example, $\left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ fails at the very first step. Cholesky asks for even more: the pivots must be \emph{real and positive}, because we take their square roots. In this section we show that for s.p.d.\ matrices this is always the case.
+We have seen that LU without pivoting can meet a zero pivot. For example, $\left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ fails at the very first step. Cholesky needs even more. The pivots must be \emph{real and positive}, because we take their square roots. In this section we show that for s.p.d.\ matrices this always holds.
 
-The idea of the proof is as follows. After $k$ steps of symmetric elimination, the matrix we are working on is $A$ multiplied by a nonsingular matrix on the right and by its conjugate transpose on the left. We first show that such a ``sandwich'' of an s.p.d.\ matrix is again s.p.d.; then its diagonal entries, and in particular the next pivot, are positive.
+Here is the idea of the proof. After $k$ steps of symmetric elimination, our current matrix is $A$ times a nonsingular matrix on the right, and times its conjugate transpose on the left. We first show that such a ``sandwich'' of an s.p.d.\ matrix is again s.p.d. Then all its diagonal entries are positive. In particular, the next pivot is positive.
 
 \begin{lemma}[Congruence Preserves Positive Definiteness]
   \label{lem:congruence}
@@ -293,18 +311,18 @@ The idea of the proof is as follows. After $k$ steps of symmetric elimination, t
 \end{lemma}
 
 \begin{proof}
-  First, $B^\ast AB$ is Hermitian, since $(B^\ast AB)^\ast = B^\ast A^\ast B = B^\ast AB$. For positive definiteness, let $\vec{x} \ne \zerovec$. Since $B$ is nonsingular, $B\vec{x} \ne \zerovec$, and hence
+  First, $B^\ast AB$ is Hermitian, since $(B^\ast AB)^\ast = B^\ast A^\ast B = B^\ast AB$. Next we show positive definiteness. Let $\vec{x} \ne \zerovec$. Since $B$ is nonsingular, $B\vec{x} \ne \zerovec$. Hence
   \begin{equation}
     \vec{x}^\ast B^\ast AB\vec{x} = (B\vec{x})^\ast A(B\vec{x}) > 0,
   \end{equation}
   as desired.
 \end{proof}
 
-The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. The assumption that $B$ is nonsingular is needed: if $B\vec{x} = \zerovec$ for some $\vec{x} \ne \zerovec$, then $\vec{x}^\ast B^\ast AB\vec{x} = 0$, and we only get positive semidefiniteness.
+The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. We do need $B$ to be nonsingular. If $B\vec{x} = \zerovec$ for some $\vec{x} \ne \zerovec$, then $\vec{x}^\ast B^\ast AB\vec{x} = 0$. Then we only get positive semidefiniteness.
 
 \begin{theorem}[Existence of the Cholesky Factorization]
   \label{thm:chol-exists}
-  Let $A \in \K^{m \times m}$ be s.p.d. Then Cholesky without pivoting encounters only real, positive pivots $d_1, \dots, d_m$, and hence produces $A = LL^\ast$ with $L$ lower triangular with positive diagonal. Moreover, the pivots are bounded below by
+  Let $A \in \K^{m \times m}$ be s.p.d. Then Cholesky without pivoting meets only real, positive pivots $d_1, \dots, d_m$. Hence it produces $A = LL^\ast$, where $L$ is lower triangular with positive diagonal. Also, the pivots have the lower bound
   \begin{equation}
     \label{eq:pivot-bound}
     d_k \ge \frac{1}{\norm{A^{-1}}_2} = \lambda_{\min}(A), \qquad k = 1, \dots, m.
@@ -314,13 +332,13 @@ The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. The assumption that
 \begin{proof}
   We show by induction on $k = 0, \dots, m - 1$ that the pivot $d_{k+1}$ is real and positive.
 
-  Suppose that the first $k$ pivots are positive, so that the elimination matrices $L_1, \dots, L_k$ of the first $k$ steps are defined. (For $k = 0$ there is nothing to assume.) After $k$ symmetric steps, we have
+  Suppose that the first $k$ pivots are positive. Then the elimination matrices $L_1, \dots, L_k$ of the first $k$ steps are defined. (For $k = 0$ there is nothing to assume.) After $k$ symmetric steps, we have
   \begin{equation}
     S \defeq L_k \cdots L_1AL_1^\ast \cdots L_k^\ast = \begin{bmatrix} \diag(d_1, \dots, d_k) & 0 \\ 0 & S^{(k)} \end{bmatrix},
   \end{equation}
   where $S^{(k)}$ is the current Schur complement. Its top left entry is the next pivot, $d_{k+1} = S_{k+1,k+1}$.
 
-  Let $B = L_1^\ast \cdots L_k^\ast$, so that $S = B^\ast AB$. Each $L_i$ is unit lower triangular and therefore has determinant $1$, so $B$ is nonsingular. By \Cref{lem:congruence}, $S$ is s.p.d. Now:
+  Let $B = L_1^\ast \cdots L_k^\ast$, so that $S = B^\ast AB$. Each $L_i$ is unit lower triangular, so it has determinant $1$. Hence $B$ is nonsingular. By \Cref{lem:congruence}, $S$ is s.p.d. Now:
   \begin{itemize}
     \item \emph{The pivot is real.} $S$ is Hermitian, so $S_{k+1,k+1} = \overline{S_{k+1,k+1}}$.
     \item \emph{The pivot is positive.} A standard basis vector picks out a diagonal entry, $\vec{e}_j^\ast S\vec{e}_j = S_{jj}$. So by positive definiteness,
@@ -330,18 +348,18 @@ The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. The assumption that
   \end{itemize}
   This completes the induction. With all pivots positive, the construction of the previous section gives $A = LL^\ast$ with $L_{kk} = \sqrt{d_k} > 0$.
 
-  The lower bound \eqref{eq:pivot-bound} needs a fact about Schur complements, and we prove it in \Cref{sec:schur}.
+  The lower bound \eqref{eq:pivot-bound} needs a fact about Schur complements. We prove it in \Cref{sec:schur}.
 \end{proof}
 
-Note that ``real'' and ``positive'' come from different hypotheses: realness from the Hermitian property, positivity from definiteness. Along the way we also proved a fact worth remembering: \emph{every diagonal entry of a positive definite matrix is positive}. The lower bound \eqref{eq:pivot-bound} says even more than positivity: the pivots stay a fixed distance away from zero, independently of $k$, so tiny pivots cannot occur.
+Note that ``real'' and ``positive'' come from different assumptions. The pivot is real because $S$ is Hermitian. It is positive because $S$ is positive definite. Along the way we also proved a useful fact: \emph{every diagonal entry of a positive definite matrix is positive}. The lower bound \eqref{eq:pivot-bound} says even more than positivity. The pivots stay a fixed distance away from zero, for every $k$. So tiny pivots cannot occur.
 
 \begin{corollary}[Uniqueness of the Cholesky Factorization]
   \label{cor:chol-unique}
-  An s.p.d.\ matrix has exactly one factorization $A = LL^\ast$ with $L$ lower triangular with positive diagonal.
+  An s.p.d.\ matrix has exactly one factorization $A = LL^\ast$, where $L$ is lower triangular with positive diagonal.
 \end{corollary}
 
 \begin{proof}
-  Existence is \Cref{thm:chol-exists}. Suppose $A = LL^\ast = MM^\ast$ with both factors of this form. Then $M^{-1}L = M^\ast L^{-\ast}$. The left side is lower triangular and the right side is upper triangular, so both equal a diagonal matrix $\Delta$, whose entries $L_{kk}/M_{kk}$ are positive. Moreover,
+  Existence is \Cref{thm:chol-exists}. Suppose $A = LL^\ast = MM^\ast$ with both factors of this form. Then $M^{-1}L = M^\ast L^{-\ast}$. The left side is lower triangular, and the right side is upper triangular. So both sides equal a diagonal matrix $\Delta$. Its entries $L_{kk}/M_{kk}$ are positive. Also,
   \begin{equation}
     \Delta\Delta^\ast = (M^{-1}L)(M^{-1}L)^\ast = M^{-1}LL^\ast M^{-\ast} = M^{-1}MM^\ast M^{-\ast} = I,
   \end{equation}
@@ -357,7 +375,7 @@ Existence tells us that the algorithm runs to completion in exact arithmetic. We
 \begin{equation}
   \abs{\delta A} \le cm\epsm\abs{\tilde{L}}\abs{\tilde{U}} \quad \text{(entrywise)}.
 \end{equation}
-So the key quantity is $\abs{L}\abs{U}$. If it is of the same size as $\abs{A}$, the algorithm is backward stable; if it is much larger, errors are amplified. Without pivoting, $\abs{L}\abs{U}$ can be arbitrarily large: for $A = \left[\begin{smallmatrix} \delta & 1 \\ 1 & 1 \end{smallmatrix}\right]$ with small $\delta$, $L$ contains the entry $1/\delta$.
+So the key quantity is $\abs{L}\abs{U}$. If it is of the same size as $\abs{A}$, the algorithm is backward stable. If it is much larger, errors are amplified. Without pivoting, $\abs{L}\abs{U}$ can be arbitrarily large. For example, for $A = \left[\begin{smallmatrix} \delta & 1 \\ 1 & 1 \end{smallmatrix}\right]$ with small $\delta$, $L$ contains the entry $1/\delta$.
 
 \paragraph{No element growth in Cholesky.} For Cholesky, $U = L^\ast$, so the key quantity is $\abs{L}\abs{L^\ast}$. We will show that it is never larger than the largest entry of $A$. First we need to know where the large entries of an s.p.d.\ matrix are.
 
@@ -371,7 +389,7 @@ So the key quantity is $\abs{L}\abs{U}$. If it is of the same size as $\abs{A}$,
   \begin{equation}
     \begin{bmatrix} A_{ii} & A_{ij} \\ A_{ji} & A_{jj} \end{bmatrix}
   \end{equation}
-  is again s.p.d.: apply the definition of positive definiteness to vectors that are zero outside positions $i$ and $j$. So its eigenvalues are positive, and so is its determinant, $A_{ii}A_{jj} - \abs{A_{ij}}^2 > 0$. Hence $\abs{A_{ij}} < \sqrt{A_{ii}A_{jj}} \le \max(A_{ii}, A_{jj})$.
+  is again s.p.d. To see this, apply the definition of positive definiteness to vectors that are zero outside positions $i$ and $j$. So its eigenvalues are positive, and so is its determinant, $A_{ii}A_{jj} - \abs{A_{ij}}^2 > 0$. Hence $\abs{A_{ij}} < \sqrt{A_{ii}A_{jj}} \le \max(A_{ii}, A_{jj})$.
 \end{proof}
 
 \begin{proposition}[No Growth in the Cholesky Factor]
@@ -383,7 +401,7 @@ So the key quantity is $\abs{L}\abs{U}$. If it is of the same size as $\abs{A}$,
 \end{proposition}
 
 \begin{proof}
-  The diagonal entries of $A = LL^\ast$ are $A_{ii} = \sum_k\abs{L_{ik}}^2$, i.e., row $i$ of $L$ has squared length $A_{ii}$. In particular $\abs{L_{ij}}^2 \le A_{ii}$. For the second claim, we use the Cauchy--Schwarz inequality:
+  The diagonal entries of $A = LL^\ast$ are $A_{ii} = \sum_k\abs{L_{ik}}^2$. So row $i$ of $L$ has squared length $A_{ii}$. In particular $\abs{L_{ij}}^2 \le A_{ii}$. For the second claim, we use the Cauchy--Schwarz inequality:
   \begin{equation}
     \left(\abs{L}\abs{L^\ast}\right)_{ij}
     = \sum_k\abs{L_{ik}}\abs{L_{jk}}
@@ -394,11 +412,11 @@ So the key quantity is $\abs{L}\abs{U}$. If it is of the same size as $\abs{A}$,
   where the last step uses \Cref{lem:spd-diag}.
 \end{proof}
 
-Here $\max_{k,l}\abs{A_{kl}} = \norm{\operatorname{vec}(A)}_\infty$ is the largest entry of $A$, where $\operatorname{vec}(A) \in \K^{m^2}$ stacks the columns of $A$; it is \emph{not} the induced $\infty$-norm (maximum row sum) of \Cref{prop:one-inf-norm}. In words: the growth factor of Cholesky is $1$. Plugging this into the backward error bound gives the main result.
+Here $\max_{k,l}\abs{A_{kl}} = \norm{\operatorname{vec}(A)}_\infty$ is the largest entry of $A$. (The vector $\operatorname{vec}(A) \in \K^{m^2}$ stacks the columns of $A$.) It is \emph{not} the induced $\infty$-norm (maximum row sum) of \Cref{prop:one-inf-norm}. In words: the growth factor of Cholesky is $1$. We put this into the backward error bound and get the main result.
 
 \begin{theorem}[Backward Stability of Cholesky]
   \label{thm:chol-stable}
-  Let $A \in \K^{m \times m}$ be s.p.d., and suppose Cholesky runs to completion in floating-point arithmetic, producing $\tilde{L}$. Then, to first order in $\epsm$,
+  Let $A \in \K^{m \times m}$ be s.p.d. Suppose Cholesky runs to completion in floating-point arithmetic and produces $\tilde{L}$. Then, to first order in $\epsm$,
   \begin{equation}
     \tilde{L}\tilde{L}^\ast = A + \delta A, \qquad \abs{\delta A_{ij}} \le cm\epsm\max_{k,l}\abs{A_{kl}}
   \end{equation}
@@ -406,35 +424,40 @@ Here $\max_{k,l}\abs{A_{kl}} = \norm{\operatorname{vec}(A)}_\infty$ is the large
 \end{theorem}
 
 \begin{proof}[Proof sketch]
-  The analysis of \Cref{thm:lu-backward} applies with $\tilde{U} = \tilde{L}^\ast$ and gives $\abs{\delta A} \le cm\epsm\abs{\tilde{L}}\abs{\tilde{L}^\ast}$~\cite[Theorem 10.3]{Higham}. Strictly speaking, \Cref{prop:chol-growth} is about the exact factor. The computed one satisfies $\sum_k\abs{\tilde{L}_{ik}}^2 = A_{ii} + \delta A_{ii}$, which differs by a term of order $\epsm$ and changes the bound only at second order. Hence $\abs{\tilde{L}}\abs{\tilde{L}^\ast} \le \max_{k,l}\abs{A_{kl}}$ to first order, as desired.
+  The analysis of \Cref{thm:lu-backward} applies with $\tilde{U} = \tilde{L}^\ast$ and gives $\abs{\delta A} \le cm\epsm\abs{\tilde{L}}\abs{\tilde{L}^\ast}$~\cite[Theorem 10.3]{Higham}. Strictly speaking, \Cref{prop:chol-growth} is about the exact factor. The computed factor satisfies $\sum_k\abs{\tilde{L}_{ik}}^2 = A_{ii} + \delta A_{ii}$. This differs by a term of order $\epsm$, which changes the bound only at second order. Hence $\abs{\tilde{L}}\abs{\tilde{L}^\ast} \le \max_{k,l}\abs{A_{kl}}$ to first order, as desired.
 \end{proof}
 
-So \Cref{thm:chol-exists,thm:chol-stable} answer two different questions: the first says that the algorithm runs to completion in exact arithmetic, the second that in floating point its answer is accurate. In LU, pivoting is what fixes both problems; for s.p.d.\ matrices, both hold automatically. (In floating point, completion itself is guaranteed as long as $\kappa_2(A)$ is not too close to $1/\epsm$~\cite[Theorem 10.7]{Higham}.)
+So \Cref{thm:chol-exists,thm:chol-stable} answer two different questions. The first says that the algorithm runs to completion in exact arithmetic. The second says that in floating point its answer is accurate. In LU, we need pivoting to fix both problems. For s.p.d.\ matrices, both hold automatically. (In floating point, completion itself is guaranteed as long as $\kappa_2(A)$ is not too close to $1/\epsm$~\cite[Theorem 10.7]{Higham}.)
 
-\paragraph{Symmetric indefinite matrices.} What if $A$ is Hermitian but not positive definite? A Hermitian matrix is \emph{indefinite} if $\vec{x}^\ast A\vec{x}$ takes both positive and negative values, equivalently if it has both positive and negative eigenvalues. Then pivots can be zero or negative, and Cholesky fails. Instead, one computes
+\paragraph{Symmetric indefinite matrices.} What if $A$ is Hermitian but not positive definite? A Hermitian matrix is \emph{indefinite} if $\vec{x}^\ast A\vec{x}$ takes both positive and negative values. Equivalently, it has both positive and negative eigenvalues. For such a matrix, pivots can be zero or negative, and Cholesky fails. Instead, we compute
 \begin{equation}
   PAP^\T = LDL^\T,
 \end{equation}
 where $P$ is a permutation and $D$ is block diagonal with $1 \times 1$ and $2 \times 2$ blocks ($LDL^\ast$ in the complex case).
 
-Why the symmetric permutation $PAP^\T$ and not $PA$ as in LU? The product $PAP^\T$ swaps rows and columns in the same way, so it keeps the matrix symmetric and we can still work on one half; $PA$ swaps only rows and destroys symmetry. But a symmetric permutation only moves diagonal entries to other diagonal positions; it can never bring an off-diagonal entry onto the diagonal. Consider for instance
+Why do we use the symmetric permutation $PAP^\T$, and not $PA$ as in LU?
+\begin{itemize}
+  \item The product $PAP^\T$ swaps rows and columns in the same way. So it keeps the matrix symmetric, and we can still work on one half.
+  \item $PA$ swaps only rows. This destroys symmetry.
+\end{itemize}
+But a symmetric permutation has a limit. It only moves diagonal entries to other diagonal positions. It can never bring an off-diagonal entry onto the diagonal. For example, consider
 \begin{equation}
   A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}.
 \end{equation}
-Its diagonal is zero, so every $1 \times 1$ pivot is zero no matter how we permute. The way out is to take the whole $2 \times 2$ block as a single pivot: it is invertible, so it becomes one block of $D$, with $L = I$.
+Its diagonal is zero, so every $1 \times 1$ pivot is zero no matter how we permute. The solution is to take the whole $2 \times 2$ block as one pivot. This block is invertible, so it becomes one block of $D$, with $L = I$.
 
-In general, each step moves an invertible $1 \times 1$ or $2 \times 2$ block $E$ to the top left and factors
+In general, each step moves an invertible $1 \times 1$ or $2 \times 2$ block $E$ to the top left. Then it factors
 \begin{equation}
   PAP^\T = \begin{bmatrix} E & C^\ast \\ C & B \end{bmatrix} = \begin{bmatrix} I & 0 \\ CE^{-1} & I \end{bmatrix}\begin{bmatrix} E & 0 \\ 0 & B - CE^{-1}C^\ast \end{bmatrix}\begin{bmatrix} I & E^{-1}C^\ast \\ 0 & I \end{bmatrix},
 \end{equation}
-then recurses on the Schur complement $B - CE^{-1}C^\ast$, exactly as in the derivation of Cholesky. The practical rule for choosing the blocks is \emph{Bunch--Kaufman pivoting} (LAPACK \texttt{sytrf}): when a diagonal entry is too small compared with the off-diagonal entries in its column, a $2 \times 2$ block is used instead, which avoids small pivots. Its stability is comparable to LU with partial pivoting, and it costs about $\frac{1}{3}m^3$ flops.
+and repeats on the Schur complement $B - CE^{-1}C^\ast$, just as in the derivation of Cholesky. In practice, we choose the blocks by \emph{Bunch--Kaufman pivoting} (LAPACK \texttt{sytrf}). If a diagonal entry is too small compared with the off-diagonal entries in its column, it uses a $2 \times 2$ block instead. This avoids small pivots. Its stability is about the same as LU with partial pivoting. It costs about $\frac{1}{3}m^3$ flops.
 
 \section{Schur Complements}
 \label{sec:schur}
 
-So far we eliminated one row and column at a time. Let us now do the same thing with blocks. This leads to the Schur complement, which shows up all over numerical linear algebra (and in statistics and optimization).
+So far we eliminated one row and column at a time. Let us now do the same thing with blocks. This leads to the Schur complement. It appears everywhere in numerical linear algebra (and also in statistics and optimization).
 
-\paragraph{Block Cholesky.} Partition $A = LL^\ast$ into $2 \times 2$ blocks, with $L_{11}$ and $L_{22}$ square lower triangular:
+\paragraph{Block Cholesky.} We partition $A = LL^\ast$ into $2 \times 2$ blocks. Here $L_{11}$ and $L_{22}$ are square and lower triangular:
 \begin{equation}
   L = \begin{bmatrix} L_{11} & 0 \\ L_{21} & L_{22} \end{bmatrix}, \qquad
   A = \begin{bmatrix} A_{11} & A_{12} \\ A_{21} & A_{22} \end{bmatrix}, \qquad
@@ -444,11 +467,11 @@ Comparing blocks, we have
 \begin{equation}
   L_{11}L_{11}^\ast = A_{11}, \qquad L_{21}L_{11}^\ast = A_{21}, \qquad L_{21}L_{21}^\ast + L_{22}L_{22}^\ast = A_{22}.
 \end{equation}
-(The top right block is the conjugate transpose of the second equation and gives nothing new.) We want to solve for $L_{22}L_{22}^\ast$. The second equation gives $L_{21} = A_{21}L_{11}^{-\ast}$, so, using $A_{21}^\ast = A_{12}$,
+(The top right block gives the conjugate transpose of the second equation. So it gives nothing new.) We want to find $L_{22}L_{22}^\ast$. The second equation gives $L_{21} = A_{21}L_{11}^{-\ast}$. Using $A_{21}^\ast = A_{12}$, we get
 \begin{equation}
   L_{21}L_{21}^\ast = A_{21}L_{11}^{-\ast}L_{11}^{-1}A_{21}^\ast = A_{21}(L_{11}L_{11}^\ast)^{-1}A_{21}^\ast = A_{21}A_{11}^{-1}A_{12}.
 \end{equation}
-Substituting this into the third equation, we get
+We put this into the third equation and get
 \begin{equation}
   L_{22}L_{22}^\ast = A_{22} - A_{21}A_{11}^{-1}A_{12}.
 \end{equation}
@@ -461,17 +484,17 @@ The matrix on the right has a name.
   \end{equation}
 \end{definition}
 
-The Schur complement $S$ of \Cref{sec:chol-exists} is the special case where $A_{11} = \alpha$ is $1 \times 1$, so that $A_{11}^{-1}$ is just division by a scalar. (Strictly, the Schur complement is $A_{22} - A_{21}A_{11}^{-1}A_{12}$; as the block equations show, it happens to equal $L_{22}L_{22}^\ast$.) The block equations tell us two things.
+The Schur complement $S$ from Step 1 of \Cref{sec:chol-derive} is the special case where $A_{11} = \alpha$ is $1 \times 1$. Then $A_{11}^{-1}$ is just division by a scalar. (Strictly, the Schur complement is defined as $A_{22} - A_{21}A_{11}^{-1}A_{12}$. The block equations show that it is equal to $L_{22}L_{22}^\ast$.) The block equations tell us two things.
 \begin{enumerate}
   \item $L_{22}$ is the Cholesky factor of the Schur complement. So the algorithm can recurse on blocks instead of single columns.
-  \item The Schur complement equals $L_{22}L_{22}^\ast$ with $L_{22}$ invertible, so it is s.p.d. This is a second proof, besides the congruence argument, that the recursion never breaks down.
+  \item The Schur complement equals $L_{22}L_{22}^\ast$ with $L_{22}$ invertible, so it is s.p.d. This gives a second proof that the recursion never breaks down. (The first proof was the congruence argument.)
 \end{enumerate}
 
-The Schur complement is also exactly what the column-by-column elimination of \Cref{sec:chol-exists} computes. If $A_{11}$ is the leading $k \times k$ block, then after $k$ steps of symmetric elimination,
+The Schur complement is also exactly what the column-by-column elimination of \Cref{sec:chol-exists} computes. Let $A_{11}$ be the leading $k \times k$ block. Then after $k$ steps of symmetric elimination,
 \begin{equation}
   L_k \cdots L_1AL_1^\ast \cdots L_k^\ast = \begin{bmatrix} \diag(d_1, \dots, d_k) & 0 \\ 0 & A/A_{11} \end{bmatrix}.
 \end{equation}
-Indeed, both are obtained by eliminating the first $k$ rows and columns of $A$, and the block equations above show that what is left over in the lower right is $L_{22}L_{22}^\ast = A/A_{11}$. In other words, \emph{$k$ steps of elimination produce the Schur complement of the leading $k \times k$ block.}
+Indeed, both come from eliminating the first $k$ rows and columns of $A$. The block equations above show that what is left in the lower right is $L_{22}L_{22}^\ast = A/A_{11}$. In other words, \emph{$k$ steps of elimination produce the Schur complement of the leading $k \times k$ block.}
 
 \paragraph{The inverse and the Schur complement.} The following lemma is the key tool for the pivot bound. It relates the Schur complement to a block of the inverse.
 
@@ -488,23 +511,28 @@ Indeed, both are obtained by eliminating the first $k$ rows and columns of $A$, 
   \begin{equation}
     A = \begin{bmatrix} I & 0 \\ A_{21}A_{11}^{-1} & I \end{bmatrix}\begin{bmatrix} A_{11} & 0 \\ 0 & S \end{bmatrix}\begin{bmatrix} I & A_{11}^{-1}A_{12} \\ 0 & I \end{bmatrix}.
   \end{equation}
-  (Multiply it out to check.) A unit block triangular matrix is inverted by negating its off-diagonal block, so
+  (Multiply it out to check.) To invert a unit block triangular matrix, we negate its off-diagonal block. So
   \begin{equation}
     A^{-1} = \begin{bmatrix} I & -A_{11}^{-1}A_{12} \\ 0 & I \end{bmatrix}\begin{bmatrix} A_{11}^{-1} & 0 \\ 0 & S^{-1} \end{bmatrix}\begin{bmatrix} I & 0 \\ -A_{21}A_{11}^{-1} & I \end{bmatrix}.
   \end{equation}
-  To read off the lower right block of the product, we only need the second block row of the left factor, which is $\begin{bmatrix} 0 & I \end{bmatrix}$, and the second block column of the right factor, which is $\begin{bmatrix} 0 & I \end{bmatrix}^\T$. So the lower right block of $A^{-1}$ is $S^{-1}$.
+  To read off the lower right block of the product, we only need two pieces. One is the second block row of the left factor, which is $\begin{bmatrix} 0 & I \end{bmatrix}$. The other is the second block column of the right factor, which is $\begin{bmatrix} 0 & I \end{bmatrix}^\T$. So the lower right block of $A^{-1}$ is $S^{-1}$.
 \end{proof}
 
-The proof uses only that $A_{11}$ and $S$ are invertible; neither symmetry nor definiteness is needed. In words, \emph{to get the Schur complement, invert, take the submatrix, and invert again}:
+The proof uses only that $A_{11}$ and $S$ are invertible. It needs neither symmetry nor definiteness. In words: \emph{to get the Schur complement, invert, take the submatrix, and invert again}:
 \begin{equation}
   A/A_{11} = \left((A^{-1})_{22}\right)^{-1}.
 \end{equation}
-Note the inverse: it is easy to misremember the lemma as $\Theta_{22} = A_{22} - A_{21}A_{11}^{-1}A_{12}$, but the block of the inverse is $S^{-1}$, not $S$. The slogan ``invert, take submatrix, invert'' keeps the correct version in mind.
+Watch the inverse here. It is easy to remember the lemma wrongly as $\Theta_{22} = A_{22} - A_{21}A_{11}^{-1}A_{12}$. But the block of the inverse is $S^{-1}$, not $S$. The slogan ``invert, take submatrix, invert'' helps us remember the correct version.
 
-\paragraph{Proof of the pivot bound.} We can now finish the proof of \Cref{thm:chol-exists}. The plan: the $k$-th pivot is a diagonal entry of a Schur complement $S'$; a diagonal entry is at least $\lambda_{\min}(S')$; and by \Cref{lem:schur-inverse}, $(S')^{-1}$ is a submatrix of $A^{-1}$, so it cannot be larger than $A^{-1}$.
+\paragraph{Proof of the pivot bound.} We can now finish the proof of \Cref{thm:chol-exists}. The plan has three parts.
+\begin{itemize}
+  \item The $k$-th pivot is a diagonal entry of a Schur complement $S'$.
+  \item A diagonal entry is at least $\lambda_{\min}(S')$.
+  \item By \Cref{lem:schur-inverse}, $(S')^{-1}$ is a submatrix of $A^{-1}$. So it cannot be larger than $A^{-1}$.
+\end{itemize}
 
 \begin{proof}[Proof of \eqref{eq:pivot-bound}]
-  Fix $k$, and let $S'$ be the Schur complement of the leading $(k - 1) \times (k - 1)$ block of $A$ (for $k = 1$, $S' = A$). By the previous subsection, $S'$ is the matrix left over after $k - 1$ steps of elimination, so the $k$-th pivot is its top left entry, $d_k = \vec{e}_1^\ast S'\vec{e}_1$. We bound $d_k$ in three steps.
+  Fix $k$. Let $S'$ be the Schur complement of the leading $(k - 1) \times (k - 1)$ block of $A$ (for $k = 1$, $S' = A$). As shown above, $S'$ is the matrix left over after $k - 1$ steps of elimination. So the $k$-th pivot is its top left entry, $d_k = \vec{e}_1^\ast S'\vec{e}_1$. We bound $d_k$ in three steps.
   \begin{enumerate}
     \item \emph{A diagonal entry is at least the smallest eigenvalue.} $S'$ is s.p.d., so by the Rayleigh quotient bound $\vec{x}^\ast S'\vec{x} \ge \lambda_{\min}(S')\norm{\vec{x}}^2$,
     \begin{equation}
@@ -512,7 +540,7 @@ Note the inverse: it is easy to misremember the lemma as $\Theta_{22} = A_{22} -
     \end{equation}
     where the last equality holds because the singular values of an s.p.d.\ matrix are its eigenvalues (\Cref{thm:twonorm}).
     \item \emph{The inverse of the Schur complement is a submatrix of $A^{-1}$.} By \Cref{lem:schur-inverse}, $(S')^{-1} = \Theta[k{:}m, k{:}m]$ with $\Theta = A^{-1}$.
-    \item \emph{A submatrix is no larger than the whole matrix.} $\Theta[k{:}m, k{:}m] = P^\T\Theta P$ for the matrix $P = I[{:}, k{:}m]$ with orthonormal columns, so $\norm{(S')^{-1}}_2 \le \norm{A^{-1}}_2$.
+    \item \emph{A submatrix is no larger than the whole matrix.} We have $\Theta[k{:}m, k{:}m] = P^\T\Theta P$, where $P = I[{:}, k{:}m]$ has orthonormal columns. So $\norm{(S')^{-1}}_2 \le \norm{A^{-1}}_2$.
   \end{enumerate}
   Putting the three steps together,
   \begin{equation}
@@ -524,11 +552,11 @@ Note the inverse: it is easy to misremember the lemma as $\Theta_{22} = A_{22} -
 \section{Cholesky and QR}
 \label{sec:chol-qr}
 
-We end with a connection that ties this lecture back to least squares: the Cholesky factorization and the QR factorization are two views of the same object. Let $B \in \K^{m \times n}$ have full column rank, so that $B^\ast B$ is s.p.d.\ (\Cref{thm:gram}). If $B = QR$, then
+We end with a link back to least squares. The Cholesky factorization and the QR factorization are two views of the same thing. Let $B \in \K^{m \times n}$ have full column rank. Then $B^\ast B$ is s.p.d.\ (\Cref{thm:gram}). If $B = QR$, then
 \begin{equation}
   B^\ast B = R^\ast Q^\ast QR = R^\ast R.
 \end{equation}
-That is, the $R$ of QR is a Cholesky factor of $B^\ast B$. The following theorem makes this precise and also gives the converse.
+So the $R$ of QR is a Cholesky factor of $B^\ast B$. The next theorem states this exactly, and also gives the converse.
 
 \begin{theorem}[QR of $B$ Is Cholesky of $B^\ast B$]
   \label{thm:chol-qr}
@@ -540,7 +568,9 @@ That is, the $R$ of QR is a Cholesky factor of $B^\ast B$. The following theorem
 \end{theorem}
 
 \begin{proof}
-  For item 1, $B^\ast B = \hat{R}^\ast\hat{Q}^\ast\hat{Q}\hat{R} = \hat{R}^\ast\hat{R}$, and $\hat{R}^\ast$ is lower triangular with positive diagonal. By \Cref{cor:chol-unique}, this is \emph{the} Cholesky factorization. For item 2, $R$ is invertible because its diagonal is positive, and
+  \emph{Item 1.} We have $B^\ast B = \hat{R}^\ast\hat{Q}^\ast\hat{Q}\hat{R} = \hat{R}^\ast\hat{R}$, and $\hat{R}^\ast$ is lower triangular with positive diagonal. By \Cref{cor:chol-unique}, this is \emph{the} Cholesky factorization.
+
+  \emph{Item 2.} $R$ is invertible because its diagonal is positive. So
   \begin{equation}
     (BR^{-1})^\ast(BR^{-1}) = R^{-\ast}B^\ast BR^{-1} = R^{-\ast}R^\ast RR^{-1} = I,
   \end{equation}
@@ -549,15 +579,19 @@ That is, the $R$ of QR is a Cholesky factor of $B^\ast B$. The following theorem
 
 So QR of $B$ and Cholesky of $B^\ast B$ compute the same triangular factor. This has three consequences.
 \begin{itemize}
-  \item \emph{Uniqueness of QR.} The uniqueness of Cholesky (\Cref{cor:chol-unique}) gives the uniqueness of reduced QR with $r_{jj} > 0$ (\Cref{thm:qr-unique}): $\hat{R}$ must be the Cholesky factor of $B^\ast B$, and then $\hat{Q} = B\hat{R}^{-1}$.
-  \item \emph{Least squares.} Solving the normal equations with Cholesky computes the same $R$ as QR, but by way of $B^\ast B$, whose condition number is $\kappa_2(B)^2$. The two routes agree in exact arithmetic but not in floating point.
-  \item \emph{CholeskyQR.} Item 2 is itself an algorithm: form $B^\ast B$, factor it, and set $\hat{Q} = BR^{-1}$. It is fast and consists mostly of matrix multiplications, but for the same reason the computed $\hat{Q}$ loses orthogonality like $\epsm\kappa_2(B)^2$, worse than modified Gram--Schmidt.
+  \item \emph{Uniqueness of QR.} The uniqueness of Cholesky (\Cref{cor:chol-unique}) gives the uniqueness of reduced QR with $r_{jj} > 0$ (\Cref{thm:qr-unique}). Indeed, $\hat{R}$ must be the Cholesky factor of $B^\ast B$, and then $\hat{Q} = B\hat{R}^{-1}$.
+  \item \emph{Least squares.} Solving the normal equations with Cholesky computes the same $R$ as QR. But it goes through $B^\ast B$, whose condition number is $\kappa_2(B)^2$. The two methods agree in exact arithmetic, but not in floating point.
+  \item \emph{CholeskyQR.} Item 2 is itself an algorithm: form $B^\ast B$, factor it, and set $\hat{Q} = BR^{-1}$. It is fast, and it is mostly matrix multiplications. But for the same reason (it goes through $B^\ast B$), the computed $\hat{Q}$ loses orthogonality like $\epsm\kappa_2(B)^2$. This is worse than modified Gram--Schmidt.
 \end{itemize}
 
 \section{(SUPPLEMENT) Further Topics}
 \subsection{The Roles of Symmetry and Definiteness}
 
-Cholesky needs both conditions, but they do different jobs. Symmetry lets the row and the column eliminations share the same multipliers, which produces the shape $LDL^\ast$. Definiteness makes every pivot positive (so no pivoting is needed), keeps the recursion going (every Schur complement is again positive definite), allows the square root at the end, and brings stability.
+Cholesky needs both symmetry and definiteness, but they do different jobs.
+\begin{itemize}
+  \item \emph{Symmetry} lets the row and column eliminations use the same multipliers. This gives the shape $LDL^\ast$.
+  \item \emph{Definiteness} makes every pivot positive, so no pivoting is needed. It keeps the recursion going, since every Schur complement is again positive definite. It allows the square root at the end. It also gives stability.
+\end{itemize}
 
 \begin{center}
 \begin{tabular}{p{0.3\textwidth}p{0.62\textwidth}}
@@ -565,22 +599,28 @@ Cholesky needs both conditions, but they do different jobs. Symmetry lets the ro
   Case & Outcome \\
   \midrule
   symmetric, positive definite & Cholesky $A = R^\ast R$, no pivoting, stable \\
-  symmetric, indefinite & pivots may vanish; even if $LDL^\ast$ exists, $D$ has negative entries; use Bunch--Kaufman \\
+  symmetric, indefinite & pivots may be zero; even if $LDL^\ast$ exists, $D$ has negative entries; use Bunch--Kaufman \\
   positive definite, not symmetric (real) & pivots still positive and LU without pivoting completes, but no $R^\ast R$ \\
-  symmetric positive semidefinite & pivots may vanish; $R^\ast R$ exists but is not unique; use pivoted Cholesky \\
+  symmetric positive semidefinite & pivots may be zero; $R^\ast R$ exists but is not unique; use pivoted Cholesky \\
   \bottomrule
 \end{tabular}
 \end{center}
 
-In the semidefinite case, $A_{11} = 0$ forces the whole first row and column to vanish (the argument of \Cref{lem:spd-diag}, applied to a semidefinite matrix, gives $\abs{A_{1j}}^2 \le A_{11}A_{jj}$), so that step can simply be skipped.
+In the semidefinite case, if $A_{11} = 0$, then the whole first row and column must be zero. (The argument of \Cref{lem:spd-diag}, applied to a semidefinite matrix, gives $\abs{A_{1j}}^2 \le A_{11}A_{jj}$.) So we can simply skip that step.
 
 \subsection{Over $\R$, ``Positive Definite'' Does Not Imply Symmetric}
 
-If $A = B^\ast B$ with $B$ real, then $A$ is automatically symmetric. But if we only ask that $\vec{x}^\T A\vec{x} > 0$ for all real $\vec{x} \ne \zerovec$, then $A$ need not be symmetric. For example, $A = \left[\begin{smallmatrix} 1 & 1 \\ -1 & 1 \end{smallmatrix}\right]$ has $\vec{x}^\T A\vec{x} = x_1^2 + x_2^2$. The reason is that every real square matrix is the sum of a symmetric part and a skew-symmetric part $K$, and $\vec{x}^\T K\vec{x} = 0$, so the quadratic form only sees the symmetric part. This is why, over $\R$, symmetry is stated as a separate condition in ``s.p.d.''. Over $\C$ it is automatic: if $\vec{x}^\ast A\vec{x}$ is real for all complex $\vec{x}$, then $\vec{x}^\ast(A - A^\ast)\vec{x} = 0$ for all $\vec{x}$, and substituting $\vec{x} = \vec{e}_j + \vec{e}_k$ and $\vec{x} = \vec{e}_j + i\vec{e}_k$ (polarization) gives $A = A^\ast$. The example above, at $\vec{x} = (1, i)^\T$, gives $2 - 2i$, so it is not positive definite over $\C$.
+If $A = B^\ast B$ with $B$ real, then $A$ is automatically symmetric. But suppose we only ask that $\vec{x}^\T A\vec{x} > 0$ for all real $\vec{x} \ne \zerovec$. Then $A$ need not be symmetric. For example, $A = \left[\begin{smallmatrix} 1 & 1 \\ -1 & 1 \end{smallmatrix}\right]$ has $\vec{x}^\T A\vec{x} = x_1^2 + x_2^2$.
+
+The reason is this. Every real square matrix is the sum of a symmetric part and a skew-symmetric part $K$. Since $\vec{x}^\T K\vec{x} = 0$, the quadratic form only sees the symmetric part. This is why, over $\R$, symmetry is stated as a separate condition in ``s.p.d.''.
+
+Over $\C$, symmetry is automatic. Suppose $\vec{x}^\ast A\vec{x}$ is real for all complex $\vec{x}$. Then $\vec{x}^\ast(A - A^\ast)\vec{x} = 0$ for all $\vec{x}$. Substituting $\vec{x} = \vec{e}_j + \vec{e}_k$ and $\vec{x} = \vec{e}_j + i\vec{e}_k$ (polarization) gives $A = A^\ast$. The example above, at $\vec{x} = (1, i)^\T$, gives $2 + 2i$. So it is not positive definite over $\C$.
 
 \subsection{Positive Definiteness Is Necessary for Cholesky}
 
-If $A = R^\ast R$ with $R$ invertible, then $\vec{x}^\ast A\vec{x} = \norm{R\vec{x}}^2 > 0$ for $\vec{x} \ne \zerovec$, so $A$ must be positive definite. So when $A$ is not positive definite, the algorithm is not failing for lack of cleverness: the factorization it seeks does not exist. Moreover, unit lower triangular congruences do not change the determinants of the leading principal submatrices, so $\det A[1{:}k, 1{:}k] = d_1 \cdots d_k$, and the pivots are ratios of consecutive leading principal minors,
+If $A = R^\ast R$ with $R$ invertible, then $\vec{x}^\ast A\vec{x} = \norm{R\vec{x}}^2 > 0$ for $\vec{x} \ne \zerovec$. So $A$ must be positive definite. So when $A$ is not positive definite, the failure is not the algorithm's fault. The factorization it looks for does not exist.
+
+There is more. Congruences by unit lower triangular matrices do not change the determinants of the leading principal submatrices. So $\det A[1{:}k, 1{:}k] = d_1 \cdots d_k$. Hence the pivots are ratios of consecutive leading principal minors:
 \begin{equation}
   d_k = \frac{\det A[1{:}k, 1{:}k]}{\det A[1{:}k-1, 1{:}k-1]}.
 \end{equation}
@@ -591,24 +631,37 @@ Combined with Sylvester's criterion (a Hermitian matrix is positive definite if 
     &\iff \text{all pivots are} > 0 \iff \text{Cholesky completes}.
   \end{aligned}
 \end{equation}
-Cholesky is therefore the standard test for positive definiteness, and much cheaper than computing eigenvalues; \texttt{numpy.linalg.cholesky} raises \texttt{LinAlgError} on a non-positive-definite input exactly at this point.
+So Cholesky is the standard test for positive definiteness. It is much cheaper than computing eigenvalues. For example, \texttt{numpy.linalg.cholesky} raises \texttt{LinAlgError} exactly at this point when the input is not positive definite.
 
 \subsection{Pivots Are Not Eigenvalues}
 
-The diagonal entries of $D$ in $A = \tilde{L}D\tilde{L}^\ast$ are the pivots, which in general differ from the eigenvalues. For example, $\left[\begin{smallmatrix} 2 & 1 \\ 1 & 2 \end{smallmatrix}\right]$ has eigenvalues $1, 3$ and pivots $2, \frac{3}{2}$; only the products agree, both equal to $\det A = 3$. The reason is that $\tilde{L}^\ast \ne \tilde{L}^{-1}$: this is a \emph{congruence}, not a similarity (compare $A = Q\Lambda Q^\ast$ with $Q^\ast = Q^{-1}$). What a congruence preserves is the \emph{inertia} (Sylvester's law of inertia): the numbers of positive, negative, and zero eigenvalues. So the number of positive pivots equals the number of positive eigenvalues. For instance, $\left[\begin{smallmatrix} 1 & 2 \\ 2 & 1 \end{smallmatrix}\right]$ has eigenvalues $3, -1$ and pivots $1, -3$: different values, but one positive and one negative each. The equivalence ``all pivots $> 0 \iff$ positive definite'' rests on exactly this, and the block diagonal $D$ of Bunch--Kaufman reveals the inertia of $A$ in the same way.
+The diagonal entries of $D$ in $A = \tilde{L}D\tilde{L}^\ast$ are the pivots. In general they differ from the eigenvalues. For example, $\left[\begin{smallmatrix} 2 & 1 \\ 1 & 2 \end{smallmatrix}\right]$ has eigenvalues $1, 3$ and pivots $2, \frac{3}{2}$. Only the products agree: both equal $\det A = 3$.
+
+The reason is that $\tilde{L}^\ast \ne \tilde{L}^{-1}$. So this is a \emph{congruence}, not a similarity (compare $A = Q\Lambda Q^\ast$ with $Q^\ast = Q^{-1}$). A congruence preserves the \emph{inertia} (Sylvester's law of inertia): the numbers of positive, negative, and zero eigenvalues. So the number of positive pivots equals the number of positive eigenvalues. For instance, $\left[\begin{smallmatrix} 1 & 2 \\ 2 & 1 \end{smallmatrix}\right]$ has eigenvalues $3, -1$ and pivots $1, -3$. The values differ, but in both cases there is one positive and one negative number. The equivalence ``all pivots $> 0 \iff$ positive definite'' is based on exactly this fact. The block diagonal $D$ of Bunch--Kaufman shows the inertia of $A$ in the same way.
 
 \subsection{Definiteness at a Glance}
 
-``Definite'' means that the sign is determined. A Hermitian matrix is positive (semi)definite if $\vec{x}^\ast A\vec{x} > 0$ ($\ge 0$) for all $\vec{x} \ne \zerovec$, equivalently all eigenvalues are $> 0$ ($\ge 0$); negative (semi)definite is defined likewise; and it is indefinite if $\vec{x}^\ast A\vec{x}$ takes both signs, equivalently there are both positive and negative eigenvalues. For example, $\left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ has the quadratic form $2x_1x_2$, positive along $(1, 1)$ and negative along $(1, -1)$: its graph is a saddle. In optimization, an indefinite Hessian signals a saddle point. A matrix with eigenvalues $1, 0, -1$ is also indefinite.
+``Definite'' means that the sign is fixed. A Hermitian matrix is
+\begin{itemize}
+  \item \emph{positive (semi)definite} if $\vec{x}^\ast A\vec{x} > 0$ ($\ge 0$) for all $\vec{x} \ne \zerovec$. Equivalently, all eigenvalues are $> 0$ ($\ge 0$).
+  \item \emph{negative (semi)definite}: defined in the same way.
+  \item \emph{indefinite} if $\vec{x}^\ast A\vec{x}$ takes both signs. Equivalently, it has both positive and negative eigenvalues.
+\end{itemize}
+For example, $\left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ has the quadratic form $2x_1x_2$. It is positive along $(1, 1)$ and negative along $(1, -1)$, so its graph is a saddle. In optimization, an indefinite Hessian means a saddle point. A matrix with eigenvalues $1, 0, -1$ is also indefinite.
 
 \subsection{Blocked Cholesky and Hardware}
 
-Libraries (LAPACK and cuSOLVER \texttt{potrf}) use a blocked version, as for LU in \Cref{sec:blocked-lu}. Take $A_{11}$ to be a block of size, say, $256 \times 256$ and factor it. Then $L_{21} = A_{21}L_{11}^{-\ast}$ is a triangular solve with many right-hand sides (TRSM), and the Schur complement update $A_{22} - L_{21}L_{21}^\ast$ is a matrix multiplication (SYRK/GEMM). Almost all flops land in Level 3 BLAS and run close to peak. This continues the discussion of memory access in the left- and up-looking variants.
+Libraries (LAPACK and cuSOLVER \texttt{potrf}) use a blocked version, as for LU in \Cref{sec:blocked-lu}. We take $A_{11}$ to be a block of size, say, $256 \times 256$, and factor it. Then:
+\begin{itemize}
+  \item $L_{21} = A_{21}L_{11}^{-\ast}$ is a triangular solve with many right-hand sides (TRSM);
+  \item the Schur complement update $A_{22} - L_{21}L_{21}^\ast$ is a matrix multiplication (SYRK/GEMM).
+\end{itemize}
+So almost all flops are Level 3 BLAS operations, and these run close to peak speed. This continues our discussion of memory access in the left- and up-looking variants.
 
 \subsection{A Statistical Interpretation}
 
-If $A$ is the covariance matrix of a Gaussian vector $(\vec{x}_1, \vec{x}_2)$, then the Schur complement $A_{22} - A_{21}A_{11}^{-1}A_{12}$ is exactly the conditional covariance of $\vec{x}_2$ given $\vec{x}_1$. \Cref{lem:schur-inverse} then says that the corresponding block of the precision matrix $A^{-1}$ is the inverse of the conditional covariance. Much of sparse Cholesky for Gaussian processes and kernel methods builds on this correspondence.
+Let $A$ be the covariance matrix of a Gaussian vector $(\vec{x}_1, \vec{x}_2)$. Then the Schur complement $A_{22} - A_{21}A_{11}^{-1}A_{12}$ is exactly the conditional covariance of $\vec{x}_2$ given $\vec{x}_1$. So \Cref{lem:schur-inverse} says: the matching block of the precision matrix $A^{-1}$ is the inverse of the conditional covariance. Much of sparse Cholesky for Gaussian processes and kernel methods is based on this connection.
 
 \subsection{The Normal Equations, Again}
 
-Backward stability of Cholesky means that the computed $\tilde{R}$ is the exact Cholesky factor of $A^\ast A + \delta$ with a small $\delta$. When least squares is solved through the normal equations, however, the matrix being factored is $A^\ast A$, and the error in $\vec{x}$ is amplified by $\kappa(A^\ast A) = \kappa(A)^2$. So a stable Cholesky does not make ``normal equations plus Cholesky'' a stable least squares solver; for ill-conditioned $A$, QR is still the method of choice (\Cref{ch:normal}).
+Backward stability of Cholesky means this: the computed $\tilde{R}$ is the exact Cholesky factor of $A^\ast A + \delta$ with a small $\delta$. But when we solve least squares through the normal equations, the matrix we factor is $A^\ast A$. So the error in $\vec{x}$ is amplified by $\kappa(A^\ast A) = \kappa(A)^2$. A stable Cholesky therefore does not make ``normal equations plus Cholesky'' a stable least squares solver. For ill-conditioned $A$, QR is still the best method (\Cref{ch:normal}).
