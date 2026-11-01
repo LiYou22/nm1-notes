@@ -1,7 +1,7 @@
 \chapter{Linear Algebra Basics}
 \label{app:linalg}
 
-This appendix collects the first-course linear algebra (Math 54 level) that is used without comment throughout the course: matrix products, transposes, inverses, determinants, subspaces, eigenvalues, orthogonality, and symmetric matrices. Proofs are omitted; results proved in the main text are cross-referenced. Throughout, $A$ and $B$ are matrices of compatible sizes, $c$ is a scalar, and $\vec{x}, \vec{y}$ are column vectors. Supplementary reading:
+This appendix collects the first-course linear algebra that is used without comment throughout the course: matrix products, transposes, inverses, determinants, subspaces, eigenvalues, orthogonality, and symmetric matrices. Proofs are omitted; results proved in the main text are cross-referenced. Throughout, $A$ and $B$ are matrices of compatible sizes, $c$ is a scalar, and $\vec{x}, \vec{y}$ are column vectors. Supplementary reading:
 \begin{itemize}
   \item \cite{Lay} Chapters 2--7.
   \item \cite{TB} Lectures 1 and 2.
@@ -173,7 +173,7 @@ $\lambda$ is an \emph{eigenvalue} of $A \in \K^{n \times n}$ with \emph{eigenvec
 
 \begin{itemize}
   \item \emph{Spectral theorem} (\Cref{thm:spectral}): a Hermitian $A$ has real eigenvalues and an orthonormal basis of eigenvectors, $A = Q\Lambda Q^\ast$ with $Q$ unitary and $\Lambda$ real diagonal. Equivalently $A = \sum_i \lambda_i\vec{q}_i\vec{q}_i^\ast$ (spectral decomposition).
-  \item A Hermitian $A$ is \emph{positive definite} if $\vec{x}^\ast A\vec{x} > 0$ for all $\vec{x} \ne \vec{0}$, equivalently if all its eigenvalues are positive; \emph{semidefinite} versions use $\ge$. Changing variables $\vec{x} = Q\vec{y}$ turns the quadratic form into $\sum_i \lambda_i\abs{y_i}^2$ (principal axes theorem).
+  \item A Hermitian $A$ is \emph{positive definite} if $\vec{x}^\ast A\vec{x} > 0$ for all $\vec{x} \ne \vec{0}$, equivalently if all its eigenvalues are positive; \emph{semidefinite} versions use $\ge$. \emph{Negative} (semi)definite is defined in the same way. $A$ is \emph{indefinite} if $\vec{x}^\ast A\vec{x}$ takes both signs, equivalently if it has both positive and negative eigenvalues. For example, $\left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ is indefinite: for real $\vec{x}$, $\vec{x}^\T A\vec{x} = 2x_1x_2$ is positive along $(1, 1)$ and negative along $(1, -1)$. Changing variables $\vec{x} = Q\vec{y}$ turns the quadratic form into $\sum_i \lambda_i\abs{y_i}^2$ (principal axes theorem).
   \item On the unit sphere, $\vec{x}^\ast A\vec{x}$ ranges over $[\lambda_{\min}, \lambda_{\max}]$, attained at the corresponding eigenvectors (\Cref{def:rayleigh}).
   \item \emph{SVD}: every $A \in \K^{m \times n}$ factors as $A = U\Sigma V^\ast$ with $U, V$ unitary and $\Sigma$ diagonal with entries $\sigma_1 \ge \dots \ge 0$. The $\sigma_i^2$ are the eigenvalues of $A^\ast A$, the columns $\vec{v}_i$ of $V$ are its orthonormal eigenvectors, and $\vec{u}_i = A\vec{v}_i/\sigma_i$ for $\sigma_i > 0$. The number of nonzero $\sigma_i$ is $\rank A$ (\Cref{sec:twonorm}).
 \end{itemize}
