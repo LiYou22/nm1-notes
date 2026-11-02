@@ -10,70 +10,62 @@ Supplementary reading:
 
 \section{Recap and Motivation}
 
-Last lecture (\Cref{ch:hessenberg-qr}) made each QR step cost $O(m^2)$ on a Hessenberg matrix and carried it out by bulge chasing, which chooses its rotations differently from the plain QR step. In this lecture we prove that both give the same $T_k$ (the implicit Q theorem), and then add shifts to make the iteration converge fast.
+Last lecture (\Cref{ch:hessenberg-qr}) reduced $A$ to Hessenberg form $H = Q^\ast AQ$, ran the QR iteration on $H$ at $O(m^2)$ per step, and did each step in one sweep by bulge chasing. Now we prove that bulge chasing gives the same $T_k$, and add shifts to make the iteration converge fast.
+
+The plan of this chapter:
+\begin{enumerate}
+  \item Prove the implicit Q theorem, and apply it to bulge chasing (\Cref{sec:implicit-q-proof,sec:implicit-q-bulge}).
+  \item The shifted QR iteration (\Cref{sec:shifted-qr}).
+  \item Choosing the shift, and the practical QR iteration (\Cref{sec:choosing-shift}).
+  \item The QR iteration is both power and inverse power iteration (\Cref{sec:shifted-orth-iter}).
+\end{enumerate}
 
 \section{Proof of the Implicit Q Theorem}
 \label{sec:implicit-q-proof}
 
-Recall the statement (\Cref{thm:implicit-q}). Let $Q$ be orthogonal, and let $Q^\T AQ = H$ be unreduced upper Hessenberg. Then the first column of $Q$ fixes columns $2, \dots, m$ of $Q$, up to signs.
+Recall the statement (\Cref{thm:implicit-q}): if $Q$ is orthogonal and $Q^\T AQ = H$ is unreduced upper Hessenberg, then the first column of $Q$ determines columns $2, \dots, m$, up to signs.
 
 \begin{proof}
-  We follow~\cite[Theorem 4.9]{Demmel}. Let both $Q^\T AQ = H$ and $V^\T AV = G$ be as in the theorem. Assume they have the same first column, $\vec{q}_1 = \vec{v}_1$. We want to show that
+  Let both $Q^\T AQ = H$ and $V^\T AV = G$ be such, with equal first column $\vec{q}_1 = \vec{v}_1$. We want to show that
   \begin{equation}
     W \defeq V^\T Q = \diag(\pm 1, \dots, \pm 1).
   \end{equation}
-  Then $Q = VW$, i.e., $\vec{q}_i = \pm\vec{v}_i$ for every $i$.
+  Then $Q = VW$, i.e., $\vec{q}_i = \pm\vec{v}_i$.
 
-  $W$ is a product of orthogonal matrices, so it is orthogonal. Its first column is $W\vec{e}_1 = V^\T\vec{q}_1 = V^\T\vec{v}_1 = \vec{e}_1$. We also have $GV^\T = V^\T AVV^\T = V^\T A$ and $AQ = QH$. With these,
+  $W$ is orthogonal, and $W\vec{e}_1 = V^\T\vec{q}_1 = \vec{e}_1$. Using $GV^\T = V^\T A$ and $AQ = QH$, we have
   \begin{equation}
     GW = GV^\T Q = V^\T AQ = V^\T QH = WH.
   \end{equation}
-  Write $\vec{w}_i$ for the $i$th column of $W$. We take column $i$ of both sides. Since $H$ is upper Hessenberg, column $i$ of $H$ is zero below row $i + 1$. So
+  Take column $i$, with $\vec{w}_i$ the $i$th column of $W$. Since $H$ is upper Hessenberg,
   \begin{equation}
-    G\vec{w}_i = (GW)_{:,i} = (WH)_{:,i} = \sum_{j=1}^{i+1}\vec{w}_jH_{ji}.
-  \end{equation}
-  Only the term $j = i + 1$ contains $\vec{w}_{i+1}$. We move the other terms to the right-hand side:
-  \begin{equation}
-    \label{eq:implicit-q-recursion}
+    G\vec{w}_i = (GW)_{:,i} = (WH)_{:,i} = \sum_{j=1}^{i+1}\vec{w}_jH_{ji}
+    \quad\Longrightarrow\quad
     H_{i+1,i}\,\vec{w}_{i+1} = G\vec{w}_i - \sum_{j=1}^{i}H_{ji}\vec{w}_j.
+    \label{eq:implicit-q-recursion}
   \end{equation}
-  We show by induction that each $\vec{w}_i$ is nonzero in entries $1, \dots, i$ only:
+  By induction, $\vec{w}_i$ is zero below entry $i$:
   \begin{equation}
     \vec{w}_i = \begin{bmatrix} \times \\ \vdots \\ \times \\ 0 \\ \vdots \\ 0 \end{bmatrix} \begin{matrix} \\ \\ \leftarrow i \\ \\ \\ \\ \end{matrix}
   \end{equation}
-  This holds for $\vec{w}_1 = \vec{e}_1$. Suppose it holds for $\vec{w}_1, \dots, \vec{w}_i$. We look at the right-hand side of \eqref{eq:implicit-q-recursion}.
-  \begin{itemize}
-    \item $G\vec{w}_i$ is a combination of the first $i$ columns of $G$. Since $G$ is upper Hessenberg, these columns are zero below row $i + 1$.
-    \item The sum is zero below row $i$, by the induction hypothesis.
-  \end{itemize}
-  So the right-hand side is zero below row $i + 1$. Since $H$ is unreduced, $H_{i+1,i} \ne 0$. We divide by it, and get that $\vec{w}_{i+1}$ is zero below row $i + 1$.
+  This holds for $\vec{w}_1 = \vec{e}_1$. If it holds up to $i$, then on the right of \eqref{eq:implicit-q-recursion}, $G\vec{w}_i$ is zero below row $i + 1$ (since $G$ is Hessenberg), and the sum is zero below row $i$. Since $H$ is unreduced, $H_{i+1,i} \ne 0$, so $\vec{w}_{i+1}$ is zero below row $i + 1$.
 
-  So $W$ is upper triangular. $W$ is also orthogonal, so $W^{-1} = W^\T$. This matrix is upper triangular, as the inverse of an upper triangular matrix. It is also lower triangular, as the transpose of one. So $W$ is diagonal. A diagonal orthogonal matrix has $w_{ii}^2 = 1$, so $W = \diag(\pm 1, \dots, \pm 1)$.
+  So $W$ is upper triangular and orthogonal. Then $W^{-1} = W^\T$ is both upper and lower triangular, so $W$ is diagonal, with $w_{ii}^2 = 1$.
 \end{proof}
-
-This proof works like the proof that the QR factorization is unique (\Cref{thm:qr-unique}).
-\begin{itemize}
-  \item We take two solutions, and look at the matrix $W$ that maps one to the other.
-  \item We show that $W$ is triangular and orthogonal. Then $W$ must be diagonal, with entries of modulus one.
-  \item These entries are exactly the sign choices that we cannot fix.
-\end{itemize}
-
-For $\K = \C$, the same proof works with $Q$ and $V$ unitary, and with $\T$ replaced by $\ast$. Then $W$ is a unitary diagonal matrix. So each column of $Q$ is fixed up to a factor of modulus one.
 
 \section{Application to Bulge Chasing}
 \label{sec:implicit-q-bulge}
 
-Both the two-sweep algorithm and bulge chasing compute $T_k = U_k^\T T_{k-1}U_k$. In both, $U_k$ is a product of rotations $G_1G_2\cdots G_{m-1}$, where $G_j$ acts on rows $j$ and $j+1$. We check the conditions of \Cref{thm:implicit-q}.
+Both the two-sweep algorithm and bulge chasing compute $T_k = U_k^\T T_{k-1}U_k$ with $U_k = G_1G_2\cdots G_{m-1}$.
 \begin{itemize}
-  \item \emph{Same first column.} Only $G_1$ touches the first row, so $U_k\vec{e}_1 = G_1\vec{e}_1$ in both cases. Also, $G_1$ is the same in both, because only the first column of $T_{k-1}$ decides it.
+  \item \emph{Same first column.} Only $G_1$ touches row $1$, so $U_k\vec{e}_1 = G_1\vec{e}_1$. And $G_1$ is the same in both, since only the first column of $T_{k-1}$ decides it.
   \item \emph{Hessenberg form.} Both results are upper Hessenberg.
 \end{itemize}
-Assume $T_k$ is unreduced (if not, we deflate). Then \Cref{thm:implicit-q} says that the two $U_k$ agree up to the signs of their columns. So the two $T_k$ agree up to a similarity $D^\T T_kD$ with $D = \diag(\pm 1, \dots, \pm 1)$. This similarity only flips the signs of some rows and columns. As in \Cref{sec:basic-qr}, it does not change the diagonal or the moduli of the entries.
+If $T_k$ is unreduced (if not, we split), \Cref{thm:implicit-q} says the two $U_k$ agree up to column signs. So the two $T_k$ agree up to $D^\T T_kD$ with $D = \diag(\pm 1)$, which changes neither the diagonal nor the moduli of the entries.
 
 \section{The Shifted QR Iteration}
 \label{sec:shifted-qr}
 
-The QR iteration of \Cref{alg:basic-qr} can converge slowly. Its rate is $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}). As for inverse iteration (\Cref{alg:inverse}), the fix is a shift. Here are the two iterations side by side:
+The QR iteration can converge slowly: its rate is $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}). As for inverse iteration (\Cref{alg:inverse}), the fix is a shift:
 \begin{equation}
   \text{normal QR:}\quad
   \begin{aligned}
@@ -87,61 +79,56 @@ The QR iteration of \Cref{alg:basic-qr} can converge slowly. Its rate is $\abs{\
     T_k &= R_kU_k + \mu_kI.
   \end{aligned}
 \end{equation}
-We subtract the shift $\mu_k$ before the factorization, and add it back afterwards. We check the two properties that made the unshifted iteration work.
 
-\paragraph{The upper Hessenberg form is kept.} Subtracting and adding $\mu_kI$ changes only the diagonal. So:
 \begin{itemize}
-  \item $T_{k-1} - \mu_kI$ is upper Hessenberg, and its QR factorization takes $m - 1$ Givens rotations;
-  \item $R_kU_k$ is upper Hessenberg, by \Cref{sec:qr-hessenberg}.
+  \item \emph{It preserves upper Hessenberg form.} The shift only changes the diagonal, so $T_{k-1} - \mu_kI$ is Hessenberg (Givens QR, $O(m^2)$), and $R_kU_k$ is Hessenberg (\Cref{sec:qr-hessenberg}).
+  \item \emph{It preserves the eigenvalues.} See below.
+  \item \emph{How do we track the eigenvectors?}
 \end{itemize}
-Each step still costs $O(m^2)$.
-
-\paragraph{The eigenvalues are kept.} The first equation gives $R_k = U_k^\ast(T_{k-1} - \mu_kI)$. So
+From $R_k = U_k^\ast(T_{k-1} - \mu_kI)$,
 \begin{equation}
-  T_k = R_kU_k + \mu_kI = U_k^\ast(T_{k-1} - \mu_kI)U_k + \mu_kI = U_k^\ast T_{k-1}U_k,
+  T_k = R_kU_k + \mu_kI = U_k^\ast(T_{k-1} - \mu_kI)U_k + \mu_kI = U_k^\ast T_{k-1}U_k.
 \end{equation}
-since $U_k^\ast(\mu_kI)U_k = \mu_kI$. So $T_k$ is again a unitary similarity transformation of $T_{k-1}$. If we did not add back $\mu_kI$, every step would shift the eigenvalues by $-\mu_k$.
-
-\paragraph{Tracking the eigenvectors.} The relation $T_k = U_k^\ast T_{k-1}U_k$ has exactly the same form as in the unshifted iteration. So we can track $Q_k$ as before (\Cref{sec:basic-qr}). After each step we update $Q \gets QU_k$. Then $T_k = (U_1\cdots U_k)^\ast H(U_1\cdots U_k)$. Together with the Hessenberg reduction, this gives
-\begin{equation*}
-  A \approx (QU_1\cdots U_k)\,T_k\,(QU_1\cdots U_k)^\ast
-\end{equation*}
-once $T_k$ is nearly triangular.
+So $T_k$ is a unitary similarity of $T_{k-1}$. (Without adding back $\mu_kI$, every step would shift the eigenvalues by $-\mu_k$.) This is the same relation as in the unshifted case, so we can track $Q_k$ as before (\Cref{sec:basic-qr}): update $Q \gets QU_k$, starting from the $Q$ of the Hessenberg reduction.
 
 \section{Choosing the Shift}
 \label{sec:choosing-shift}
 
-How does the shift change convergence? Which $\mu_k$ should we choose? We first look at the ideal case.
+How does the shift affect convergence? Which $\mu_k$ should we choose?
 
-\paragraph{Exact shift.} Assume $\mu_k$ is an eigenvalue of $T_{k-1}$. Then $T_{k-1} - \mu_kI$ is singular. Assume also that all off-diagonal entries $t_{j+1,j}$ are nonzero, i.e., $T_{k-1}$ is unreduced. (If not, we split the problem; see below.)
+\paragraph{Exact shift.} Assume $\mu_k$ is an eigenvalue. Then $T_{k-1} - \mu_kI$ is singular. Assume also that the off-diagonal entries $t_{j+1,j}$ are nonzero.
 
-First, the first $m - 1$ columns of $T_{k-1} - \mu_kI$ are linearly independent. The reason: rows $2, \dots, m$ of these columns form an upper triangular $(m-1) \times (m-1)$ matrix. Its diagonal entries are the subdiagonal entries of $T_{k-1}$, which are nonzero.
-
-Now look at the QR factorization $T_{k-1} - \mu_kI = U_kR_k$. Column $j$ is a combination of $\vec{u}_1, \dots, \vec{u}_j$, and the coefficient on $\vec{u}_j$ is $r_{jj}$. If $r_{jj} = 0$ for some $j \le m - 1$, then column $j$ would lie in the span of the columns before it. So $r_{11}, \dots, r_{m-1,m-1} \ne 0$. But $R_k$ is singular. So \emph{the last entry must be zero}: $r_{mm} = 0$. Since $R_k$ is upper triangular, its whole last row is zero:
+The first $m - 1$ columns of $T_{k-1} - \mu_kI$ are independent: rows $2, \dots, m$ of these columns form an upper triangular matrix with the nonzero $t_{j+1,j}$ on its diagonal. In $T_{k-1} - \mu_kI = U_kR_k$, column $j$ is a combination of $\vec{u}_1, \dots, \vec{u}_j$ with coefficient $r_{jj}$ on $\vec{u}_j$. So $r_{11}, \dots, r_{m-1,m-1} \ne 0$. But $R_k$ is singular, so the last entry must be zero, $r_{mm} = 0$:
 \begin{equation}
   \underbrace{T_{k-1} - \mu_kI}_{\text{unreduced Hessenberg}} = U_k\,\underbrace{\begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & 0 & 0 \end{bmatrix}}_{R_k}.
 \end{equation}
 
-What happens to $T_k$? The last row of $R_kU_k$ is the last row of $R_k$ times $U_k$. So it is zero. Adding $\mu_kI$ gives
+Now what happens to $T_k$? The last row of $R_kU_k$ is zero, so
 \begin{equation}
-  T_k = R_kU_k + \mu_kI = \begin{bmatrix} \hat{T} & \vec{t} \\ 0 \;\cdots\; 0 & \mu_k \end{bmatrix},
+  T_k = R_kU_k + \mu_kI = \begin{bmatrix} \hat{T} & \vec{t} \\ 0 \;\cdots\; 0 & \mu_k \end{bmatrix}.
 \end{equation}
-with $\hat{T} \in \K^{(m-1) \times (m-1)}$ upper Hessenberg. So $t_{m,m-1} = 0$ and $t_{mm} = \mu_k$. With an exact shift, \emph{one step} of the QR iteration splits off the eigenvalue $\mu_k$.
-
-Then we continue on $\hat{T}$ alone. A unitary $Q$ that acts on $\hat{T}$ acts on the full matrix as $\diag(Q, 1)$:
+With an exact shift, one step splits off the eigenvalue $\mu_k$. We do not have to worry about the last entry any more, and continue on $\hat{T}$. A unitary $Q$ acting on $\hat{T}$ acts on the full matrix as $\diag(Q, 1)$:
 \begin{equation}
   \begin{bmatrix} Q^\ast & 0 \\ 0 & 1 \end{bmatrix}
   \begin{bmatrix} \hat{T} & \vec{t} \\ 0 & \mu_k \end{bmatrix}
   \begin{bmatrix} Q & 0 \\ 0 & 1 \end{bmatrix}
-  = \begin{bmatrix} Q^\ast\hat{T}Q & Q^\ast\vec{t} \\ 0 & \mu_k \end{bmatrix},
+  = \begin{bmatrix} Q^\ast\hat{T}Q & Q^\ast\vec{t} \\ 0 & \mu_k \end{bmatrix}.
 \end{equation}
-So the eigenvalue we already found does not change, and the problem is one size smaller. We need to update the last column $Q^\ast\vec{t}$ only if we want the full Schur form, not just the eigenvalues.
 
-\paragraph{Splitting.} In practice $\mu_k$ is only close to an eigenvalue. So the subdiagonal entries become small, but not zero. Whenever a subdiagonal entry gets close to $0$, we set it to zero. Then $T_k$ is (approximately) block upper triangular:
+\subsection{Practical QR Iteration}
+
+\paragraph{Goal.} Choose $\mu_k \approx$ an eigenvalue, and split up the problem whenever a subdiagonal entry approaches $0$:
 \begin{equation}
-  T_k \approx \begin{bmatrix} (T_k)_{11} & (T_k)_{12} \\ 0 & (T_k)_{22} \end{bmatrix},
+  T_k \approx \begin{bmatrix} (T_k)_{11} & (T_k)_{12} \\ 0 & (T_k)_{22} \end{bmatrix}.
 \end{equation}
-Its eigenvalues are the eigenvalues of the two diagonal blocks. Both blocks are again upper Hessenberg. We recurse on $(T_k)_{11}$ and $(T_k)_{22}$ separately.
+The eigenvalues of $T_k$ are those of the two diagonal blocks. Both are again Hessenberg, so we recurse on $(T_k)_{11}$ and $(T_k)_{22}$.
+
+\paragraph{Which eigenvalue?} We choose $\mu_k \approx \lambda_m$, for two reasons.
+\begin{enumerate}
+  \item We want $\abs{\lambda_i - \mu} \ll \abs{\lambda_j - \mu}$ for $j \ne i$. Without a shift, this is easiest if $\lambda_i$ is small.
+  \item The eigenvalues are ordered by size on the diagonal of $T_k$ (\Cref{thm:orth-iter-schur}), with $\lambda_m$ at the bottom right. Reordering the eigenvalues slows down convergence.
+\end{enumerate}
+So the shift should be close to the eigenvalue already converging in the bottom right corner, and there we check $t_{m,m-1} \approx 0$.
 
 \begin{algorithm}[H]
   \caption{Practical QR iteration.}
@@ -161,21 +148,10 @@ Its eigenvalues are the eigenvalues of the two diagonal blocks. Both blocks are 
   \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Which eigenvalue to aim for?} We want to choose $\mu_k$ close to an eigenvalue, and split the problem wherever a subdiagonal entry is $\approx 0$. But close to which eigenvalue? We choose $\mu_k \approx \lambda_m$, for two reasons.
-\begin{enumerate}
-  \item The shift helps the eigenvalue $\lambda_i$ to separate if $\abs{\lambda_i - \mu} \ll \abs{\lambda_j - \mu}$ for all $j \ne i$. Without a shift ($\mu = 0$), this is easiest when $\lambda_i$ itself is small. That is the eigenvalue of smallest modulus.
-  \item The QR iteration sorts the eigenvalues by size along the diagonal of $T_k$ (\Cref{thm:orth-iter-schur}). The smallest one, $\lambda_m$, is at the bottom right. A shift close to another eigenvalue would have to move that eigenvalue to the bottom. And \emph{reordering the eigenvalues slows down convergence}.
-\end{enumerate}
-So the shift should be close to the eigenvalue that is already converging in the bottom right corner. There we then check whether $t_{m,m-1} \approx 0$.
-
 \section{Relationship with (Inverse) Power Iteration}
 \label{sec:shifted-orth-iter}
 
-We have seen that the QR iteration is the same as orthogonal iteration with $Q_0 = I$ (\Cref{sec:basic-qr}). In the same way, the shifted QR iteration is the same as a \emph{shifted} orthogonal iteration. Start with $T_0 = H$. The first two steps are
-\begin{equation*}
-  H - \mu_1I = U_1R_1, \qquad T_1 = R_1U_1 + \mu_1I, \qquad T_1 - \mu_2I = U_2R_2.
-\end{equation*}
-So
+We have seen that the QR iteration is orthogonal iteration with $Q_0 = I$ (\Cref{sec:basic-qr}). So the shifted QR iteration is a \emph{shifted} orthogonal iteration. Start with $T_0 = H$:
 \begin{equation}
   \begin{aligned}
     U_1U_2R_2R_1 &= U_1(T_1 - \mu_2I)R_1 = U_1(R_1U_1 + \mu_1I - \mu_2I)R_1 \\
@@ -183,50 +159,29 @@ So
     &= (H - \mu_1I)(H - \mu_2I),
   \end{aligned}
 \end{equation}
-In the second line we used $U_1R_1 = H - \mu_1I$ twice:
-\begin{equation*}
-  U_1R_1U_1R_1 = (H - \mu_1I)^2, \qquad U_1(\mu_1 - \mu_2)R_1 = (\mu_1 - \mu_2)(H - \mu_1I).
-\end{equation*}
-
-Let $\bar{Q}_k \defeq U_1\cdots U_k$ and $\bar{R}_k \defeq R_k\cdots R_1$. In the same way we get
+using $U_1R_1 = H - \mu_1I$ twice in the second line. With $\bar{Q}_k \defeq U_1\cdots U_k$ and $\bar{R}_k \defeq R_k\cdots R_1$, we can write
 \begin{equation}
   \label{eq:shifted-qr-poly}
   (H - \mu_kI)\cdots(H - \mu_1I) = \bar{Q}_k\bar{R}_k.
 \end{equation}
-We prove this by induction. By the similarity relation of \Cref{sec:shifted-qr}, $T_{k-1} = \bar{Q}_{k-1}^\ast H\bar{Q}_{k-1}$. So
+By induction, using $T_{k-1} = \bar{Q}_{k-1}^\ast H\bar{Q}_{k-1}$,
 \begin{equation}
   \bar{Q}_k\bar{R}_k = \bar{Q}_{k-1}(T_{k-1} - \mu_kI)\bar{R}_{k-1} = (H - \mu_kI)\bar{Q}_{k-1}\bar{R}_{k-1}.
 \end{equation}
-$\bar{Q}_k$ is unitary. $\bar{R}_k$ is upper triangular, as a product of upper triangular matrices. So \eqref{eq:shifted-qr-poly} is a QR factorization of the matrix polynomial
-\begin{equation*}
-  p_k(H) = (H - \mu_kI)\cdots(H - \mu_1I).
-\end{equation*}
-The factors commute, so their order does not matter.
+So \eqref{eq:shifted-qr-poly} is a QR factorization of the polynomial $p_k(H) = (H - \mu_kI)\cdots(H - \mu_1I)$. In the unshifted case, $\bar{Q}_k$ is the Q factor of $H^k$, which scales the eigenvector component for $\lambda_j$ by $\lambda_j^k$. Now it is scaled by $p_k(\lambda_j) = \prod_i(\lambda_j - \mu_i)$, which is tiny if the shifts are close to $\lambda_j$.
 
-Compare this with the unshifted case. There, $\bar{Q}_k$ is the Q factor of $H^k$. Now the power $H^k$ is replaced by $p_k(H)$.
-\begin{itemize}
-  \item $H^k$ multiplies the eigenvector component for $\lambda_j$ by $\lambda_j^k$.
-  \item $p_k(H)$ multiplies it by $p_k(\lambda_j) = \prod_{i=1}^{k}(\lambda_j - \mu_i)$.
-\end{itemize}
-If the shifts are close to an eigenvalue, $p_k$ is tiny there. This is what makes convergence faster. Also, $T_k = \bar{Q}_k^\ast H\bar{Q}_k$ shows how to track the eigenvectors. $\bar{Q}_k$ collects all the transformations. Once $T_k$ has converged to upper triangular form, $Q\bar{Q}_k$ contains the Schur vectors of $A$.
-
-\paragraph{What about inverse iteration?} We invert \eqref{eq:shifted-qr-poly} and get $p_k(H)^{-1} = \bar{R}_k^{-1}\bar{Q}_k^\ast$. Then we take the adjoint:
+\paragraph{What about inverse iteration?} Invert \eqref{eq:shifted-qr-poly} and take the adjoint:
 \begin{equation}
   \label{eq:shifted-qr-inverse}
   \bar{Q}_k\bar{R}_k^{-\ast} = (H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast},
 \end{equation}
-where $X^{-\ast} \defeq (X^{-1})^\ast$. Inversion and the adjoint both reverse the order of a product. But the factors on the right commute, so the order does not matter. The right-hand side is exactly the operator of shifted inverse iteration (\Cref{alg:inverse}). It is applied to $H^\ast$ with shifts $\bar{\mu}_i$. ($H^\ast$ has the eigenvalues $\bar{\lambda}_j$.)
+with $X^{-\ast} \defeq (X^{-1})^\ast$. The factors commute, so their order does not matter. The right side is shifted inverse iteration (\Cref{alg:inverse}) on $H^\ast$, with shifts $\bar{\mu}_i$.
 
-The difference from \eqref{eq:shifted-qr-poly} is the triangular factor. $\bar{R}_k^{-1}$ is upper triangular, so $\bar{R}_k^{-\ast}$ is \emph{lower} triangular.
-\begin{itemize}
-  \item With an upper triangular factor, the first columns of the product use only the first columns of $\bar{Q}_k$.
-  \item With a lower triangular factor, the last columns of the product use only the last columns of $\bar{Q}_k$.
-\end{itemize}
-In particular, the last column of $\bar{R}_k^{-\ast}$ is $(\bar{R}_k^{-\ast})_{mm}\vec{e}_m$, with $(\bar{R}_k^{-\ast})_{mm} = 1/\overline{(\bar{R}_k)_{mm}}$. So multiplying \eqref{eq:shifted-qr-inverse} by $\vec{e}_m$ gives
+Now $\bar{R}_k^{-\ast}$ is \emph{lower} triangular. So its last column is $(\bar{R}_k^{-\ast})_{mm}\vec{e}_m$, and multiplying \eqref{eq:shifted-qr-inverse} by $\vec{e}_m$ gives
 \begin{equation}
   \bar{\vec{q}}_m = \overline{(\bar{R}_k)_{mm}}\;(H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast}\vec{e}_m,
 \end{equation}
-where $\bar{\vec{q}}_m$ is the last column of $\bar{Q}_k$. So the same matrix $\bar{Q}_k$ does two iterations at once:
+where $\bar{\vec{q}}_m$ is the last column of $\bar{Q}_k$. So the same $\bar{Q}_k$ does two iterations at once:
 \begin{center}
   \begin{tabular}{lll}
     \toprule
@@ -237,47 +192,45 @@ where $\bar{\vec{q}}_m$ is the last column of $\bar{Q}_k$. So the same matrix $\
     \bottomrule
   \end{tabular}
 \end{center}
-The last column is shifted inverse iteration started from $\vec{e}_m$. For a single step, this is the argument of~\cite[Section 4.4.4]{Demmel}. In short, \emph{the QR iteration is both power and inverse power iteration}. This explains two things.
-\begin{itemize}
-  \item The bottom right corner of $T_k$ converges first.
-  \item The shift should be close to $\lambda_m$ (\Cref{sec:choosing-shift}). A shift close to an eigenvalue makes inverse iteration converge fast (\Cref{thm:inverse-iter}).
-\end{itemize}
+\emph{The QR iteration is both power and inverse power iteration.} This is why the bottom right corner of $T_k$ converges first, and why the shift should be close to $\lambda_m$: a shift close to an eigenvalue makes inverse iteration converge fast (\Cref{thm:inverse-iter}). For a single step, see~\cite[Section 4.4.4]{Demmel}.
 
 \section{(SUPPLEMENT) Further Topics}
+
+\subsection{Comparison with the Uniqueness of QR}
+
+The proof of \Cref{thm:implicit-q} works like the proof that the QR factorization is unique (\Cref{thm:qr-unique}): take two solutions, look at the matrix $W$ that maps one to the other, show that it is triangular and orthogonal, hence diagonal with entries of modulus one. These entries are the sign choices we cannot fix.
+
+For $\K = \C$, the same proof works with $Q, V$ unitary and $\T$ replaced by $\ast$. Then each column of $Q$ is fixed up to a factor of modulus one.
+
 \subsection{The Rayleigh Quotient Shift}
 
-In class we did not fix a concrete choice of $\mu_k \approx \lambda_m$. The natural estimate is the bottom right entry,
+A natural estimate of $\lambda_m$ is the bottom right entry,
 \begin{equation*}
-  \mu_k = t_{mm}^{(k-1)} = \vec{e}_m^\ast T_{k-1}\vec{e}_m.
+  \mu_k = t_{mm}^{(k-1)} = \vec{e}_m^\ast T_{k-1}\vec{e}_m,
 \end{equation*}
-This is the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. So we get a link to Rayleigh quotient iteration (\Cref{alg:rqi}). By the inverse iteration view above, the last column of $\bar{Q}_k$ is inverse iteration, with the shift taken from the current Rayleigh quotient. This gives local \emph{quadratic} convergence. Demmel~\cite[Section 4.4.4]{Demmel} explains why.
+the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. By the inverse iteration view, the last column of $\bar{Q}_k$ then does Rayleigh quotient iteration (\Cref{alg:rqi}). This gives local \emph{quadratic} convergence~\cite[Section 4.4.4]{Demmel}:
 \begin{itemize}
   \item Let $\eta = \norm{T_{k-1}(m, 1{:}m-1)}/\norm{A} \ll 1$.
-  \item Setting the off-diagonal part of the last row to zero changes an eigenvalue by $O(\eta\norm{A})$, if the eigenvalue is well separated. So $\abs{\lambda_m - t_{mm}} = O(\eta\norm{A})$.
-  \item The next step shrinks the last row by the factor $\abs{\lambda_m - \mu}/\min_{j \ne m}\abs{\lambda_j - \mu} = O(\eta)$. This gives $O(\eta^2)$.
+  \item Setting the off-diagonal part of the last row to zero changes a well separated eigenvalue by $O(\eta\norm{A})$. So $\abs{\lambda_m - t_{mm}} = O(\eta\norm{A})$.
+  \item The next step shrinks the last row by the factor $\abs{\lambda_m - \mu}/\min_{j \ne m}\abs{\lambda_j - \mu} = O(\eta)$, giving $O(\eta^2)$.
 \end{itemize}
 
 \subsection{The Wilkinson Shift}
 
-The Rayleigh quotient shift can get stuck. Take $T_0 = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$. Then $\mu_1 = t_{22} = 0$. $T_0$ is itself orthogonal, so its QR factorization is $U_1 = T_0$, $R_1 = I$. So $T_1 = R_1U_1 = T_0$. Nothing changes, because the eigenvalues $\pm 1$ are equally far from the shift.
+The Rayleigh quotient shift can get stuck. Take $T_0 = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$. Then $\mu_1 = t_{22} = 0$. $T_0$ is orthogonal, so $U_1 = T_0$, $R_1 = I$, and $T_1 = T_0$. Nothing changes, because the eigenvalues $\pm 1$ are equally far from the shift.
 
-The \emph{Wilkinson shift} uses a different $\mu_k$. Look at the last $2 \times 2$ block of $T_{k-1}$. Of its two eigenvalues, we take the one closer to $t_{mm}$. In the example this is $\pm 1$, an exact eigenvalue, so one step is enough. For symmetric tridiagonal matrices, QR iteration with the Wilkinson shift has these properties~\cite[Theorem 5.8]{Demmel}:
-\begin{itemize}
-  \item it converges globally, and at least linearly;
-  \item for almost all matrices, it converges cubically in the limit.
-\end{itemize}
+The \emph{Wilkinson shift} takes the eigenvalue of the last $2 \times 2$ block of $T_{k-1}$ that is closer to $t_{mm}$. In the example this is $\pm 1$, an exact eigenvalue, so one step is enough. For symmetric tridiagonal matrices, QR iteration with the Wilkinson shift converges globally, at least linearly, and for almost all matrices cubically in the limit~\cite[Theorem 5.8]{Demmel}.
 
 \subsection{When Is a Subdiagonal Entry $\approx 0$?}
 
-We get $T_k$ from $A$ by unitary similarity transformations in floating point. So $T_k$ already has rounding errors of size $O(\epsm)\norm{A}$. A subdiagonal entry smaller than this might as well be zero. Setting it to zero is a backward stable perturbation~\cite[Section 4.4.5]{Demmel}. The iteration stops when all diagonal blocks are $1 \times 1$. (For a real matrix with complex conjugate pairs of eigenvalues, some blocks are $2 \times 2$.)
+$T_k$ comes from $A$ by unitary similarities in floating point, so it already carries rounding errors of size $O(\epsm)\norm{A}$. A subdiagonal entry smaller than this may be set to zero; this is a backward stable perturbation~\cite[Section 4.4.5]{Demmel}. The iteration stops when all diagonal blocks are $1 \times 1$ (or $2 \times 2$ for complex conjugate pairs of a real matrix).
 
 \subsection{Why the Implicit Q Theorem Matters for Shifts}
 
-With a shift $\mu$, one QR step factors $T_{k-1} - \mu I = U_kR_k$. Then it sets $T_k = R_kU_k + \mu I = U_k^\ast T_{k-1}U_k$. By \Cref{thm:implicit-q}, the first column of $U_k$ fixes $U_k$. This first column is parallel to the first column of $T_{k-1} - \mu I$, which is $(t_{11} - \mu, t_{21}, 0, \dots, 0)^\T$. So:
+With a shift, the first column of $U_k$ is parallel to the first column of $T_{k-1} - \mu I$, which is $(t_{11} - \mu, t_{21}, 0, \dots, 0)^\T$. By \Cref{thm:implicit-q}, this column fixes $U_k$. So:
 \begin{itemize}
   \item we compute $G_1$ from these two numbers;
   \item the rest of the step is the bulge chasing of \Cref{alg:bulge-chasing} on $T_{k-1}$ itself;
   \item we never form $T_{k-1} - \mu I$.
 \end{itemize}
-This is the \emph{implicitly shifted} QR algorithm~\cite[Section 4.4.8]{Demmel}. A real matrix can have complex conjugate eigenvalues. Then we can combine two such steps, with shifts $\mu$ and $\bar{\mu}$, into one \emph{double-shift} step that uses only real arithmetic (the Francis step)~\cite[Section 4.4.8]{Demmel}.
-
+This is the \emph{implicitly shifted} QR algorithm. For a real matrix with complex conjugate eigenvalues, two such steps with shifts $\mu$ and $\bar{\mu}$ combine into one \emph{double-shift} step in real arithmetic (the Francis step)~\cite[Section 4.4.8]{Demmel}.

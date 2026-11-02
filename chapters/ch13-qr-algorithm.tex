@@ -9,63 +9,63 @@ Supplementary reading:
 
 \section{Recap and Motivation}
 
-Last lecture (\Cref{ch:orth-iter}) introduced orthogonal iteration: power iteration on several vectors at once, kept orthonormal by a QR factorization. In this lecture we show what it converges to, and then rewrite it as the basic QR iteration, which works with a single matrix $T_k$.
+Last lecture (\Cref{ch:orth-iter}) showed that the Schur factorization is a diagonalization exactly for normal matrices, and introduced orthogonal iteration: power iteration on several vectors, kept orthonormal by a QR factorization. Now we prove that it converges to the Schur factorization, and rewrite it as an iteration on a single matrix.
+
+The plan of this chapter:
+\begin{enumerate}
+  \item The link between the eigendecomposition and the Schur form: $X = QR$ (\Cref{sec:schur-eig}).
+  \item $\spn(Q_k)$ converges to the span of the dominant eigenvectors (\Cref{sec:orth-iter-conv}).
+  \item With $Q_0 = I$, $Q_k^\ast AQ_k$ converges to the Schur form (\Cref{sec:conv-schur}).
+  \item The same iterates come from ``factor as $QR$, multiply as $RQ$'': the basic QR iteration (\Cref{sec:basic-qr}).
+\end{enumerate}
 
 \section{Schur and Eigendecomposition}
 \label{sec:schur-eig}
 
-In this lecture we always assume
+In this lecture we consider
 \begin{equation}
   A = X\Lambda X^{-1}, \qquad \abs{\lambda_1} > \abs{\lambda_2} > \dots > \abs{\lambda_m}.
   \label{eq:qr-alg-assumption}
 \end{equation}
-In words: $A$ is diagonalizable, and its eigenvalues have distinct moduli.
 
-This assumption is \emph{generic}. It holds for all matrices except a small set, and an arbitrarily small perturbation moves a matrix out of this set. Here is why. Every $A$ has a Schur factorization $A = QTQ^\ast$, with the eigenvalues on the diagonal of $T$ (\Cref{thm:schur}). We add a small perturbation to the diagonal of $T$, and so also to $A$:
+This assumption is \emph{generic}: an arbitrarily small perturbation makes it true. Every $A$ has a Schur factorization $A = QTQ^\ast$ with the eigenvalues on the diagonal of $T$ (\Cref{thm:schur}). We add a small perturbation to $T$, and hence to $A$:
 \begin{equation}
   \tilde{A} \defeq Q\bigl(T + \diag(\eps_1, \dots, \eps_m)\bigr)Q^\ast = A + Q\diag(\eps_1, \dots, \eps_m)Q^\ast.
 \end{equation}
-We can choose the $\eps_i$ so that $\tilde{A}$ has eigenvalues of distinct magnitude:
 \begin{itemize}
-  \item $\tilde{A} = Q(T + \diag(\eps_i))Q^\ast$ is a Schur factorization of $\tilde{A}$, with diagonal entries $t_{ii} + \eps_i$. So these are its eigenvalues, and we can choose the $\eps_i$ to make their moduli distinct.
-  \item The perturbation is small: $\norm{\tilde{A} - A} = \max_i\abs{\eps_i}$, since $Q$ is unitary.
+  \item This is a Schur factorization of $\tilde{A}$. So its eigenvalues are $t_{ii} + \eps_i$, and we can choose the $\eps_i$ so that they have distinct magnitude.
+  \item The perturbation is small: $\norm{\tilde{A} - A}_2 = \max_i\abs{\eps_i}$, since $Q$ is unitary.
   \item Distinct eigenvalues imply diagonalizability. So $\tilde{A}$ satisfies \cref{eq:qr-alg-assumption}.
 \end{itemize}
-Also, eigenvalues depend continuously on the matrix. So the strict inequalities still hold after small perturbations of $\tilde{A}$.
+(For real matrices the situation is different; see \Cref{sec:qr-alg-real-generic}.)
 
-\begin{remark}[Real Matrices (SUPPLEMENT)]
-  The perturbation above is complex in general. For real $A$, non-real eigenvalues come in conjugate pairs $\lambda, \overline{\lambda}$ with $\abs{\lambda} = \abs{\overline{\lambda}}$. A small real perturbation keeps them a conjugate pair. So among real matrices, \cref{eq:qr-alg-assumption} is not generic. It fails on an open set, for example near every rotation of $\R^2$ by an angle $\theta \notin \{0, \pi\}$.
-\end{remark}
-
-Now, given $A = X\Lambda X^{-1}$, how do we compute its Schur form? We take a QR factorization of the eigenvector matrix, $X = QR$. Since $X$ is invertible, $R$ is invertible too, and
+Now, given $A = X\Lambda X^{-1}$, how do we obtain the Schur form? We take a QR factorization of the eigenvector matrix:
 \begin{equation}
-  X = QR \quad\Longrightarrow\quad A = QR\Lambda R^{-1}Q^\ast = Q\underbrace{(R\Lambda R^{-1})}_{\text{upper triangular}}Q^\ast.
+  X = QR \quad\Longrightarrow\quad A = Q\underbrace{R\Lambda R^{-1}}_{\text{upper triangular}}Q^\ast.
   \label{eq:schur-from-eig}
 \end{equation}
-Why is $R\Lambda R^{-1}$ upper triangular? $R^{-1}$ is upper triangular, and products of upper triangular matrices are upper triangular. Its diagonal is $r_{ii}\lambda_ir_{ii}^{-1} = \lambda_i$. So \cref{eq:schur-from-eig} is a Schur factorization of $A$. The eigenvalues are on the diagonal of $T = R\Lambda R^{-1}$, in the same order as in $\Lambda$.
+$R$ and $R^{-1}$ are upper triangular, so $R\Lambda R^{-1}$ is too, with diagonal $r_{ii}\lambda_ir_{ii}^{-1} = \lambda_i$. So \cref{eq:schur-from-eig} is a Schur factorization, with the eigenvalues in the order of $\Lambda$.
 
-Since $R$ is upper triangular, $\vec{x}_j = \sum_{i \le j}r_{ij}\vec{q}_i$ only uses the first $j$ columns of $Q$. Since $R$ is invertible, the other direction also holds. So
+Since $R$ is upper triangular and invertible, $\vec{x}_j$ is a combination of $\vec{q}_1, \dots, \vec{q}_j$, and vice versa:
 \begin{equation}
   \spn(\vec{q}_1, \dots, \vec{q}_j) = \spn(\vec{x}_1, \dots, \vec{x}_j), \qquad j = 1, \dots, m.
   \label{eq:schur-nested}
 \end{equation}
-In words: the Schur vectors span the same nested invariant subspaces as the eigenvectors. This is not an algorithm, since it needs $X$. But it shows us the target. In the rest of this chapter we show that orthogonal iteration converges to these subspaces without knowing $X$.
+This needs $X$, so it is not an algorithm. But it shows the target: orthogonal iteration should converge to these nested subspaces.
 
 \section{Convergence of Orthogonal Iteration}
 \label{sec:orth-iter-conv}
 
-How should we think about the convergence of orthogonal iteration (\Cref{alg:orth-iter})? Let $Q_k \in \K^{m \times p}$ be the iterate after $k$ steps. We start from $Q_0$ with $p$ orthonormal columns. Let $A = X\Lambda X^{-1}$ be diagonalizable, with its eigenvalues ordered by modulus, $\abs{\lambda_1} \ge \abs{\lambda_2} \ge \dots \ge \abs{\lambda_m}$. In this section we need less than \cref{eq:qr-alg-assumption}. It is enough that there is a gap after the $p$th eigenvalue:
+How should we think about convergence of orthogonal iteration (\Cref{alg:orth-iter})? Let $Q_k \in \K^{m \times p}$ be the iterate after $k$ steps. Consider $A = X\Lambda X^{-1}$ diagonalizable, with the eigenvalues ordered by modulus and a gap after the $p$th one:
 \begin{equation}
   \abs{\lambda_p} > \abs{\lambda_{p+1}}.
   \label{eq:orth-iter-gap}
 \end{equation}
-As in \Cref{ch:orth-iter}, we track the subspace $\spn(Q_k)$ (the span of the columns), not the individual columns.
-
-The QR step does not change the column space, so $\spn(Q_{k+1}) = \spn(AQ_k)$. Unrolling the recursion gives
+The QR step does not change the column space. So
 \begin{equation}
   \spn(Q_{k+1}) = \spn(AQ_k) = \dots = \spn(A^{k+1}Q_0) = \spn(X\Lambda^{k+1}X^{-1}Q_0).
 \end{equation}
-We pull out the factor $\lambda_p^{k+1}$. This does not change the span. (Note that $\lambda_p \ne 0$, since $\abs{\lambda_p} > \abs{\lambda_{p+1}} \ge 0$ by \cref{eq:orth-iter-gap}.) We get
+We pull out the factor $\lambda_p^{k+1}$, which does not change the span:
 \begin{equation}
   \spn(Q_{k+1}) = \spn\left(\lambda_p^{k+1}X\begin{bmatrix}
     (\lambda_1/\lambda_p)^{k+1} & & & & \\
@@ -73,109 +73,70 @@ We pull out the factor $\lambda_p^{k+1}$. This does not change the span. (Note t
     & & 1 & & \\
     & & & \ddots & \\
     & & & & (\lambda_m/\lambda_p)^{k+1}
-  \end{bmatrix}X^{-1}Q_0\right),
+  \end{bmatrix}X^{-1}Q_0\right).
 \end{equation}
-with the $1$ in position $(p, p)$. By the ordering of the eigenvalues and the gap \cref{eq:orth-iter-gap},
+For $j \le p$, $\abs{\lambda_j/\lambda_p} \ge 1$; for $j > p$, $\abs{\lambda_j/\lambda_p} < 1$. So the last $m - p$ rows decay:
 \begin{equation}
-  \abs{\lambda_i/\lambda_p} \ge 1 \quad\text{for } i \le p, \qquad \abs{\lambda_i/\lambda_p} < 1 \quad\text{for } i > p.
+  \left(\Lambda/\lambda_p\right)^{k+1}X^{-1}Q_0 = \begin{bmatrix} V_k \\ W_k \end{bmatrix}, \qquad V_k \in \K^{p \times p}, \qquad W_k \longrightarrow 0.
 \end{equation}
-So the first $p$ rows of $(\Lambda/\lambda_p)^{k+1}X^{-1}Q_0$ do not decay. The last $m - p$ rows are scaled by factors that tend to zero. We split the matrix in the same way:
+We split $X = [X_p\ \tilde{X}_p]$ the same way, with $X_p = [\vec{x}_1 \cdots \vec{x}_p]$. Then
 \begin{equation}
-  \left(\Lambda/\lambda_p\right)^{k+1}X^{-1}Q_0 = \begin{bmatrix} V_k \\ W_k \end{bmatrix}, \qquad V_k \in \K^{p \times p}, \quad W_k \in \K^{(m-p) \times p}, \qquad W_k \xrightarrow{k \to \infty} 0.
-\end{equation}
-Here $W_k$ decays like $\abs{\lambda_{p+1}/\lambda_p}^{k+1}$. We split the columns of $X$ in the same way: $X = [X_p\ \tilde{X}_p]$, where $X_p = [\vec{x}_1 \cdots \vec{x}_p]$ holds the first $p$ eigenvectors. This gives
-\begin{equation}
-  \spn(Q_{k+1}) = \spn(X\Lambda^{k+1}X^{-1}Q_0) = \spn(X_pV_k + \tilde{X}_pW_k) \xrightarrow{k \to \infty} \spn(X_p).
+  \spn(Q_{k+1}) = \spn(X\Lambda^{k+1}X^{-1}Q_0) = \spn(X_pV_k + \tilde{X}_pW_k) \longrightarrow \spn(X_p).
   \label{eq:orth-iter-split}
 \end{equation}
-So $\spn(Q_k)$ converges to $\spn(\vec{x}_1, \dots, \vec{x}_p)$, the invariant subspace of the $p$ dominant eigenvectors.
-
-To make the limit precise (SUPPLEMENT), we write $B \defeq X^{-1}Q_0 = \left[\begin{smallmatrix} B_1 \\ B_2 \end{smallmatrix}\right]$ for the coordinates of $Q_0$ in the eigenvector basis, with $B_1 \in \K^{p \times p}$. We also write $\Lambda = \diag(\Lambda_1, \Lambda_2)$ with $\Lambda_1 = \diag(\lambda_1, \dots, \lambda_p)$. Then
-\begin{equation}
-  V_k = (\Lambda_1/\lambda_p)^{k+1}B_1, \qquad W_k = (\Lambda_2/\lambda_p)^{k+1}B_2.
-\end{equation}
-Assume $B_1$ is invertible. This means that $Q_0$ has a nonzero component in every direction $\vec{x}_1, \dots, \vec{x}_p$. It is the analogue of $\vec{x}_1^\ast\vec{q}^{(0)} \ne 0$ for power iteration, and it holds with probability one for random $Q_0$. Then $V_k$ is invertible. Multiplying by $V_k^{-1}$ on the right does not change the span:
-\begin{equation}
-  \spn(X_pV_k + \tilde{X}_pW_k) = \spn\bigl(X_p + \tilde{X}_pW_kV_k^{-1}\bigr).
-\end{equation}
-We have $V_k^{-1} = B_1^{-1}(\lambda_p\Lambda_1^{-1})^{k+1}$ and $\abs{\lambda_p/\lambda_i} \le 1$ for $i \le p$. So $\norm{V_k^{-1}} \le \norm{B_1^{-1}}$, and
-\begin{equation}
-  \norm{\tilde{X}_pW_kV_k^{-1}} \le \norm{\tilde{X}_p}\norm{B_2}\norm{B_1^{-1}}\abs{\frac{\lambda_{p+1}}{\lambda_p}}^{k+1} \longrightarrow 0.
-\end{equation}
-So the subspace converges at the rate $\abs{\lambda_{p+1}/\lambda_p}$. This rate is the gap between the last eigenvalue we keep and the first one we drop.
+So $\spn(Q_k)$ converges to the invariant subspace of the $p$ dominant eigenvectors, at the rate $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv-precise}).
 
 \section{Convergence to Schur Factorization}
 \label{sec:conv-schur}
 
-Now we run orthogonal iteration with $p = m$, that is, on a full orthonormal basis. We start from $Q_0 = I$.
-
 \begin{theorem}[Orthogonal Iteration Converges to Schur Form]
   \label{thm:orth-iter-schur}
-  Consider orthogonal iteration (\Cref{alg:orth-iter}) on $A = X\Lambda X^{-1}$ with $p = m$ and $Q_0 = I$. Assume that all eigenvalues of $A$ have distinct absolute values, $\abs{\lambda_1} > \dots > \abs{\lambda_m}$, and that the leading blocks $(X^{-1})_{1:j,1:j}$ have full rank for $j = 1, \dots, m$. Then
+  Consider orthogonal iteration (\Cref{alg:orth-iter}) on $A = X\Lambda X^{-1}$ with $p = m$ and $Q_0 = I$. If all eigenvalues of $A$ have distinct absolute values and the leading blocks $(X^{-1})_{1:j,1:j}$ have full rank for $j = 1, \dots, m$, then
   \begin{equation}
     T_k \defeq Q_k^\ast AQ_k
   \end{equation}
-  converges to the Schur form of $A$: its strictly lower triangular part tends to zero, and its diagonal tends to $(\lambda_1, \dots, \lambda_m)$.
+  converges to the Schur form of $A$.
 \end{theorem}
 
-Note that the condition is on the leading blocks of $X^{-1}$, not of $X$. The two conditions are not equivalent. Some books state the condition with $X_{1:j,1:j}$ (e.g., \cite[Thm.~4.8]{Demmel}).
-
-Why $X^{-1}$? The argument of \Cref{sec:orth-iter-conv} needs a condition on $X^{-1}Q_0 = X^{-1}$. For $j$ columns, the block $B_1$ consists of the first $j$ rows and columns, $(X^{-1})_{1:j,1:j}$. If we only ask that $X_{1:j,1:j}$ have full rank for all $j$, this is not enough. For example, take
-\begin{equation}
-  X = \begin{bmatrix} 1 & 1 \\ 1 & 0 \end{bmatrix}, \qquad X^{-1} = \begin{bmatrix} 0 & 1 \\ 1 & -1 \end{bmatrix}.
-\end{equation}
-Here $X_{1:1,1:1} = 1$ and $X$ are nonsingular, but $(X^{-1})_{11} = 0$. The starting vector $\vec{e}_1 = \vec{x}_2$ is itself an eigenvector. It has no component along $\vec{x}_1$, and in exact arithmetic $\vec{q}_1^{(k)} = \vec{x}_2$ forever.
-
-For normal $A = Q\Lambda Q^\ast$ the difference disappears. Then $X = Q$ is unitary, $X^{-1} = Q^\ast$, and $(Q^\ast)_{1:j,1:j} = (Q_{1:j,1:j})^\ast$. So the leading blocks of $X^{-1}$ are nonsingular exactly when those of $X$ are. Trefethen and Bau treat real symmetric $A = Q\Lambda Q^\T$. This is why they can state the condition as ``all leading principal submatrices of $Q$ are nonsingular''~\cite[Thm.~28.4]{TB}. For non-normal $A$, the example above shows that only the condition on $X^{-1}$ is correct.
+The rank condition is on $X^{-1}$, not on $X$; a condition on $X_{1:j,1:j}$ is not enough in general (\Cref{sec:xinv-condition}).
 
 \begin{proof}[Proof sketch]
-  Fix $p \in \{1, \dots, m - 1\}$. We split the columns of $Q_k$ after the $p$th column:
-  \begin{equation}
-    Q_k = [\bar{Q}_k\ \tilde{Q}_k], \qquad \bar{Q}_k \in \K^{m \times p}.
-  \end{equation}
-  (Here $p$ is only the place where we split. $Q_k$ still has all $m$ columns.) Then
+  Fix $p < m$ and split $Q_k = [\bar{Q}_k\ \tilde{Q}_k]$ with $\bar{Q}_k \in \K^{m \times p}$. Then
   \begin{equation}
     T_k = Q_k^\ast AQ_k = \begin{bmatrix} \bar{Q}_k^\ast A\bar{Q}_k & \bar{Q}_k^\ast A\tilde{Q}_k \\ \tilde{Q}_k^\ast A\bar{Q}_k & \tilde{Q}_k^\ast A\tilde{Q}_k \end{bmatrix}.
   \end{equation}
-  Column $j$ of a QR factorization depends only on the first $j$ columns of the factored matrix. So $\bar{Q}_k$ is exactly the iterate of orthogonal iteration with $p$ columns, started from $\bar{Q}_0 = I_{:,1:p}$. By \Cref{sec:orth-iter-conv},
+  The first $p$ columns of a QR factorization depend only on the first $p$ columns of the matrix. So $\bar{Q}_k$ is orthogonal iteration with $p$ columns, and by \Cref{sec:orth-iter-conv},
   \begin{equation}
-    \spn(\bar{Q}_k) \longrightarrow \spn(\vec{x}_1, \dots, \vec{x}_p).
+    \spn(\bar{Q}_k) \longrightarrow \spn(\vec{x}_1, \dots, \vec{x}_p)
+    \quad\Longrightarrow\quad
+    \spn(A\bar{Q}_k) \longrightarrow \spn(A[\vec{x}_1 \cdots \vec{x}_p]) = \spn(\vec{x}_1, \dots, \vec{x}_p).
   \end{equation}
-  We apply $A$:
-  \begin{equation}
-    \spn(A\bar{Q}_k) \longrightarrow \spn(A[\vec{x}_1 \cdots \vec{x}_p]) = \spn([\vec{x}_1 \cdots \vec{x}_p]).
-  \end{equation}
-  The equality holds because $A[\vec{x}_1 \cdots \vec{x}_p] = [\vec{x}_1 \cdots \vec{x}_p]\diag(\lambda_1, \dots, \lambda_p)$ and $\lambda_1, \dots, \lambda_p \ne 0$ (as $\abs{\lambda_p} > \abs{\lambda_{p+1}} \ge 0$). In words: the span of the dominant eigenvectors is invariant under $A$. So the columns of $A\bar{Q}_k$ lie (asymptotically) in $\spn(\bar{Q}_k)$. The columns of $\tilde{Q}_k$ are orthogonal to $\spn(\bar{Q}_k)$. Hence
+  So the columns of $A\bar{Q}_k$ lie (asymptotically) in $\spn(\bar{Q}_k)$, and $\tilde{Q}_k$ is orthogonal to it. Hence
   \begin{equation}
     \tilde{Q}_k^\ast A\bar{Q}_k \longrightarrow 0.
   \end{equation}
-  More precisely, $\tilde{Q}_k^\ast\bar{Q}_k = 0$ gives
-  \begin{equation*}
-    \tilde{Q}_k^\ast A\bar{Q}_k = \tilde{Q}_k^\ast(I - \bar{Q}_k\bar{Q}_k^\ast)A\bar{Q}_k.
-  \end{equation*}
-  Here $(I - \bar{Q}_k\bar{Q}_k^\ast)A\bar{Q}_k$ is the part of $A\bar{Q}_k$ outside $\spn(\bar{Q}_k)$, and it tends to zero.
-
-  The lower left block of the split after column $p$ contains the entries $(i, j)$ with $i > p \ge j$. Every strictly lower triangular entry $(i, j)$, $i > j$, lies in this block for $p = j$. So the argument covers all subdiagonal blocks. Letting $p$ range over $1, \dots, m - 1$ shows that
+  This is true for all subdiagonal blocks: every entry $(i, j)$ with $i > j$ lies in the lower left block for $p = j$. So
   \begin{equation}
-    T_k = Q_k^\ast AQ_k \longrightarrow \text{upper triangular}.
+    Q_k^\ast AQ_k \longrightarrow \text{upper triangular}. \qedhere
   \end{equation}
-  For the diagonal (SUPPLEMENT): the block $\bar{Q}_k^\ast A\bar{Q}_k$ is the matrix of $A$ restricted to $\spn(\bar{Q}_k)$, and $\spn(\bar{Q}_k) \to \spn(\vec{x}_1, \dots, \vec{x}_p)$. So its eigenvalues tend to $\lambda_1, \dots, \lambda_p$, as in \Cref{prop:orth-iter-2x2}. This block becomes upper triangular, so its diagonal holds these eigenvalues. Comparing $p$ with $p - 1$ shows that the $p$th diagonal entry of $T_k$ tends to $\lambda_p$.
 \end{proof}
+
+The diagonal then holds the eigenvalues, ordered by decreasing modulus (\Cref{sec:conv-schur-diag}).
 
 \section{Basic QR Iteration}
 \label{sec:basic-qr}
 
-With orthogonal iteration we can compute
+Orthogonal iteration allows computing
 \begin{equation}
-  T_k \defeq Q_k^\ast AQ_k.
+  T_k \defeq Q_k^\ast AQ_k,
 \end{equation}
-By \Cref{thm:orth-iter-schur}, $T_k$ converges to the triangular factor of a Schur factorization.
+which converges to the Schur factorization (\Cref{thm:orth-iter-schur}). But computing $T_{k+1}$ requires $Q_k$ and a matrix-matrix product with $A$. Can we derive an iteration $T_k \to T_{k+1}$?
 
-To compute $T_{k+1}$ this way, we need $Q_k$ and a matrix-matrix product with $A$. Can we instead find an iteration $T_k \to T_{k+1}$ that uses only the $T$'s? We have
+Observe that
 \begin{equation}
   T_k = Q_k^\ast AQ_k, \qquad T_{k+1} = Q_{k+1}^\ast AQ_{k+1}.
 \end{equation}
-One step of orthogonal iteration is the QR factorization $Q_{k+1}R_{k+1} = AQ_k$. We multiply by $Q_{k+1}^\ast$ on the left and by $Q_k^\ast$ on the right. (Here $p = m$, so $Q_k$ is square and $Q_kQ_k^\ast = I$.) This gives
+By orthogonal iteration (with $Q_k$ square, so $Q_kQ_k^\ast = I$),
 \begin{equation}
   Q_{k+1}R_{k+1} = AQ_k \quad\Longrightarrow\quad R_{k+1}Q_k^\ast = Q_{k+1}^\ast A.
 \end{equation}
@@ -184,22 +145,14 @@ We put the first form into $T_k$ and the second into $T_{k+1}$:
   T_k = Q_k^\ast(Q_{k+1}R_{k+1}), \qquad T_{k+1} = (R_{k+1}Q_k^\ast)Q_{k+1}.
   \label{eq:qr-iter-derivation}
 \end{equation}
-Both expressions contain the same product $Q_k^\ast Q_{k+1}$. We give it a name:
+With $U_{k+1} \defeq Q_k^\ast Q_{k+1}$:
 \begin{equation}
-  U_{k+1} \defeq Q_k^\ast Q_{k+1}: \qquad T_k = U_{k+1}R_{k+1}, \qquad T_{k+1} = R_{k+1}U_{k+1}.
+  T_k = U_{k+1}R_{k+1} \quad\xrightarrow{\ QR\ \to\ RQ\ }\quad T_{k+1} = R_{k+1}U_{k+1}.
   \label{eq:qr-iter-UR}
 \end{equation}
-Here $U_{k+1}$ is unitary, since $U_{k+1}^\ast U_{k+1} = Q_{k+1}^\ast Q_kQ_k^\ast Q_{k+1} = I$, and $R_{k+1}$ is upper triangular. So $T_k = U_{k+1}R_{k+1}$ is a QR factorization of $T_k$. We get $T_{k+1}$ by multiplying its factors in reverse order:
-\begin{equation}
-  T_k = U_{k+1}R_{k+1} \quad\longrightarrow\quad T_{k+1} = R_{k+1}U_{k+1}.
-\end{equation}
-In short: factor as $QR$, multiply back as $RQ$. Neither $A$ nor $Q_k$ appears. Also, $T_{k+1}$ is unitarily similar to $T_k$:
-\begin{equation*}
-  T_{k+1} = R_{k+1}U_{k+1} = U_{k+1}^\ast(U_{k+1}R_{k+1})U_{k+1} = U_{k+1}^\ast T_kU_{k+1}.
-\end{equation*}
-So every $T_k$ has the eigenvalues of $A$.
+$U_{k+1}$ is unitary and $R_{k+1}$ is upper triangular, so $T_k = U_{k+1}R_{k+1}$ is a QR factorization of $T_k$. Also, $T_{k+1} = U_{k+1}^\ast T_kU_{k+1}$, so every $T_k$ has the eigenvalues of $A$.
 
-We start orthogonal iteration from $Q_0 = I$. This gives $T_0 = Q_0^\ast AQ_0 = A$, so the iteration starts from $A$ itself.
+This gives a simple algorithm: compute a QR factorization and swap the order of the factors. With $Q_0 = I$ we start from $T_0 = A$.
 
 \begin{algorithm}[H]
   \caption{Basic QR iteration (QR algorithm without shifts).}
@@ -208,69 +161,103 @@ We start orthogonal iteration from $Q_0 = I$. This gives $T_0 = Q_0^\ast AQ_0 = 
     \Require $A \in \K^{m \times m}$
     \State $T \gets A$
     \For{$k = 1, \dots, \mathrm{maxiter}$}
-      \State $UR \gets T$ \Comment{QR factorization}
+      \State $U, R \gets \mathrm{qr}(T)$
       \State $T \gets RU$
     \EndFor
     \State \Return $\diag(T)$ \Comment{approximate eigenvalues $\lambda_1, \dots, \lambda_m$}
   \end{algorithmic}
 \end{algorithm}
 
-By \Cref{thm:orth-iter-schur}, $T$ converges to upper triangular form. The eigenvalues are on its diagonal, ordered by decreasing modulus.
-
-A library QR routine may not return the same factors as orthogonal iteration. For invertible $T$, QR factors are unique only up to signs (phases) of the columns of $U$ and the rows of $R$~(\Cref{ch:qr}). Every choice gives $T_{k+1} = U^\ast T_kU$. Different choices give iterates that differ by a diagonal unitary similarity $D^\ast T_kD$. This does not change the diagonal or the moduli of the entries.
-
-\paragraph{How do we get $Q$?} \Cref{alg:basic-qr} returns only the eigenvalues. The Schur vectors $Q_k$ of orthogonal iteration never appear. We can recover them from the factors $U$, since by definition
+\paragraph{How to obtain $Q$?} By definition, $U_{k+1} = Q_k^\ast Q_{k+1}$. Implicitly $Q_0 = I$, so the product telescopes:
 \begin{equation}
-  U_{k+1} = Q_k^\ast Q_{k+1}.
+  U_1U_2\cdots U_{k+1} = Q_0^\ast Q_1\,Q_1^\ast Q_2\cdots Q_k^\ast Q_{k+1} = Q_{k+1}.
 \end{equation}
-The product of the $U$'s telescopes. Since $Q_kQ_k^\ast = I$ and $Q_0 = I$,
-\begin{equation}
-  U_1U_2\cdots U_{k+1} = (Q_0^\ast Q_1)(Q_1^\ast Q_2)\cdots(Q_k^\ast Q_{k+1}) = Q_0^\ast Q_{k+1} = Q_{k+1}.
-\end{equation}
-So to get the Schur vectors, we start from $Q \gets I$ and update $Q \gets QU$ after each QR factorization in \Cref{alg:basic-qr}. At the end, $A \approx QTQ^\ast$.
+So we start from $Q \gets I$ and update $Q \gets QU$ after each step. At the end, $A \approx QTQ^\ast$.
 
-The factors $U_k$ have a simple meaning.
-\begin{itemize}
-  \item Near convergence, $Q_{k+1} \approx Q_k$ up to the phases of the columns. So $U_{k+1} = Q_k^\ast Q_{k+1}$ is a small rotation: it is close to a diagonal unitary matrix $D$.
-  \item We can also see this from $T_k = U_{k+1}R_{k+1}$. Once $T_k$ is nearly upper triangular, $U_{k+1} = T_kR_{k+1}^{-1}$ is nearly upper triangular. It is also unitary, so it is nearly diagonal.
-  \item With the normalization $r_{ii} > 0$ we get $D \approx \diag(\lambda_1/\abs{\lambda_1}, \dots, \lambda_m/\abs{\lambda_m})$. So $D = I$ only when all eigenvalues are positive. A negative eigenvalue flips the sign of its column of $Q_k$ in every step, exactly as in power iteration.
-\end{itemize}
-Up to these phases, the $U_k$ are a sequence of rotation corrections. Together they turn $Q_0 = I$ into the Schur vectors $Q$. The corrections are large in the first steps, and they get smaller and smaller as $T_k$ approaches triangular form.
+Close to convergence, $Q_{k+1} \approx Q_k$, so $U_{k+1} = Q_k^\ast Q_{k+1}$ is a small rotation (up to signs, \Cref{sec:qr-alg-phases}). The $U_k$ are a series of rotational corrections transforming $I$ to $Q$.
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:qr-alg-supp}
+
+\subsection{Real Matrices: Distinct Moduli Are Not Generic}
+\label{sec:qr-alg-real-generic}
+
+The perturbation in \Cref{sec:schur-eig} is complex in general. For real $A$, non-real eigenvalues come in conjugate pairs $\lambda, \overline{\lambda}$ with $\abs{\lambda} = \abs{\overline{\lambda}}$, and a small real perturbation keeps them a pair. So among real matrices, \cref{eq:qr-alg-assumption} fails on an open set, for example near every rotation of $\R^2$ by an angle $\theta \notin \{0, \pi\}$. Also, eigenvalues depend continuously on the matrix, so in the complex case the strict inequalities survive small perturbations of $\tilde{A}$.
+
+\subsection{The Convergence Rate of the Subspace}
+\label{sec:orth-iter-conv-precise}
+
+Write $B \defeq X^{-1}Q_0 = \left[\begin{smallmatrix} B_1 \\ B_2 \end{smallmatrix}\right]$ with $B_1 \in \K^{p \times p}$, and $\Lambda = \diag(\Lambda_1, \Lambda_2)$ with $\Lambda_1 = \diag(\lambda_1, \dots, \lambda_p)$. Note $\lambda_p \ne 0$ by \cref{eq:orth-iter-gap}. Then
+\begin{equation}
+  V_k = (\Lambda_1/\lambda_p)^{k+1}B_1, \qquad W_k = (\Lambda_2/\lambda_p)^{k+1}B_2.
+\end{equation}
+Assume $B_1$ is invertible: $Q_0$ has a component in every direction $\vec{x}_1, \dots, \vec{x}_p$. This is the analogue of $\vec{x}_1^\ast\vec{q}^{(0)} \ne 0$ for power iteration, and it holds with probability one for random $Q_0$. Then
+\begin{equation}
+  \spn(X_pV_k + \tilde{X}_pW_k) = \spn\bigl(X_p + \tilde{X}_pW_kV_k^{-1}\bigr),
+\end{equation}
+and since $V_k^{-1} = B_1^{-1}(\lambda_p\Lambda_1^{-1})^{k+1}$ has $\norm{V_k^{-1}} \le \norm{B_1^{-1}}$,
+\begin{equation}
+  \norm{\tilde{X}_pW_kV_k^{-1}} \le \norm{\tilde{X}_p}\norm{B_2}\norm{B_1^{-1}}\abs{\frac{\lambda_{p+1}}{\lambda_p}}^{k+1} \longrightarrow 0.
+\end{equation}
+So the rate is the gap between the last eigenvalue we keep and the first one we drop.
+
+\subsection{Why the Condition Is on $X^{-1}$}
+\label{sec:xinv-condition}
+
+The argument of \Cref{sec:orth-iter-conv-precise} needs $B_1 = (X^{-1}Q_0)_{1:j,1:j} = (X^{-1})_{1:j,1:j}$ invertible. Asking that $X_{1:j,1:j}$ be invertible is not enough. Take
+\begin{equation}
+  X = \begin{bmatrix} 1 & 1 \\ 1 & 0 \end{bmatrix}, \qquad X^{-1} = \begin{bmatrix} 0 & 1 \\ 1 & -1 \end{bmatrix}.
+\end{equation}
+Here $X_{11} = 1$ and $X$ are nonsingular, but $(X^{-1})_{11} = 0$. The starting vector $\vec{e}_1 = \vec{x}_2$ is an eigenvector with no component along $\vec{x}_1$, and in exact arithmetic $\vec{q}_1^{(k)} = \vec{x}_2$ forever.
+
+For normal $A = Q\Lambda Q^\ast$ the two conditions agree: $X^{-1} = Q^\ast$ and $(Q^\ast)_{1:j,1:j} = (Q_{1:j,1:j})^\ast$. This is why Trefethen and Bau, who treat real symmetric $A$, can state the condition with the leading blocks of $Q$~\cite[Thm.~28.4]{TB}. Some books state it with $X_{1:j,1:j}$ for general $A$ (e.g., \cite[Thm.~4.8]{Demmel}).
+
+\subsection{The Diagonal of $T_k$}
+\label{sec:conv-schur-diag}
+
+In the proof of \Cref{thm:orth-iter-schur}, $\bar{Q}_k^\ast A\bar{Q}_k$ is the matrix of $A$ restricted to $\spn(\bar{Q}_k) \to \spn(\vec{x}_1, \dots, \vec{x}_p)$. So its eigenvalues tend to $\lambda_1, \dots, \lambda_p$, as in \Cref{prop:orth-iter-2x2}. This block becomes upper triangular, so its diagonal holds these eigenvalues. Comparing $p$ with $p - 1$ shows that $(T_k)_{pp} \to \lambda_p$.
+
+A precise version of ``the columns of $A\bar{Q}_k$ lie in $\spn(\bar{Q}_k)$'': since $\tilde{Q}_k^\ast\bar{Q}_k = 0$,
+\begin{equation}
+  \tilde{Q}_k^\ast A\bar{Q}_k = \tilde{Q}_k^\ast(I - \bar{Q}_k\bar{Q}_k^\ast)A\bar{Q}_k,
+\end{equation}
+and $(I - \bar{Q}_k\bar{Q}_k^\ast)A\bar{Q}_k$, the part of $A\bar{Q}_k$ outside $\spn(\bar{Q}_k)$, tends to zero. This uses $\lambda_1, \dots, \lambda_p \ne 0$.
+
+\subsection{Sign Choices and the Phases of $U_k$}
+\label{sec:qr-alg-phases}
+
+A library QR routine may not return the same factors as orthogonal iteration. For invertible $T$, QR factors are unique only up to signs (phases) of the columns of $U$ and the rows of $R$ (\Cref{ch:qr}). Every choice gives $T_{k+1} = U^\ast T_kU$, and different choices give iterates that differ by a diagonal unitary similarity $D^\ast T_kD$. This changes neither the diagonal nor the moduli of the entries.
+
+Near convergence, $T_k$ is nearly upper triangular, so $U_{k+1} = T_kR_{k+1}^{-1}$ is nearly upper triangular. Being unitary, it is nearly diagonal: $U_{k+1} \approx D$. With $r_{ii} > 0$, $D \approx \diag(\lambda_1/\abs{\lambda_1}, \dots, \lambda_m/\abs{\lambda_m})$. So a negative eigenvalue flips the sign of its column of $Q_k$ in every step, as in power iteration.
+
 \subsection{The QR Algorithm Factors the Powers of $A$}
 
-Let $\underline{R}_k \defeq R_kR_{k-1}\cdots R_1$. This is the product of the triangular factors of orthogonal iteration started from $Q_0 = I$. Then
+Let $\underline{R}_k \defeq R_kR_{k-1}\cdots R_1$. Then
 \begin{equation}
   A^k = Q_k\underline{R}_k, \qquad T_k = Q_k^\ast AQ_k, \qquad Q_k = U_1U_2\cdots U_k.
   \label{eq:qr-alg-powers}
 \end{equation}
-The first identity follows by induction:
-\begin{equation*}
-  A^k = A\,Q_{k-1}\underline{R}_{k-1} = Q_kR_k\underline{R}_{k-1} = Q_k\underline{R}_k.
-\end{equation*}
-Also, $\underline{R}_k$ is upper triangular, as a product of upper triangular matrices. So the QR algorithm computes a QR factorization of $A^k$ without ever forming $A^k$. (The columns of $A^k$ would all be nearly parallel to $\vec{x}_1$.) The two identities in \cref{eq:qr-alg-powers} explain the whole algorithm~\cite[Lecture~28]{TB}.
+The first identity follows by induction: $A^k = A\,Q_{k-1}\underline{R}_{k-1} = Q_kR_k\underline{R}_{k-1} = Q_k\underline{R}_k$. So the QR algorithm computes a QR factorization of $A^k$ without forming $A^k$, whose columns would all be nearly parallel to $\vec{x}_1$. The two identities in \cref{eq:qr-alg-powers} explain the algorithm~\cite[Lecture~28]{TB}.
 \begin{itemize}
-  \item The first says that the leading $j$ columns of $Q_k$ are an orthonormal basis of the span of the leading $j$ columns of $A^k$. This is simultaneous power iteration on $\vec{e}_1, \dots, \vec{e}_m$.
-  \item The second says that the diagonal entries $(T_k)_{jj} = \vec{q}_j^{(k)\ast}A\vec{q}_j^{(k)}$ are Rayleigh quotients. So for Hermitian $A$, they converge twice as fast as the columns of $Q_k$ (\Cref{ch:eigen}).
+  \item The leading $j$ columns of $Q_k$ are an orthonormal basis of the span of the leading $j$ columns of $A^k$: simultaneous power iteration on $\vec{e}_1, \dots, \vec{e}_m$.
+  \item The diagonal entries $(T_k)_{jj} = \vec{q}_j^{(k)\ast}A\vec{q}_j^{(k)}$ are Rayleigh quotients. So for Hermitian $A$ they converge twice as fast as the columns of $Q_k$ (\Cref{ch:eigen}).
 \end{itemize}
 
 \subsection{Convergence Rates of Individual Entries}
 
-By \Cref{sec:orth-iter-conv}, the block $(T_k)_{p+1:m,1:p}$ decays like $\abs{\lambda_{p+1}/\lambda_p}^k$. This is the block below and to the left of the split after column $p$. In particular:
+By \Cref{sec:orth-iter-conv}, the block $(T_k)_{p+1:m,1:p}$ decays like $\abs{\lambda_{p+1}/\lambda_p}^k$. In particular:
 \begin{itemize}
   \item the subdiagonal entry $(T_k)_{j+1,j}$ decays like $\abs{\lambda_{j+1}/\lambda_j}^k$;
   \item the diagonal entry $(T_k)_{pp}$ converges to $\lambda_p$ like $\max(\abs{\lambda_{p+1}/\lambda_p}^k, \abs{\lambda_p/\lambda_{p-1}}^k)$~\cite[\S4.4.3]{Demmel}.
 \end{itemize}
-The overall rate is the worst ratio $\max_j\abs{\lambda_{j+1}/\lambda_j}$~\cite[Thm.~28.4]{TB}. So if two eigenvalues have nearly equal modulus, the unshifted algorithm becomes arbitrarily slow.
+The overall rate is the worst ratio $\max_j\abs{\lambda_{j+1}/\lambda_j}$~\cite[Thm.~28.4]{TB}. If two eigenvalues have nearly equal modulus, the unshifted algorithm becomes arbitrarily slow.
 
 For example, take $\Lambda = \diag(30, 6, 2, 1)$ and a random $X$ with $\kappa(X) \approx 20$. After $19$ steps, the subdiagonal entries are about $7 \cdot 10^{-13}$, $1 \cdot 10^{-9}$, and $5 \cdot 10^{-6}$~\cite[Example~4.5]{Demmel}. This agrees with $(1/5)^{19} \approx 5 \cdot 10^{-14}$, $(1/3)^{19} \approx 9 \cdot 10^{-10}$, and $(1/2)^{19} \approx 2 \cdot 10^{-6}$, up to constants.
 
-The most important block is the last row, $(T_k)_{m,1:m-1}$. It decays like $\abs{\lambda_m/\lambda_{m-1}}^k$. Once it is below a tolerance such as $\epsm\norm{A}$, we accept $(T_k)_{mm}$ as an eigenvalue. Then we continue on the leading $(m-1) \times (m-1)$ block. This is called deflation.
+The most important block is the last row, $(T_k)_{m,1:m-1}$, which decays like $\abs{\lambda_m/\lambda_{m-1}}^k$. Once it is below a tolerance such as $\epsm\norm{A}$, we accept $(T_k)_{mm}$ as an eigenvalue and continue on the leading $(m-1) \times (m-1)$ block. This is deflation.
 
 \subsection{Eigenvalues of Equal Modulus}
 
-If there is no gap $\abs{\lambda_p} > \abs{\lambda_{p+1}}$, the block at the split after column $p$ has no reason to decay. The extreme case is a unitary $A$: all its eigenvalues have modulus $1$. Its QR factorization is $A = A \cdot I$, so $T_1 = I \cdot A = A$, and the iteration does not move at all~\cite[Example~4.6]{Demmel}. An example is $A = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$, with eigenvalues $\pm 1$.
+Without a gap $\abs{\lambda_p} > \abs{\lambda_{p+1}}$, the block at the split after column $p$ need not decay. The extreme case is a unitary $A$: all its eigenvalues have modulus $1$. Its QR factorization is $A = A \cdot I$, so $T_1 = I \cdot A = A$, and the iteration does not move~\cite[Example~4.6]{Demmel}. An example is $A = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$, with eigenvalues $\pm 1$.
 
-For real matrices, the generic case is a pair of complex conjugate eigenvalues $\lambda, \overline{\lambda}$ (see the remark in \Cref{sec:schur-eig}). For real $A$, all $U_k$, $R_k$, and $T_k$ are real. So $T_k$ cannot converge to a triangular matrix with non-real diagonal entries. But the splits between eigenvalues of different moduli still have a gap, so those blocks still decay (under the analogous rank conditions). Suppose the only ties in modulus come from conjugate pairs. Then $T_k$ converges to a block upper triangular matrix with $1 \times 1$ and $2 \times 2$ diagonal blocks, that is, to the real Schur form (\Cref{thm:real-schur}). The entries of each $2 \times 2$ block keep changing from step to step, but its eigenvalues converge to $\lambda, \overline{\lambda}$.
+For real $A$, the generic case is a pair of complex conjugate eigenvalues (\Cref{sec:qr-alg-real-generic}). All $U_k$, $R_k$, $T_k$ are real, so $T_k$ cannot converge to a triangular matrix with non-real diagonal entries. Splits between eigenvalues of different moduli still have a gap, so those blocks still decay. If the only ties in modulus come from conjugate pairs, $T_k$ converges to the real Schur form (\Cref{thm:real-schur}). The entries of each $2 \times 2$ block keep changing, but its eigenvalues converge to $\lambda, \overline{\lambda}$.
