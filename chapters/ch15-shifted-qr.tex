@@ -6,29 +6,11 @@ Supplementary reading:
   \item \cite{Demmel} Section 4.4.8 (Theorem 4.9, the implicit Q theorem).
   \item \cite{Demmel} Sections 4.4.4 and 4.4.5 (QR iteration with a shift, making it practical).
   \item \cite{Demmel} Section 5.3.1 (Wilkinson's shift).
-  \item \cite{TB} Lecture 33 (Arnoldi iteration).
 \end{itemize}
 
-\section{Recap: QR Iteration on Hessenberg Matrices}
+\section{Recap and Motivation}
 
-We begin with a recap of \Cref{ch:hessenberg-qr}. First we reduce $A$ once to upper Hessenberg form $H = Q^\T AQ$ (\Cref{sec:hessenberg}). Then we run the QR iteration on $T_0 = H$. Each step does a QR factorization by Givens rotations, and then multiplies the factors in reverse order (\Cref{sec:qr-hessenberg}):
-\begin{equation}
-  R_k = G_{m-1}^\T\cdots G_1^\T\,T_{k-1}, \qquad T_k = R_kG_1\cdots G_{m-1}.
-\end{equation}
-The new $T_k$ is again upper Hessenberg. So each step costs $O(m^2)$.
-
-In class we compared two orders of applying the same rotations.
-\begin{itemize}
-  \item In the \emph{two-sweep} order, we do all left multiplications first, and then all right multiplications:
-  \begin{equation}
-    G_1^\T T_{k-1}, \quad G_2^\T G_1^\T T_{k-1}, \quad \dots, \quad R_k, \quad R_kG_1, \quad R_kG_1G_2, \quad \dots, \quad T_k.
-  \end{equation}
-  \item In \emph{bulge chasing} (\Cref{sec:bulge-chasing}), we apply each rotation from both sides as soon as we know it:
-  \begin{equation}
-    G_1^\T T_{k-1}G_1, \quad G_2^\T G_1^\T T_{k-1}G_1G_2, \quad \dots, \quad T_k.
-  \end{equation}
-\end{itemize}
-By associativity, both orders give the same product \emph{if they use the same rotations}. But the rotations are chosen differently. In bulge chasing, we choose $G_2, \dots, G_{m-1}$ to remove the bulge at $(3,1)$ that $G_1^\T T_{k-1}G_1$ creates. In the two-sweep order, we choose them to remove the subdiagonal entries of $G_1^\T T_{k-1}$. Why do we still get the same $T_k$? The answer is the implicit Q theorem, which we stated at the end of \Cref{ch:hessenberg-qr}. In this lecture we first prove it, and then we study shifts.
+Last lecture (\Cref{ch:hessenberg-qr}) made each QR step cost $O(m^2)$ on a Hessenberg matrix and carried it out by bulge chasing, which chooses its rotations differently from the plain QR step. In this lecture we prove that both give the same $T_k$ (the implicit Q theorem), and then add shifts to make the iteration converge fast.
 
 \section{Proof of the Implicit Q Theorem}
 \label{sec:implicit-q-proof}
@@ -75,8 +57,6 @@ This proof works like the proof that the QR factorization is unique (\Cref{thm:q
   \item We show that $W$ is triangular and orthogonal. Then $W$ must be diagonal, with entries of modulus one.
   \item These entries are exactly the sign choices that we cannot fix.
 \end{itemize}
-
-The recursion \eqref{eq:implicit-q-recursion} also tells us how to build $Q$ from $\vec{q}_1$, one column at a time. We use $AQ = QH$. Orthogonality gives $h_{1i}, \dots, h_{ii}$. Then normalization gives $\vec{q}_{i+1}$. This is the Arnoldi iteration~\cite[Lecture 33]{TB}. In the step where we divide by $h_{i+1,i}$, we need $H$ to be unreduced.
 
 For $\K = \C$, the same proof works with $Q$ and $V$ unitary, and with $\T$ replaced by $\ast$. Then $W$ is a unitary diagonal matrix. So each column of $Q$ is fixed up to a factor of modulus one.
 
@@ -146,7 +126,7 @@ What happens to $T_k$? The last row of $R_kU_k$ is the last row of $R_k$ times $
 \begin{equation}
   T_k = R_kU_k + \mu_kI = \begin{bmatrix} \hat{T} & \vec{t} \\ 0 \;\cdots\; 0 & \mu_k \end{bmatrix},
 \end{equation}
-with $\hat{T} \in \K^{(m-1) \times (m-1)}$ upper Hessenberg. So $t_{m,m-1} = 0$ and $t_{mm} = \mu_k$. With an exact shift, \emph{one step} of the QR iteration splits off the eigenvalue $\mu_k$. As we said in class, we don't have to worry about the last entry any more.
+with $\hat{T} \in \K^{(m-1) \times (m-1)}$ upper Hessenberg. So $t_{m,m-1} = 0$ and $t_{mm} = \mu_k$. With an exact shift, \emph{one step} of the QR iteration splits off the eigenvalue $\mu_k$.
 
 Then we continue on $\hat{T}$ alone. A unitary $Q$ that acts on $\hat{T}$ acts on the full matrix as $\diag(Q, 1)$:
 \begin{equation}
@@ -181,7 +161,7 @@ Its eigenvalues are the eigenvalues of the two diagonal blocks. Both blocks are 
   \end{algorithmic}
 \end{algorithm}
 
-\paragraph{Which eigenvalue to aim for?} We want to choose $\mu_k$ close to an eigenvalue, and split the problem wherever a subdiagonal entry is $\approx 0$. But close to which eigenvalue? In class we chose $\mu_k \approx \lambda_m$, for two reasons.
+\paragraph{Which eigenvalue to aim for?} We want to choose $\mu_k$ close to an eigenvalue, and split the problem wherever a subdiagonal entry is $\approx 0$. But close to which eigenvalue? We choose $\mu_k \approx \lambda_m$, for two reasons.
 \begin{enumerate}
   \item The shift helps the eigenvalue $\lambda_i$ to separate if $\abs{\lambda_i - \mu} \ll \abs{\lambda_j - \mu}$ for all $j \ne i$. Without a shift ($\mu = 0$), this is easiest when $\lambda_i$ itself is small. That is the eigenvalue of smallest modulus.
   \item The QR iteration sorts the eigenvalues by size along the diagonal of $T_k$ (\Cref{thm:orth-iter-schur}). The smallest one, $\lambda_m$, is at the bottom right. A shift close to another eigenvalue would have to move that eigenvalue to the bottom. And \emph{reordering the eigenvalues slows down convergence}.
@@ -301,28 +281,3 @@ With a shift $\mu$, one QR step factors $T_{k-1} - \mu I = U_kR_k$. Then it sets
 \end{itemize}
 This is the \emph{implicitly shifted} QR algorithm~\cite[Section 4.4.8]{Demmel}. A real matrix can have complex conjugate eigenvalues. Then we can combine two such steps, with shifts $\mu$ and $\bar{\mu}$, into one \emph{double-shift} step that uses only real arithmetic (the Francis step)~\cite[Section 4.4.8]{Demmel}.
 
-
-\subsection{The Krylov View}
-
-Why should the first column fix everything? Column $i$ of $AQ = QH$ gives
-\begin{equation*}
-  h_{i+1,i}\vec{q}_{i+1} = A\vec{q}_i - \sum_{j \le i}h_{ji}\vec{q}_j.
-\end{equation*}
-By induction, using $h_{i+1,i} \ne 0$, we get
-\begin{equation}
-  \spn(\vec{q}_1, \dots, \vec{q}_k) = \spn(\vec{q}_1, A\vec{q}_1, \dots, A^{k-1}\vec{q}_1) \qquad \text{for } k = 1, \dots, m.
-\end{equation}
-The right-hand side is the Krylov subspace generated by $A$ and $\vec{q}_1$. It depends on nothing else. We can say the same with matrices. The Krylov matrix
-\begin{equation*}
-  K = [\vec{q}_1, A\vec{q}_1, \dots, A^{m-1}\vec{q}_1]
-\end{equation*}
-satisfies $K = QR$, with $R = Q^\T K$ upper triangular and invertible. So $Q$ is the orthogonal factor of the QR factorization of $K$. The QR factorization is unique up to signs, and this gives the implicit Q theorem~\cite[Lecture 33]{TB}. The proof above is the same argument, written out column by column.
-
-\subsection{A Direct Check for the First Bulge}
-
-For the first rotation after $G_1$, we can also check directly that the two algorithms agree. Write $G_1 = \left[\begin{smallmatrix} c & -s \\ s & c \end{smallmatrix}\right]$ in rows and columns $1, 2$. Let $X = G_1^\T T_{k-1}$.
-\begin{itemize}
-  \item \emph{Two-sweep.} The first column of $X$ is zero in rows $2, \dots, m$. The algorithm chooses $G_2$ from $(x_{22}, x_{32})$.
-  \item \emph{Bulge chasing.} Right multiplication by $G_1$ replaces column $1$ by $c\,(\text{column } 1) + s\,(\text{column } 2)$. So in $XG_1$, the bulge column has entries $s\,(x_{22}, x_{32})$ in rows $2, 3$.
-\end{itemize}
-This vector is parallel to $(x_{22}, x_{32})$. So bulge chasing chooses the same $G_2$, up to sign. (If $s = 0$, then $(T_{k-1})_{21} = 0$, and $T_{k-1}$ was reduced.) We could continue this argument down the matrix, but it is tedious. The implicit Q theorem handles all rotations at once.

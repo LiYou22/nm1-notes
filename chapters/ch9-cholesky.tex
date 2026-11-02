@@ -537,33 +537,49 @@ In words: \emph{to get the Schur complement, invert, take the submatrix, and inv
 
 Watch the inverse here. It is easy to remember the lemma wrongly as $\Theta_{22} = A_{22} - A_{21}A_{11}^{-1}A_{12}$. But the block of the inverse is $S^{-1}$, not $S$. The slogan ``invert, take submatrix, invert'' helps us remember the correct version.
 
-\paragraph{Proof of the pivot bound.} We can now finish the proof of \Cref{thm:chol-exists}. The plan has three parts.
+\paragraph{Proof of the pivot bound.} We can now finish the proof of \Cref{thm:chol-exists}. The plan has two parts.
 \begin{itemize}
-  \item The $k$-th pivot is a diagonal entry of a Schur complement $S'$.
-  \item A diagonal entry is at least $\lambda_{\min}(S')$.
-  \item By \Cref{lem:schur-inverse}, $(S')^{-1}$ is a submatrix of $A^{-1}$. So it cannot be larger than $A^{-1}$.
+  \item The $k$-th pivot is a diagonal entry of a Schur complement $S'$, so it is at least $\lambda_{\min}(S')$.
+  \item By \Cref{lem:schur-inverse}, $(S')^{-1}$ is a block of $A^{-1}$. This gives $\lambda_{\min}(S') \ge \lambda_{\min}(A)$.
 \end{itemize}
+Both parts use the Rayleigh quotient bound: for Hermitian $H$ and $\vec{x} \ne \zerovec$,
+\begin{equation}
+  \label{eq:rayleigh-bound}
+  \lambda_{\min}(H) \le \frac{\vec{x}^\ast H\vec{x}}{\vec{x}^\ast\vec{x}} \le \lambda_{\max}(H).
+\end{equation}
 
 \begin{proof}[Proof of \eqref{eq:pivot-bound}]
-  Fix $k$. Let $S'$ be the Schur complement of the leading $(k - 1) \times (k - 1)$ block of $A$ (for $k = 1$, $S' = A$). As shown above, $S'$ is the matrix left over after $k - 1$ steps of elimination. So the $k$-th pivot is its top left entry, $d_k = \vec{e}_1^\ast S'\vec{e}_1$. We bound $d_k$ in three steps.
-  \begin{enumerate}
-    \item \emph{A diagonal entry is at least the smallest eigenvalue.} $S'$ is s.p.d., so by the Rayleigh quotient bound $\vec{x}^\ast S'\vec{x} \ge \lambda_{\min}(S')\norm{\vec{x}}^2$,
-    \begin{equation}
-      d_k = \vec{e}_1^\ast S'\vec{e}_1 \ge \lambda_{\min}(S') = \frac{1}{\norm{(S')^{-1}}_2},
-    \end{equation}
-    where the last equality holds because the singular values of an s.p.d.\ matrix are its eigenvalues (\Cref{thm:twonorm}).
-    \item \emph{The inverse of the Schur complement is a submatrix of $A^{-1}$.} By \Cref{lem:schur-inverse}, $(S')^{-1} = \Theta[k{:}m, k{:}m]$ with $\Theta = A^{-1}$.
-    \item \emph{A submatrix is no larger than the whole matrix.} We have $\Theta[k{:}m, k{:}m] = P^\T\Theta P$, where $P = I[{:}, k{:}m]$ has orthonormal columns. So $\norm{P}_2 = 1$ and
-    \begin{equation*}
-      \norm{(S')^{-1}}_2 = \norm{P^\T\Theta P}_2 \le \norm{\Theta}_2 = \norm{A^{-1}}_2.
-    \end{equation*}
-  \end{enumerate}
-  Putting the three steps together,
+  Fix $k$. Let $S'$ be the Schur complement of the leading $(k - 1) \times (k - 1)$ block of $A$ (for $k = 1$, $S' = A$). As shown above, $S'$ is the matrix left over after $k - 1$ steps of elimination, and it is s.p.d. So the $k$-th pivot is its top left entry, and by \eqref{eq:rayleigh-bound} with $\vec{x} = \vec{e}_1$,
   \begin{equation}
-    d_k \ge \frac{1}{\norm{(S')^{-1}}_2} \ge \frac{1}{\norm{A^{-1}}_2} = \lambda_{\min}(A),
+    d_k = \vec{e}_1^\ast S'\vec{e}_1 \ge \lambda_{\min}(S').
   \end{equation}
-  where the last equality again uses that $A$ is s.p.d.
+
+  It remains to show $\lambda_{\min}(S') \ge \lambda_{\min}(A)$. Let $\Theta = A^{-1}$. It is s.p.d., with eigenvalues $1/\lambda_i(A)$, so $\lambda_{\max}(\Theta) = 1/\lambda_{\min}(A)$. By \Cref{lem:schur-inverse}, $(S')^{-1} = \Theta_{22}$, the lower right block of $\Theta$.
+
+  Let $\lambda$ be an eigenvalue of $S'$ with eigenvector $\vec{y}$. Then $\lambda > 0$ and $(S')^{-1}\vec{y} = \lambda^{-1}\vec{y}$. Pad $\vec{y}$ with zeros:
+  \begin{equation*}
+    \vec{x} = \begin{bmatrix} \zerovec \\ \vec{y} \end{bmatrix}, \qquad
+    \vec{x}^\ast\Theta\vec{x} = \vec{y}^\ast\Theta_{22}\vec{y}, \qquad
+    \vec{x}^\ast\vec{x} = \vec{y}^\ast\vec{y}.
+  \end{equation*}
+  So by \eqref{eq:rayleigh-bound} applied to $\Theta$,
+  \begin{equation*}
+    \frac{1}{\lambda}
+    = \frac{\vec{y}^\ast(S')^{-1}\vec{y}}{\vec{y}^\ast\vec{y}}
+    = \frac{\vec{x}^\ast\Theta\vec{x}}{\vec{x}^\ast\vec{x}}
+    \le \lambda_{\max}(\Theta)
+    = \frac{1}{\lambda_{\min}(A)}.
+  \end{equation*}
+  Hence $\lambda \ge \lambda_{\min}(A)$ for every eigenvalue of $S'$.
+
+  Putting the two parts together,
+  \begin{equation}
+    d_k \ge \lambda_{\min}(S') \ge \lambda_{\min}(A) = \frac{1}{\norm{A^{-1}}_2},
+  \end{equation}
+  where the last equality holds because the singular values of an s.p.d.\ matrix are its eigenvalues (\Cref{thm:twonorm}).
 \end{proof}
+
+The same argument with $\lambda_{\min}(\Theta)$ gives $\lambda \le \lambda_{\max}(A)$. So every eigenvalue of a Schur complement of an s.p.d.\ matrix lies in $[\lambda_{\min}(A), \lambda_{\max}(A)]$.
 
 \section{Cholesky and QR}
 \label{sec:chol-qr}

@@ -7,21 +7,9 @@ Supplementary reading:
   \item \cite{Demmel} Sections 4.4.5, 4.4.6, and 4.4.8.
 \end{itemize}
 
-\section{Recap: From Orthogonal Iteration to the QR Algorithm}
+\section{Recap and Motivation}
 
-We start with a recap of \Cref{ch:qr-alg}.
-\begin{itemize}
-  \item \emph{Schur vectors and eigenvectors.} If $A = X\Lambda X^{-1}$ and $X = QR$, then $A = Q(R\Lambda R^{-1})Q^\ast$, and $R\Lambda R^{-1}$ is upper triangular. So the Schur vectors span the same nested subspaces as the eigenvectors (\Cref{sec:schur-eig}).
-  \item \emph{Orthogonal iteration.} It finds these subspaces without knowing $X$. Since $\spn(Q_k) = \spn(A^kQ_0)$, the span of the first $p$ columns converges to $\spn(\vec{x}_1, \dots, \vec{x}_p)$. The rate is $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv}).
-  \item \emph{Convergence to Schur form.} We split $Q_k = [\bar{Q}_k\ \tilde{Q}_k]$ after each column $p$. This shows that $\tilde{Q}_k^\ast A\bar{Q}_k \to 0$. So $T_k \defeq Q_k^\ast AQ_k$ converges to the triangular factor of a Schur factorization (\Cref{thm:orth-iter-schur}).
-  \item \emph{The QR iteration.} Let $U_{k+1} \defeq Q_k^\ast Q_{k+1}$. Then we can write the iteration using only $T_k$:
-  \begin{equation}
-    T_k = U_{k+1}R_{k+1} \quad\longrightarrow\quad T_{k+1} = R_{k+1}U_{k+1},
-  \end{equation}
-  starting from $T_0 = A$. This is the basic QR iteration (\Cref{alg:basic-qr}).
-\end{itemize}
-
-In this lecture we ask: \emph{how expensive is the QR iteration, and how can we make it cheaper?}
+Last lecture (\Cref{ch:qr-alg}) turned orthogonal iteration into the basic QR iteration $T_k = U_{k+1}R_{k+1} \to T_{k+1} = R_{k+1}U_{k+1}$, which converges to a Schur form. But each step costs $O(m^3)$; in this lecture we bring this down to $O(m^2)$ by first reducing $A$ to Hessenberg form.
 
 \section{The Cost of the QR Iteration}
 \label{sec:qr-improvements}
@@ -76,7 +64,7 @@ So the zeros we created in columns $1, \dots, k-1$ stay. We need $m - 2$ steps, 
 \begin{equation}
   Q \defeq Q_1Q_2\cdots Q_{m-2}, \qquad Q^\ast AQ = Q_{m-2}\cdots Q_1\,A\,Q_1\cdots Q_{m-2} = H.
 \end{equation}
-The order of the factors in $Q$ matters. Each $Q_k$ is Hermitian, but $Q^\ast = Q_{m-2}\cdots Q_1$ has them in reverse order. (On the board the reflectors are collected as ``$Q_m\cdots Q_1 = Q$''. Since every $Q_k$ is Hermitian, that product is $Q^\ast$ in our notation. Also, we need only $m - 2$ reflectors, because the last two columns have nothing below the subdiagonal.)
+The order of the factors in $Q$ matters. Each $Q_k$ is Hermitian, but $Q^\ast = Q_{m-2}\cdots Q_1$ has them in reverse order. (On the board the reflectors are collected as ``$Q_m\cdots Q_1 = Q$''. Since every $Q_k$ is Hermitian, that product is $Q^\ast$ in our notation.)
 
 As in Householder QR, we never form the $Q_k$ or $Q$. We store the reflection vectors and apply them from both sides.
 
@@ -236,10 +224,3 @@ If $A$ is Hermitian, then so is $H = Q^\ast AQ$. A Hermitian Hessenberg matrix i
 
 Like Householder QR, \Cref{alg:hessenberg} is backward stable. Let $\tilde{H}$ be the computed result, and let $\tilde{Q}$ be the exactly unitary matrix defined by the computed reflection vectors. Then $\tilde{Q}\tilde{H}\tilde{Q}^\ast = A + \delta A$ with $\norm{\delta A}/\norm{A} = O(\eps)$~\cite[Theorem 26.1]{TB}. So the eigenvalues of $\tilde{H}$ are the exact eigenvalues of a nearby matrix.
 
-\subsection{The ``Bad Idea'' Revisited}
-
-Suppose we apply a full Householder reflector from both sides, as in the first step of Householder QR. This destroys the zeros it creates. But it usually does make the entries below the diagonal smaller. This is exactly what one step of the QR iteration does. In this sense, the QR algorithm ``triangularizes in the limit''~\cite[Lecture 26]{TB}.
-
-\subsection{In Practice}
-
-LAPACK computes the Hessenberg reduction with blocked Householder updates (\texttt{xGEHRD}). It runs the QR iteration with multishift bulge chasing and aggressive early deflation (\texttt{xHSEQR}). In Julia, \texttt{hessenberg(A)} returns the reduction, and \texttt{eigvals(A)} runs all the steps.

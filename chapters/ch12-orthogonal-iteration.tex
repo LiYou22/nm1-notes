@@ -7,16 +7,9 @@ Supplementary reading:
   \item \cite{Demmel} Section 4.4.3.
 \end{itemize}
 
-\section{Recap}
+\section{Recap and Motivation}
 
-Last lecture (\Cref{ch:schur}) we moved from computing one eigenpair to a new question: what should ``all eigenpairs'' mean as a single object?
-\begin{itemize}
-  \item \emph{Deflation} (\Cref{sec:deflation}). Once we know $(\lambda_1, \vec{x}_1)$, power iteration on $A - \lambda_1\vec{x}_1\vec{x}_1^\ast/(\vec{x}_1^\ast\vec{x}_1)$ finds the next eigenpair (for Hermitian $A$, \Cref{prop:hotelling}).
-  \item \emph{The need for subspace iteration} (\Cref{sec:subspace-motivation}). Deflation computes the eigenpairs one after another. Each one needs many Level 2 matrix-vector products. If we iterate on a block of vectors at once, these become Level 3 matrix-matrix products.
-  \item \emph{Eigenvalues as matrix factorizations} (\Cref{sec:eig-factorization}). All eigenpairs together form the eigenvalue decomposition $A = X\Lambda X^{-1}$. But it does not always exist. For example, $N = \left[\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right]$ sends $\vec{e}_2 \mapsto \vec{e}_1 \mapsto \zerovec$ and has only one eigenvector.
-  \item \emph{Defective matrices and Jordan blocks} (\Cref{sec:defective,sec:jordan}). Every matrix has a Jordan form $A = SJS^{-1}$. Here $J = \diag(J_1, \dots, J_k)$, and each $J_\ell \in \C^{n_\ell \times n_\ell}$ has $\lambda_\ell$ on the diagonal and ones on the superdiagonal. The Jordan form is not continuous in $A$, and $S$ can be arbitrarily ill-conditioned (\Cref{ex:jordan-unstable}).
-  \item \emph{Schur factorization} (\Cref{sec:schur-fact}). Every matrix can be written as $A = QTQ^\ast$ with $Q$ unitary and $T$ upper triangular (\Cref{thm:schur}). This is the stable replacement for the Jordan form. Eigenvalue algorithms compute this factorization.
-\end{itemize}
+Last lecture (\Cref{ch:schur}) showed that the right object for ``all eigenpairs'' is the Schur factorization $A = QTQ^\ast$, and that computing eigenpairs one at a time by deflation is slow. In this lecture we ask when $T$ is diagonal, and we start computing several eigenpairs at once by iterating on a block of vectors.
 
 \section{From Schur Factorization to Diagonalization}
 \label{sec:normal}
@@ -215,8 +208,6 @@ In terms of shapes: a $2 \times m$ matrix times an $m \times m$ matrix times an 
 
 The proof also shows how to get the eigenvectors back. We solve the small eigenvalue problem $Q_k^\ast AQ_k\vec{v}_i = \lambda_i\vec{v}_i$, and then lift: $\vec{x}_i \approx Q_k\vec{v}_i$.
 
-The $(1,2)$ entry $\ast$ is in general not zero. We can compute it from $A\vec{q}_2 = \lambda_2\vec{q}_2 + \beta\vec{q}_1$. In the limit it equals $\beta = (\lambda_2 - \lambda_1)(\vec{x}_1^\ast\vec{x}_2)/\norm{P\vec{x}_2}$. This is zero exactly when $\vec{x}_1 \perp \vec{x}_2$.
-
 \section{Orthogonal Iteration in General}
 \label{sec:orth-iter-general}
 
@@ -235,15 +226,6 @@ To compute $r > 2$ eigenpairs at once, we start with $r$ random vectors, the col
 \end{algorithm}
 
 In the QR factorization, column $j$ is $A\vec{q}_j$ with its components along $\vec{q}_1, \dots, \vec{q}_{j-1}$ removed. So the first two columns do exactly what \Cref{alg:orth-iter-2} does. In general, column $j$ does power iteration, projected onto the orthogonal complement of the first $j - 1$ columns.
-
-\begin{remark}[Julia]
-  The simple loop body \texttt{Q = A*Q; Q, R = qr(Q)} does not work in Julia. The reason: \texttt{qr} returns $Q$ in the implicit form of \Cref{ch:qr}, which acts as the full $m \times m$ matrix. So from the second iteration on, \texttt{A*Q} is $m \times m$. We must ask for the thin factor explicitly:
-\begin{lstlisting}
-for k = 1:iters
-    Q = Matrix(qr(A*Q).Q)   # m x r
-end
-\end{lstlisting}
-\end{remark}
 
 \section{Convergence of Eigenvector Estimates}
 \label{sec:orth-iter-eigvec}
@@ -339,16 +321,6 @@ To compute $T_{k+1}$ this way, we need $Q_k$ and a matrix-matrix product with $A
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:orth-iter-supp}
-\subsection{More Consequences of Normality}
-
-Let $A = Q\Lambda Q^\ast$ be normal, and write $\lambda_i = \abs{\lambda_i}e^{\mathrm{i}\theta_i}$. Then $A = \bigl(Q\diag(e^{\mathrm{i}\theta_i})\bigr)\abs{\Lambda}Q^\ast$ is an SVD, up to the ordering of the entries. So the singular values of a normal matrix are the moduli of its eigenvalues~\cite[Lecture~24]{TB}. In particular, $\norm{A}_2 = \max_i\abs{\lambda_i}$ and $\norm{A^k}_2 = \max_i\abs{\lambda_i}^k$. So powers of a normal matrix show no transient (temporary) growth, unlike powers of a Jordan block (\Cref{sec:jordan}).
-
-The Schur form also measures how far a general $A$ is from being normal. Write the triangular factor as $T = \Lambda + N$, with $N$ strictly upper triangular. The Frobenius norm is unitarily invariant, so
-\begin{equation}
-  \norm{A}_F^2 = \norm{T}_F^2 = \sum_{i=1}^m\abs{\lambda_i}^2 + \norm{N}_F^2.
-\end{equation}
-So $\sum_i\abs{\lambda_i}^2 \le \norm{A}_F^2$, with equality if and only if $N = 0$, i.e., if and only if $A$ is normal (\Cref{thm:normal-diag}). The quantity $\norm{N}_F$ is called the \emph{departure from normality}. It does not depend on which Schur factorization we choose, since $\norm{A}_F$ and the eigenvalues do not.
-
 \subsection{The Rayleigh--Ritz Procedure}
 
 Take any $Q \in \K^{m \times r}$ with orthonormal columns, and form the projected matrix $H \defeq Q^\ast AQ$, as in \Cref{prop:orth-iter-2x2}. This matrix generalizes the Rayleigh quotient from one vector to a subspace. Its eigenvalues $\theta_i$ are called \emph{Ritz values}, and the lifted eigenvectors $Q\vec{v}_i$ are called \emph{Ritz vectors}.
@@ -361,22 +333,8 @@ For Hermitian $A$, there are $r$ eigenvalues of $A$, each within $\norm{E}_2$ of
 
 So in subspace iteration for Hermitian matrices, we often replace $Q_k$ by its Ritz vectors $Q_kV$, where $Q_k^\ast AQ_k = V\Theta V^\ast$. The Ritz vectors depend only on $\spn(Q_k) = \spn(A^kQ_0)$. In this subspace, the components along $\vec{x}_j$, $j > r$, are smaller than the component along $\vec{x}_i$ by roughly a factor $\abs{\lambda_j/\lambda_i}^k \le \abs{\lambda_{r+1}/\lambda_i}^k$. So the $i$th Ritz vector converges like $\abs{\lambda_{r+1}/\lambda_i}^k$, not like $\abs{\lambda_{i+1}/\lambda_i}^k$. This means that iterating with a few more columns than the number of eigenpairs we want makes convergence faster. Without the Rayleigh--Ritz step, extra columns do not help the first columns, since the leading columns of \Cref{alg:orth-iter} never see the later ones.
 
-\subsection{Convergence of the Individual Entries}
-
-The leading $p$ columns span a subspace that converges at the rate $\abs{\lambda_{p+1}/\lambda_p}$. So the block $(T_k)_{p+1:m,\,1:p}$ decays like $\abs{\lambda_{p+1}/\lambda_p}^k$. The diagonal entry $(T_k)_{pp}$ depends on the blocks on both sides of it. It converges to $\lambda_p$ like
-\begin{equation}
-  \max\left(\abs{\frac{\lambda_{p+1}}{\lambda_p}}, \abs{\frac{\lambda_p}{\lambda_{p-1}}}\right)^k.
-\end{equation}
-For $p = 1$ only the first ratio is present, and for $p = m$ only the second~\cite[\S4.4.3]{Demmel}. So a pair of eigenvalues with nearly equal modulus slows down only the part of $T_k$ near their position. The rest of the Schur form still converges quickly. For symmetric $A$, all columns of $Q_k$ converge to eigenvectors linearly, with constant $\max_{1 \le j \le r}\abs{\lambda_{j+1}/\lambda_j}$~\cite[Thm.~28.1]{TB}.
-
 \subsection{Why Orthonormalize at Every Step}
 
 Mathematically, $\spn(Q_k) = \spn(A^kQ_0)$. So we could compute $V_k = A^kQ_0$ and orthonormalize only once at the end (``unnormalized simultaneous iteration''). In floating point this fails. Every column of $A^kQ_0$ converges to a multiple of $\vec{x}_1$, so the columns become nearly parallel. The information about $\vec{x}_2, \dots, \vec{x}_r$ is in components that are smaller by factors $\abs{\lambda_i/\lambda_1}^k$, and rounding errors destroy it~\cite[Lecture~28]{TB}. If we orthonormalize after every multiplication, we keep a well-conditioned basis of the same subspace.
 
 With $Q_0 = I$ and $r = m$, the product of all the triangular factors gives the QR factorization of $A^k$ itself. This identity is the starting point of the QR algorithm in \Cref{ch:qr-alg}.
-
-\subsection{Beyond Subspace Iteration}
-
-Each step of orthogonal iteration costs one product $AQ$ and one QR factorization. The product costs about $2m^2r$ flops for dense $A$, and far less for sparse $A$. The QR factorization costs $O(mr^2)$. So orthogonal iteration is a good choice when we need only a few dominant eigenpairs of a large sparse matrix. But its convergence is still linear, with the ratio $\abs{\lambda_{r+1}/\lambda_r}$.
-
-Krylov methods do better with the same products. They do not keep only $A^kQ_0$. Instead, they apply Rayleigh--Ritz to the whole Krylov subspace $\spn(\vec{q}, A\vec{q}, \dots, A^{k-1}\vec{q})$, which contains all earlier power iterates. This leads to the Arnoldi iteration and, for Hermitian $A$, the Lanczos iteration~\cite[Lectures~33, 34, and~36]{TB}, \cite[Chapter~7]{Demmel}.

@@ -7,42 +7,9 @@ Supplementary reading:
   \item \cite{Demmel} Sections 4.4.3 and 4.4.4.
 \end{itemize}
 
-\section{Recap}
+\section{Recap and Motivation}
 
-Last lecture (\Cref{ch:orth-iter}) we found the matrices whose Schur factorization is a diagonalization. We also began to compute several eigenpairs at once.
-\begin{itemize}
-  \item \emph{From Schur factorization to diagonalization} (\Cref{sec:normal}). $A$ is normal, $A^\ast A = AA^\ast$, if and only if $A = Q\Lambda Q^\ast$ with $Q$ unitary (\Cref{thm:normal-diag}). Take the Schur factorization $A = QTQ^\ast$. If $A$ is normal, then $T^\ast T = TT^\ast$. Comparing the $(1,1)$ entries gives $\abs{t_{11}}^2 = \norm{T_{1,:}}^2$. So the first row of $T$ is zero off the diagonal. By induction, $T$ is diagonal. In terms of shapes, $T^\ast T = TT^\ast$ says that lower times upper equals upper times lower:
-  \begin{center}
-  \begin{tikzpicture}[scale=0.6, every node/.style={font=\small}]
-    \draw (0,0) rectangle (1,1); \fill[blue!25] (0,1) -- (0,0) -- (1,0) -- cycle;
-    \node at (0.5,-0.35) {$T^\ast$};
-    \draw (1.2,0) rectangle (2.2,1); \fill[blue!25] (1.2,1) -- (2.2,1) -- (2.2,0) -- cycle;
-    \node at (1.7,-0.35) {$T$};
-    \node at (2.7,0.5) {$=$};
-    \draw (3.2,0) rectangle (4.2,1); \fill[blue!25] (3.2,1) -- (4.2,1) -- (4.2,0) -- cycle;
-    \node at (3.7,-0.35) {$T$};
-    \draw (4.4,0) rectangle (5.4,1); \fill[blue!25] (4.4,1) -- (4.4,0) -- (5.4,0) -- cycle;
-    \node at (4.9,-0.35) {$T^\ast$};
-  \end{tikzpicture}
-  \end{center}
-  The $(1,1)$ entry on the left sees only the first column of $T$. The $(1,1)$ entry on the right sees the whole first row.
-  \item \emph{Orthogonal iteration for two vectors} (\Cref{sec:orth-iter}). We run power iteration on $\vec{q}_1, \vec{q}_2$. After each step, we project $\vec{q}_1$ out of $\vec{q}_2$ (\Cref{alg:orth-iter-2}). Then $\vec{q}_1 \to \vec{x}_1$. Once $\vec{q}_1$ has converged, we have, up to normalization,
-  \begin{equation}
-    \vec{q}_2^{(k)} = (I - \vec{x}_1\vec{x}_1^\ast)A(I - \vec{x}_1\vec{x}_1^\ast)\vec{q}_2^{(k-1)}.
-  \end{equation}
-  This matrix has the eigenpairs $(\lambda_i, (I - \vec{x}_1\vec{x}_1^\ast)\vec{x}_i)$ for $i \ge 2$:
-  \begin{equation}
-    (I - \vec{x}_1\vec{x}_1^\ast)A(I - \vec{x}_1\vec{x}_1^\ast)\vec{x}_i = \lambda_i(I - \vec{x}_1\vec{x}_1^\ast)\vec{x}_i.
-  \end{equation}
-  So $\vec{q}_2^{(k)} \to (I - \vec{x}_1\vec{x}_1^\ast)\vec{x}_2$. This is different from $\vec{x}_2$, unless $\vec{x}_1 \perp \vec{x}_2$ (as for normal $A$). What converges is the subspace: $\spn(\vec{q}_1, \vec{q}_2) \to \spn(\vec{x}_1, \vec{x}_2)$.
-  \item \emph{Orthogonal iteration for a general number of vectors} (\Cref{sec:orth-iter-general}). With $r$ columns, the projection step becomes a reduced QR factorization (\Cref{alg:orth-iter}):
-\begin{lstlisting}
-for k = 1:iterations
-    Q = A*Q
-    Q, R = qr(Q)
-end
-\end{lstlisting}
-\end{itemize}
+Last lecture (\Cref{ch:orth-iter}) introduced orthogonal iteration: power iteration on several vectors at once, kept orthonormal by a QR factorization. In this lecture we show what it converges to, and then rewrite it as the basic QR iteration, which works with a single matrix $T_k$.
 
 \section{Schur and Eigendecomposition}
 \label{sec:schur-eig}
@@ -159,11 +126,6 @@ Why $X^{-1}$? The argument of \Cref{sec:orth-iter-conv} needs a condition on $X^
 \end{equation}
 Here $X_{1:1,1:1} = 1$ and $X$ are nonsingular, but $(X^{-1})_{11} = 0$. The starting vector $\vec{e}_1 = \vec{x}_2$ is itself an eigenvector. It has no component along $\vec{x}_1$, and in exact arithmetic $\vec{q}_1^{(k)} = \vec{x}_2$ forever.
 
-We can state the correct condition in two other ways.
-\begin{itemize}
-  \item By Jacobi's identity for complementary minors, $\det (X^{-1})_{1:j,1:j} = \det X_{j+1:m,j+1:m}/\det X$. So the condition says: the trailing blocks $X_{j+1:m,j+1:m}$ are nonsingular.
-  \item Equivalently, $X^{-1}$ has an LU factorization without pivoting.
-\end{itemize}
 For normal $A = Q\Lambda Q^\ast$ the difference disappears. Then $X = Q$ is unitary, $X^{-1} = Q^\ast$, and $(Q^\ast)_{1:j,1:j} = (Q_{1:j,1:j})^\ast$. So the leading blocks of $X^{-1}$ are nonsingular exactly when those of $X$ are. Trefethen and Bau treat real symmetric $A = Q\Lambda Q^\T$. This is why they can state the condition as ``all leading principal submatrices of $Q$ are nonsingular''~\cite[Thm.~28.4]{TB}. For non-normal $A$, the example above shows that only the condition on $X^{-1}$ is correct.
 
 \begin{proof}[Proof sketch]
@@ -275,18 +237,6 @@ The factors $U_k$ have a simple meaning.
 \end{itemize}
 Up to these phases, the $U_k$ are a sequence of rotation corrections. Together they turn $Q_0 = I$ into the Schur vectors $Q$. The corrections are large in the first steps, and they get smaller and smaller as $T_k$ approaches triangular form.
 
-\begin{remark}[Julia]
-  For square $T$, we can multiply directly by the implicit $Q$ returned by \texttt{qr} (\Cref{ch:qr}). So the pitfall of \Cref{ch:orth-iter} does not come up:
-\begin{lstlisting}
-T = copy(A); Q = Matrix(1.0I, m, m)
-for k = 1:maxiter
-    F = qr(T)
-    T = F.R * F.Q
-    Q = Q * F.Q
-end
-\end{lstlisting}
-\end{remark}
-
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:qr-alg-supp}
 \subsection{The QR Algorithm Factors the Powers of $A$}
@@ -306,20 +256,6 @@ Also, $\underline{R}_k$ is upper triangular, as a product of upper triangular ma
   \item The second says that the diagonal entries $(T_k)_{jj} = \vec{q}_j^{(k)\ast}A\vec{q}_j^{(k)}$ are Rayleigh quotients. So for Hermitian $A$, they converge twice as fast as the columns of $Q_k$ (\Cref{ch:eigen}).
 \end{itemize}
 
-\subsection{Simultaneous Inverse Iteration}
-
-Let $A$ be invertible. We invert $A^k = Q_k\underline{R}_k$ and take the adjoint:
-\begin{equation}
-  (A^\ast)^{-k} = \bigl(\underline{R}_k^{-1}Q_k^\ast\bigr)^\ast = Q_k\underline{R}_k^{-\ast}.
-\end{equation}
-Here $\underline{R}_k^{-\ast}$ is lower triangular. Let $P$ be the permutation that reverses the order of the rows, $P^2 = I$. If we reverse both the rows and the columns of a lower triangular matrix, it becomes upper triangular. So
-\begin{equation}
-  (A^\ast)^{-k}P = (Q_kP)\bigl(P\underline{R}_k^{-\ast}P\bigr)
-\end{equation}
-is a QR factorization of $(A^\ast)^{-k}P$. Hence $Q_kP$ (that is, $Q_k$ with its columns in reverse order) is what orthogonal iteration with $(A^\ast)^{-1}$ produces from $Q_0 = P$.
-
-In particular, the last column of $Q_k$ is the result of $k$ steps of inverse iteration (\Cref{alg:inverse}) with $A^\ast$, started from $\vec{e}_m$. It converges at the rate $\abs{\lambda_m/\lambda_{m-1}}$ to an eigenvector $\vec{y}_m$ of $A^\ast$ for $\overline{\lambda_m}$. This $\vec{y}_m$ is a left eigenvector of $A$, $\vec{y}_m^\ast A = \lambda_m\vec{y}_m^\ast$. It is orthogonal to $\vec{x}_1, \dots, \vec{x}_{m-1}$, which agrees with \cref{eq:schur-nested}. So the QR algorithm runs two methods at the same time: power iteration in its first column, and inverse iteration in its last column. For real symmetric $A$, $A^\ast = A$; see~\cite[Lecture~29]{TB}.
-
 \subsection{Convergence Rates of Individual Entries}
 
 By \Cref{sec:orth-iter-conv}, the block $(T_k)_{p+1:m,1:p}$ decays like $\abs{\lambda_{p+1}/\lambda_p}^k$. This is the block below and to the left of the split after column $p$. In particular:
@@ -338,17 +274,3 @@ The most important block is the last row, $(T_k)_{m,1:m-1}$. It decays like $\ab
 If there is no gap $\abs{\lambda_p} > \abs{\lambda_{p+1}}$, the block at the split after column $p$ has no reason to decay. The extreme case is a unitary $A$: all its eigenvalues have modulus $1$. Its QR factorization is $A = A \cdot I$, so $T_1 = I \cdot A = A$, and the iteration does not move at all~\cite[Example~4.6]{Demmel}. An example is $A = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$, with eigenvalues $\pm 1$.
 
 For real matrices, the generic case is a pair of complex conjugate eigenvalues $\lambda, \overline{\lambda}$ (see the remark in \Cref{sec:schur-eig}). For real $A$, all $U_k$, $R_k$, and $T_k$ are real. So $T_k$ cannot converge to a triangular matrix with non-real diagonal entries. But the splits between eigenvalues of different moduli still have a gap, so those blocks still decay (under the analogous rank conditions). Suppose the only ties in modulus come from conjugate pairs. Then $T_k$ converges to a block upper triangular matrix with $1 \times 1$ and $2 \times 2$ diagonal blocks, that is, to the real Schur form (\Cref{thm:real-schur}). The entries of each $2 \times 2$ block keep changing from step to step, but its eigenvalues converge to $\lambda, \overline{\lambda}$.
-
-\subsection{Why Shifts Help}
-
-The shifted matrix $A - \sigma I = Q(T - \sigma I)Q^\ast$ has the same Schur vectors as $A$, and its eigenvalues are $\lambda_i - \sigma$. So the QR algorithm on $A - \sigma I$ converges at the rates $\abs{\lambda_{j+1} - \sigma}/\abs{\lambda_j - \sigma}$. Now the eigenvalues are ordered by their distance from $\sigma$. If $\sigma$ is close to an eigenvalue $\lambda$, the last row decays at the rate $\abs{\lambda - \sigma}/\min_{\lambda_j \ne \lambda}\abs{\lambda_j - \sigma}$, which is nearly zero.
-
-The shift may change from step to step, and we do not need to undo it:
-\begin{equation}
-  T_k - \sigma_kI = U_{k+1}R_{k+1}, \qquad T_{k+1} = R_{k+1}U_{k+1} + \sigma_kI = U_{k+1}^\ast T_kU_{k+1}.
-\end{equation}
-So $T_{k+1}$ is still unitarily similar to $A$~\cite[\S4.4.4]{Demmel}. By the previous subsections, the last column of $Q_k$ then does shifted inverse iteration. The natural choice is $\sigma_k = (T_k)_{mm}$, the Rayleigh quotient of that column. This choice gives a version of Rayleigh quotient iteration (\Cref{alg:rqi}), with cubic convergence for real symmetric $A$~\cite[Lecture~29]{TB}.
-
-Shifts also break ties in modulus. For $A = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$ and real $\sigma \ne 0$, we have $\abs{1 - \sigma} \ne \abs{-1 - \sigma}$. But here $(T_k)_{mm} = 0$ gives no shift at all. This is why practical codes use a more robust shift.
-
-Fast convergence alone is not enough, since each step of \Cref{alg:basic-qr} still costs $O(m^3)$. In \Cref{ch:hessenberg-qr} we reduce this cost with a Hessenberg reduction, and we add shifts.
