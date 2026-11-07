@@ -9,7 +9,7 @@ Supplementary reading:
 
 \section{Is Partial Pivoting Enough?}
 
-\Cref{ch:pivoting} bounded the backward error of LU by $m\epsm\abs{\tilde{L}}\abs{\tilde{U}}$ and introduced partial pivoting to keep the multipliers bounded, $\abs{L_{ij}} \le 1$; commuting the permutations past the elimination matrices then gave $PA = LU$ and an in-place algorithm. Rows and columns can also be pivoted simultaneously (\emph{complete pivoting}), giving $PA\tilde{P} = LU$ with a column permutation $\tilde{P}$. In practice, partial pivoting is usually enough. In theory, however, it can be \emph{unstable} when $m$ is large.
+\Cref{ch:pivoting} bounded the backward error of LU by $m\epsm\abs{\tilde{L}}\abs{\tilde{U}}$ and introduced partial pivoting to keep the multipliers bounded, $\abs{L_{ij}} \le 1$; commuting the permutations past the elimination matrices then gave $PA = LU$ and an in-place algorithm. Rows and columns can also be pivoted simultaneously (\emph{complete pivoting}), giving $PAQ = LU$ with a column permutation $Q$. In practice, partial pivoting is usually enough. In theory, however, it can be \emph{unstable} when $m$ is large.
 
 \begin{example}[Exponential Growth Under Partial Pivoting]
   \label{ex:growth}
@@ -343,12 +343,12 @@ which matches \Cref{ex:mgs-lauchli}.
 
 \subsection{How Much Orthogonality Is Lost?}
 
-The quantity $\norm{I - Q^\ast Q}$ measures how far the computed $Q$ is from having orthonormal columns. A result of Bj\"orck states:
+The quantity $\norm{I - Q^\ast Q}$ measures how far the computed $Q$ is from having orthonormal columns. Known results:
 \begin{itemize}
-  \item MGS: $\norm{I - Q^\ast Q} \approx \epsm\,\kappa(A)$;
-  \item CGS: the loss can be as bad as $\epsm\,\kappa(A)^2$.
+  \item MGS: $\norm{I - Q^\ast Q} \lesssim c\,\epsm\,\kappa(A)$~\cite{Bjorck1967}, an upper bound valid when $\epsm\,\kappa(A) \ll 1$;
+  \item CGS: $\norm{I - Q^\ast Q} \lesssim c\,\epsm\,\kappa(A)^2$, provided $\epsm\,\kappa(A)^2 \lesssim 1$~\cite{GLRE2005}.
 \end{itemize}
-The matrix of \Cref{ex:cgs-lauchli} has $\kappa(A) \approx \sqrt{3}/\eps$. With $\eps = 10^{-10}$, $\epsm\kappa(A)^2 \approx 7 \cdot 10^{4} \gg 1$, so CGS may lose orthogonality completely, while for MGS $\epsm\kappa(A) \approx 4 \cdot 10^{-6}$. In Julia we measured $\norm{I - Q^\ast Q} \approx 0.71$ for CGS (with $\ip{\vec{q}_2}{\vec{q}_3} = 0.5$) and $\approx 1.2 \cdot 10^{-10}$ for MGS.
+The matrix of \Cref{ex:cgs-lauchli} has $\kappa(A) \approx \sqrt{3}/\eps$. With $\eps = 10^{-10}$, $\epsm\kappa(A)^2 \approx 7 \cdot 10^{4} \gg 1$, so CGS may lose orthogonality completely, while for MGS $\epsm\kappa(A) \approx 4 \cdot 10^{-6}$. In Julia we measured $\norm{I - Q^\ast Q}_F \approx 0.71$ for CGS (with $\ip{\vec{q}_2}{\vec{q}_3} = 0.5$) and $\approx 1.2 \cdot 10^{-10}$ for MGS (Julia's norm on a matrix is the Frobenius norm; the $2$-norms are $\approx 0.5$ and $\approx 8 \cdot 10^{-11}$).
 
 \subsection{Why Not Solve the Normal Equations?}
 

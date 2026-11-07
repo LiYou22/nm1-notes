@@ -67,6 +67,7 @@ The main result of this lecture is
 In \Cref{ch:ls} we saw this geometrically; now we prove it. Then we study the matrix $A^\ast A$ of the last system. This leads to Gram matrices and positive semidefinite matrices.
 
 \section{Conventions}
+\label{sec:normal-conventions}
 
 We use the inner product $\ip{\vec{x}}{\vec{y}} = \vec{x}^\ast\vec{y}$, as in \Cref{ch:ls,ch:qr}. It is linear in the second argument and conjugate linear in the first. Swapping the two arguments conjugates it: $\ip{\vec{y}}{\vec{x}} = \overline{\ip{\vec{x}}{\vec{y}}}$. So
 \begin{equation}
@@ -400,7 +401,7 @@ In \Cref{thm:ls-optimality} we moved $\vec{x}$ a little in every direction $\vec
 
 \subsection{A Numerical Warning About the Normal Equations}
 
-By \Cref{thm:twonorm}, the singular values of $A^\ast A$ are the squares of those of $A$. So
+By \Cref{sec:herm-basics}, the singular values of $A^\ast A$ are the squares of those of $A$. So
 \begin{equation}
   \kappa_2(A^\ast A) = \kappa_2(A)^2.
 \end{equation}

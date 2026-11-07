@@ -159,36 +159,36 @@ We have seen that the QR iteration is orthogonal iteration with $Q_0 = I$ (\Cref
     &= (H - \mu_1I)(H - \mu_2I),
   \end{aligned}
 \end{equation}
-using $U_1R_1 = H - \mu_1I$ twice in the second line. With $\bar{Q}_k \defeq U_1\cdots U_k$ and $\bar{R}_k \defeq R_k\cdots R_1$, we can write
+using $U_1R_1 = H - \mu_1I$ twice in the second line. With $\underline{Q}_k \defeq U_1\cdots U_k$ and $\underline{R}_k \defeq R_k\cdots R_1$, we can write
 \begin{equation}
   \label{eq:shifted-qr-poly}
-  (H - \mu_kI)\cdots(H - \mu_1I) = \bar{Q}_k\bar{R}_k.
+  (H - \mu_kI)\cdots(H - \mu_1I) = \underline{Q}_k\underline{R}_k.
 \end{equation}
-By induction, using $T_{k-1} = \bar{Q}_{k-1}^\ast H\bar{Q}_{k-1}$,
+By induction, using $T_{k-1} = \underline{Q}_{k-1}^\ast H\underline{Q}_{k-1}$,
 \begin{equation}
-  \bar{Q}_k\bar{R}_k = \bar{Q}_{k-1}(T_{k-1} - \mu_kI)\bar{R}_{k-1} = (H - \mu_kI)\bar{Q}_{k-1}\bar{R}_{k-1}.
+  \underline{Q}_k\underline{R}_k = \underline{Q}_{k-1}(T_{k-1} - \mu_kI)\underline{R}_{k-1} = (H - \mu_kI)\underline{Q}_{k-1}\underline{R}_{k-1}.
 \end{equation}
-So \eqref{eq:shifted-qr-poly} is a QR factorization of the polynomial $p_k(H) = (H - \mu_kI)\cdots(H - \mu_1I)$. In the unshifted case, $\bar{Q}_k$ is the Q factor of $H^k$, which scales the eigenvector component for $\lambda_j$ by $\lambda_j^k$. Now it is scaled by $p_k(\lambda_j) = \prod_i(\lambda_j - \mu_i)$, which is tiny if the shifts are close to $\lambda_j$.
+So \eqref{eq:shifted-qr-poly} is a QR factorization of the polynomial $p_k(H) = (H - \mu_kI)\cdots(H - \mu_1I)$. In the unshifted case, $\underline{Q}_k$ is the Q factor of $H^k$, which scales the eigenvector component for $\lambda_j$ by $\lambda_j^k$. Now it is scaled by $p_k(\lambda_j) = \prod_i(\lambda_j - \mu_i)$, which is tiny if the shifts are close to $\lambda_j$.
 
 \paragraph{What about inverse iteration?} Invert \eqref{eq:shifted-qr-poly} and take the adjoint:
 \begin{equation}
   \label{eq:shifted-qr-inverse}
-  \bar{Q}_k\bar{R}_k^{-\ast} = (H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast},
+  \underline{Q}_k\underline{R}_k^{-\ast} = (H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast},
 \end{equation}
 with $X^{-\ast} \defeq (X^{-1})^\ast$. The factors commute, so their order does not matter. The right side is shifted inverse iteration (\Cref{alg:inverse}) on $H^\ast$, with shifts $\bar{\mu}_i$.
 
-Now $\bar{R}_k^{-\ast}$ is \emph{lower} triangular. So its last column is $(\bar{R}_k^{-\ast})_{mm}\vec{e}_m$, and multiplying \eqref{eq:shifted-qr-inverse} by $\vec{e}_m$ gives
+Now $\underline{R}_k^{-\ast}$ is \emph{lower} triangular. So its last column is $(\underline{R}_k^{-\ast})_{mm}\vec{e}_m$, and multiplying \eqref{eq:shifted-qr-inverse} by $\vec{e}_m$ gives
 \begin{equation}
-  \bar{\vec{q}}_m = \overline{(\bar{R}_k)_{mm}}\;(H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast}\vec{e}_m,
+  \underline{\vec{q}}_m = \overline{(\underline{R}_k)_{mm}}\;(H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast}\vec{e}_m,
 \end{equation}
-where $\bar{\vec{q}}_m$ is the last column of $\bar{Q}_k$. So the same $\bar{Q}_k$ does two iterations at once:
+where $\underline{\vec{q}}_m$ is the last column of $\underline{Q}_k$. So the same $\underline{Q}_k$ does two iterations at once:
 \begin{center}
   \begin{tabular}{lll}
     \toprule
-    factorization & triangular factor & columns of $\bar{Q}_k$ \\
+    factorization & triangular factor & columns of $\underline{Q}_k$ \\
     \midrule
-    $p_k(H) = \bar{Q}_k\bar{R}_k$ & upper & first columns: orthogonal (power) iteration \\
-    $p_k(H)^{-\ast} = \bar{Q}_k\bar{R}_k^{-\ast}$ & lower & last columns: shifted inverse iteration \\
+    $p_k(H) = \underline{Q}_k\underline{R}_k$ & upper & first columns: orthogonal (power) iteration \\
+    $p_k(H)^{-\ast} = \underline{Q}_k\underline{R}_k^{-\ast}$ & lower & last columns: shifted inverse iteration \\
     \bottomrule
   \end{tabular}
 \end{center}
@@ -203,12 +203,13 @@ The proof of \Cref{thm:implicit-q} works like the proof that the QR factorizatio
 For $\K = \C$, the same proof works with $Q, V$ unitary and $\T$ replaced by $\ast$. Then each column of $Q$ is fixed up to a factor of modulus one.
 
 \subsection{The Rayleigh Quotient Shift}
+\label{sec:rq-shift-supp}
 
 A natural estimate of $\lambda_m$ is the bottom right entry,
 \begin{equation*}
   \mu_k = t_{mm}^{(k-1)} = \vec{e}_m^\ast T_{k-1}\vec{e}_m,
 \end{equation*}
-the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. By the inverse iteration view, the last column of $\bar{Q}_k$ then does Rayleigh quotient iteration (\Cref{alg:rqi}). This gives local \emph{quadratic} convergence~\cite[Section 4.4.4]{Demmel}:
+the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. By the inverse iteration view, the last column of $\underline{Q}_k$ then does Rayleigh quotient iteration (\Cref{alg:rqi}). This gives local \emph{quadratic} convergence~\cite[Section 4.4.4]{Demmel}:
 \begin{itemize}
   \item Let $\eta = \norm{T_{k-1}(m, 1{:}m-1)}/\norm{A} \ll 1$.
   \item Setting the off-diagonal part of the last row to zero changes a well separated eigenvalue by $O(\eta\norm{A})$. So $\abs{\lambda_m - t_{mm}} = O(\eta\norm{A})$.
@@ -216,6 +217,7 @@ the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. By the inverse iteration view
 \end{itemize}
 
 \subsection{The Wilkinson Shift}
+\label{sec:wilkinson-supp}
 
 The Rayleigh quotient shift can get stuck. Take $T_0 = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$. Then $\mu_1 = t_{22} = 0$. $T_0$ is orthogonal, so $U_1 = T_0$, $R_1 = I$, and $T_1 = T_0$. Nothing changes, because the eigenvalues $\pm 1$ are equally far from the shift.
 
@@ -226,6 +228,7 @@ The \emph{Wilkinson shift} takes the eigenvalue of the last $2 \times 2$ block o
 $T_k$ comes from $A$ by unitary similarities in floating point, so it already carries rounding errors of size $O(\epsm)\norm{A}$. A subdiagonal entry smaller than this may be set to zero; this is a backward stable perturbation~\cite[Section 4.4.5]{Demmel}. The iteration stops when all diagonal blocks are $1 \times 1$ (or $2 \times 2$ for complex conjugate pairs of a real matrix).
 
 \subsection{Why the Implicit Q Theorem Matters for Shifts}
+\label{sec:implicit-q-shifts}
 
 With a shift, the first column of $U_k$ is parallel to the first column of $T_{k-1} - \mu I$, which is $(t_{11} - \mu, t_{21}, 0, \dots, 0)^\T$. By \Cref{thm:implicit-q}, this column fixes $U_k$. So:
 \begin{itemize}

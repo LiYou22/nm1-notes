@@ -19,5 +19,6 @@ LaTeX notes for CSCI-GA 2420 / MATH-GA 2010 (Numerical Methods I), NYU Courant, 
 13. **QR without Shifts**: convergence of orthogonal iteration, the basic QR algorithm.
 14. **Hessenberg QR**: Hessenberg reduction, QR iteration on Hessenberg matrices, bulge chasing.
 15. **Shifted QR**: implicit Q theorem, shifted QR iteration, choosing the shift.
+16. **Shift Strategies, Symmetric QR, and the SVD**: Wilkinson and Francis double shifts, symmetric tridiagonal QR, convergence rates, alternatives to QR, computing the SVD, polar decomposition.
 
 Appendices: A. linear algebra basics; B. norms, unitary matrices, and the SVD; C. the floating-point model and backward stability.

@@ -10,16 +10,13 @@ Supplementary reading:
 
 \section{Eigen-Type Factorizations}
 
-LU, Cholesky, and QR are based on \emph{elimination} or \emph{projection}. They have two things in common.
-\begin{enumerate}
-  \item Their purpose is to \emph{solve linear systems}. They use one-sided transformations ($A \mapsto LA$, $A \mapsto Q^\ast A$) or congruences ($A \mapsto LAL^\ast$). None of these preserve eigenvalues.
-  \item They finish in finitely many steps, about $O(m^3)$. Without rounding, they are exact.
-\end{enumerate}
-Starting with this lecture we study a second family, which shows the eigenstructure of a matrix: the eigen, polar, Schur, and singular value decompositions. They use \emph{similarity transformations}
+LU, Cholesky, and QR are based on \emph{elimination} or \emph{projection}. Their purpose is to \emph{solve linear systems}, using one-sided transformations ($A \mapsto LA$, $A \mapsto Q^\ast A$) or congruences ($A \mapsto LAL^\ast$), none of which preserve eigenvalues. They finish in about $O(m^3)$ steps and, without rounding, are exact.
+
+Starting with this lecture we study a second family, which shows the eigenstructure of a matrix: the eigen, polar, Schur, and singular value decompositions. The eigen and Schur decompositions use \emph{similarity transformations}
 \begin{equation*}
   A \mapsto X^{-1}AX,
 \end{equation*}
-which preserve eigenvalues. The table compares them.
+which preserve eigenvalues. The SVD and the polar decomposition use unitary transformations $A \mapsto U^\ast AV$, which preserve singular values. The table compares them.
 
 \begin{center}
 \small
@@ -36,8 +33,6 @@ which preserve eigenvalues. The table compares them.
 \end{center}
 
 Only the eigendecomposition may fail to exist. The other three exist for every (square) matrix, and they use only unitary transformations, which do not amplify errors. A \emph{normal} matrix ($A^\ast A = AA^\ast$, for example a Hermitian one) can be diagonalized by a unitary matrix, $A = Q\Lambda Q^\ast$. We start with the eigendecomposition of Hermitian matrices.
-
-\clearpage
 
 \section{Eigenpairs of Hermitian Matrices}
 
@@ -146,10 +141,31 @@ Expanding $\det(zI - A)$ along the last row gives $\det(zI - A) = p(z)$. So the 
 
 We cannot hope for exact computation. So how can we \emph{approximate} the eigenpairs of $A$? The simplest idea is to multiply a vector by $A$ again and again. To see why this works, we first look at what multiplication by $A$ does in the eigenbasis.
 
-\paragraph{Multiplying by \texorpdfstring{$A$}{A} in the eigenbasis.} Let $A = X\Lambda X^{-1}$ be diagonalizable. We write any vector as a combination of eigenvectors, $\vec{z} = X\vec{y} = \sum_i y_i\vec{x}_i$. Here $\vec{y} = X^{-1}\vec{z}$ holds the coordinates of $\vec{z}$ in the eigenbasis. Then
+\paragraph{Multiplying by \texorpdfstring{$A$}{A} in the eigenbasis.} Let $A = X\Lambda X^{-1}$ be diagonalizable, where the columns $\vec{x}_1, \dots, \vec{x}_m$ of $X$ are eigenvectors and $\Lambda = \diag(\lambda_1, \dots, \lambda_m)$.
+
+\emph{Every vector can be expanded in eigenvectors.} Diagonalizable means $X$ is invertible, i.e.\ the $m$ eigenvectors are linearly independent. Since $\K^m$ has dimension $m$, they form a basis of the \emph{whole} space $\K^m$. (A single eigenspace may be small, but all eigenvectors together span everything.) Hence every $\vec{z} \in \K^m$ can be written uniquely as
+\begin{equation*}
+  \vec{z} = X\vec{y} = \sum_{i=1}^m y_i\vec{x}_i, \qquad \vec{y} = X^{-1}\vec{z}.
+\end{equation*}
+The vector $\vec{y}$ holds the coordinates of $\vec{z}$ in the eigenbasis; in practice it is obtained by solving $X\vec{y} = \vec{z}$. Note that $y_i$ is in general \emph{not} the orthogonal projection coefficient $\vec{x}_i^\ast\vec{z}$, because the eigenvectors need not be orthogonal; the two agree only when $X$ is unitary (i.e.\ $A$ is normal). Also, $\vec{z}$ lies in $\range(X) = \K^m$, but it need not lie in $\range(A)$, which is smaller when $A$ is singular.
+
+\emph{The result.} Then
 \begin{equation}
   A\vec{z} = X\Lambda\vec{y}, \qquad A^2\vec{z} = X\Lambda^2\vec{y}, \qquad A^k\vec{z} = X\Lambda^k\vec{y} = \sum_{i=1}^m \lambda_i^k y_i\vec{x}_i.
 \end{equation}
+We derive this in three steps.
+\begin{enumerate}
+  \item \emph{One multiplication.} Substitute $A = X\Lambda X^{-1}$ and $\vec{z} = X\vec{y}$. The inner $X^{-1}X$ cancels:
+  \begin{equation*}
+    A\vec{z} = X\Lambda(X^{-1}X)\vec{y} = X\Lambda\vec{y}.
+  \end{equation*}
+  Read $A = X\Lambda X^{-1}$ from right to left: $X^{-1}$ converts $\vec{z}$ to eigen-coordinates $\vec{y}$, $\Lambda$ scales the $i$-th coordinate by $\lambda_i$, and $X$ converts back to standard coordinates.
+  \item \emph{$k$ multiplications.} In $A^k = (X\Lambda X^{-1})(X\Lambda X^{-1})\cdots(X\Lambda X^{-1})$, every $X^{-1}X$ between neighboring factors cancels, so $A^k = X\Lambda^kX^{-1}$ and
+  \begin{equation*}
+    A^k\vec{z} = X\Lambda^kX^{-1}X\vec{y} = X\Lambda^k\vec{y}.
+  \end{equation*}
+  \item \emph{The sum.} $\Lambda$ is diagonal, so $\Lambda^k = \diag(\lambda_1^k, \dots, \lambda_m^k)$, and entry $i$ of $\Lambda^k\vec{y}$ is $\lambda_i^ky_i$. A matrix times a vector is a combination of its columns, $X\vec{v} = \sum_i v_i\vec{x}_i$. With $\vec{v} = \Lambda^k\vec{y}$ this gives $X\Lambda^k\vec{y} = \sum_i \lambda_i^ky_i\vec{x}_i$.
+\end{enumerate}
 In words: \emph{in the eigenbasis, multiplication by $A$ multiplies each coordinate by its own eigenvalue. The directions do not mix.}
 
 Now assume that the largest eigenvalue strictly dominates, $\abs{\lambda_1} > \abs{\lambda_2} \ge \cdots \ge \abs{\lambda_m}$. We factor out $\lambda_1^k$:
@@ -192,6 +208,8 @@ These approximations hold in the relative sense, $\Lambda^k/\lambda_1^k \to \dia
 
 \paragraph{Rate of convergence.} We now study how fast power iteration converges, for Hermitian $A$. We track two errors: the error in the vector and the error in the eigenvalue. The key point is that the second error is much smaller than the first. The reason is that the Rayleigh quotient of a Hermitian matrix is \emph{quadratically} accurate.
 
+\emph{Notation.} $A$ is Hermitian, with orthonormal eigenvectors $\vec{x}_1, \dots, \vec{x}_m$ and $A\vec{x}_j = \lambda_j\vec{x}_j$. The $\lambda_j$ are real. For a unit vector $\vec{q}$, $c_j = \ip{\vec{x}_j}{\vec{q}}$ are its coordinates in this basis. The index $j$ is summed over; $J$ is fixed, the index of the eigenvalue being estimated. In \Cref{thm:power} the eigenvalues are ordered by modulus, $\abs{\lambda_1} > \abs{\lambda_2} \ge \cdots$. By contrast, $\lambda_{\max}$ and $\lambda_{\min}$ are the largest and smallest by value.
+
 \begin{lemma}[Quadratic Accuracy of the Rayleigh Quotient]
   \label{lem:rayleigh-quad}
   Let $A$ be Hermitian with orthonormal eigenvectors $\vec{x}_1, \dots, \vec{x}_m$, and let $\vec{q}$ be a unit vector. Then for every $J$,
@@ -211,12 +229,14 @@ These approximations hold in the relative sense, $\Lambda^k/\lambda_1^k \to \dia
   \begin{equation}
     r(\vec{q}) = \vec{q}^\ast A\vec{q} = \sum_j\lambda_j\abs{c_j}^2.
   \end{equation}
+  So $r(\vec{q})$ is a weighted average of the eigenvalues, with weights $\abs{c_j}^2$ that sum to $1$. This gives quadratic accuracy: if $\vec{q}$ is $\varepsilon$ away from $\vec{x}_J$, the wrong components $c_j$ ($j \ne J$) are $O(\varepsilon)$ by \eqref{eq:rayleigh-tail}, but they enter squared, $\abs{c_j}^2 = O(\varepsilon^2)$.
+
   We subtract $\lambda_J = \lambda_J\sum_j\abs{c_j}^2$. The $j = J$ term cancels, and we get
   \begin{equation*}
     r(\vec{q}) - \lambda_J = \sum_j(\lambda_j - \lambda_J)\abs{c_j}^2 = \sum_{j \ne J}(\lambda_j - \lambda_J)\abs{c_j}^2.
   \end{equation*}
 
-  \emph{The bound.} Each factor satisfies $\abs{\lambda_j - \lambda_J} \le \lambda_{\max} - \lambda_{\min}$, so
+  \emph{The bound.} The eigenvalues are real, so they all lie in $[\lambda_{\min}, \lambda_{\max}]$ and $\abs{\lambda_j - \lambda_J} \le \lambda_{\max} - \lambda_{\min}$. Hence
   \begin{equation*}
     \abs{r(\vec{q}) - \lambda_J} \le (\lambda_{\max} - \lambda_{\min})\sum_{j \ne J}\abs{c_j}^2.
   \end{equation*}
@@ -224,7 +244,7 @@ These approximations hold in the relative sense, $\Lambda^k/\lambda_1^k \to \dia
   \begin{equation*}
     \vec{q} - \vec{x}_J = (c_J - 1)\vec{x}_J + \sum_{j \ne J}c_j\vec{x}_j.
   \end{equation*}
-  By Pythagoras,
+  By Pythagoras, and then dropping the nonnegative term $\abs{c_J - 1}^2$,
   \begin{equation}
     \label{eq:rayleigh-tail}
     \norm{\vec{q} - \vec{x}_J}^2 = \abs{c_J - 1}^2 + \sum_{j \ne J}\abs{c_j}^2 \ge \sum_{j \ne J}\abs{c_j}^2. \qedhere
@@ -247,27 +267,34 @@ These approximations hold in the relative sense, $\Lambda^k/\lambda_1^k \to \dia
 \begin{proof}
   Write $\rho = \abs{\lambda_2/\lambda_1} < 1$. Normalizing at every step only rescales, so $\vec{q}^{(k)}$ is $A^k\vec{q}^{(0)}$ scaled to unit length.
 
-  \emph{Expand.} By \eqref{eq:power-expand} with $y_j = c_j$,
+  \emph{Expand.} We split $A^k\vec{q}^{(0)}$ into its main direction $\vec{x}_1$ and a deviation $\vec{e}_k$. By \eqref{eq:power-expand} with $y_j = c_j$,
   \begin{equation*}
     A^k\vec{q}^{(0)} = \lambda_1^kc_1(\vec{x}_1 + \vec{e}_k), \qquad \vec{e}_k = \sum_{j=2}^m\left(\frac{\lambda_j}{\lambda_1}\right)^k\frac{c_j}{c_1}\vec{x}_j.
   \end{equation*}
-  Each $\abs{\lambda_j/\lambda_1} \le \rho$ and $\sum_j\abs{c_j}^2 = 1$, so
+  The deviation involves only $\vec{x}_2, \dots, \vec{x}_m$, so $\vec{e}_k \perp \vec{x}_1$. Each $\abs{\lambda_j/\lambda_1} \le \rho$ and $\sum_j\abs{c_j}^2 = 1$, so by Pythagoras
   \begin{equation*}
-    \norm{\vec{e}_k} \le \frac{\rho^k}{\abs{c_1}}.
+    \norm{\vec{e}_k}^2 = \sum_{j=2}^m\abs{\frac{\lambda_j}{\lambda_1}}^{2k}\frac{\abs{c_j}^2}{\abs{c_1}^2} \le \frac{\rho^{2k}}{\abs{c_1}^2}\sum_{j=2}^m\abs{c_j}^2 \le \frac{\rho^{2k}}{\abs{c_1}^2}, \qquad\text{i.e.}\qquad \norm{\vec{e}_k} \le \frac{\rho^k}{\abs{c_1}}.
   \end{equation*}
 
-  \emph{Normalize.} Let $s_k = \lambda_1^kc_1/\abs{\lambda_1^kc_1}$ and $n_k = \norm{\vec{x}_1 + \vec{e}_k}$. Then
+  \emph{Normalize.} Let $s_k = \lambda_1^kc_1/\abs{\lambda_1^kc_1}$ and $n_k = \norm{\vec{x}_1 + \vec{e}_k}$. Then $\norm{A^k\vec{q}^{(0)}} = \abs{\lambda_1^kc_1}\,n_k$, and dividing leaves the phase $s_k$:
   \begin{equation*}
-    \vec{q}^{(k)} = \frac{s_k(\vec{x}_1 + \vec{e}_k)}{n_k}.
+    \vec{q}^{(k)} = \frac{A^k\vec{q}^{(0)}}{\norm{A^k\vec{q}^{(0)}}} = \frac{\lambda_1^kc_1}{\abs{\lambda_1^kc_1}}\cdot\frac{\vec{x}_1 + \vec{e}_k}{n_k} = \frac{s_k(\vec{x}_1 + \vec{e}_k)}{n_k}.
   \end{equation*}
-  Since $\vec{e}_k \perp \vec{x}_1$, we have $n_k = \sqrt{1 + \norm{\vec{e}_k}^2}$, so $1 \le n_k \le 1 + \norm{\vec{e}_k}^2/2$. Hence
+  We need $s_k$ because $\vec{q}^{(k)}$ converges in direction only: if $\lambda_1 < 0$ the iterates flip sign every step, and a complex $c_1$ adds a phase. So we compare $\vec{q}^{(k)}$ with $s_k\vec{x}_1$, not with $\vec{x}_1$.
+
+  The error is
   \begin{equation*}
-    \vec{q}^{(k)} - s_k\vec{x}_1 = s_k\left[\left(\frac{1}{n_k} - 1\right)\vec{x}_1 + \frac{\vec{e}_k}{n_k}\right],
+    \vec{q}^{(k)} - s_k\vec{x}_1 = s_k\left[\left(\frac{1}{n_k} - 1\right)\vec{x}_1 + \frac{\vec{e}_k}{n_k}\right].
   \end{equation*}
-  and
+  Since $\vec{e}_k \perp \vec{x}_1$, Pythagoras gives $n_k = \sqrt{1 + \norm{\vec{e}_k}^2}$. As $\sqrt{1 + t} \le 1 + t/2$, we get $1 \le n_k \le 1 + \norm{\vec{e}_k}^2/2$. This controls both terms:
+  \begin{equation*}
+    1 - \frac{1}{n_k} = \frac{n_k - 1}{n_k} \le n_k - 1 \le \frac{\norm{\vec{e}_k}^2}{2}, \qquad \frac{\norm{\vec{e}_k}}{n_k} \le \norm{\vec{e}_k}.
+  \end{equation*}
+  By the triangle inequality,
   \begin{equation*}
     \norm{\vec{q}^{(k)} - s_k\vec{x}_1} \le \left(1 - \frac{1}{n_k}\right) + \norm{\vec{e}_k} \le \frac{\norm{\vec{e}_k}^2}{2} + \norm{\vec{e}_k} = O(\rho^k).
   \end{equation*}
+  The dominant term is $\norm{\vec{e}_k}$.
 
   \emph{Eigenvalue.} $s_k\vec{x}_1$ is also a unit eigenvector for $\lambda_1$. So \Cref{lem:rayleigh-quad}, with $\vec{x}_1$ replaced by $s_k\vec{x}_1$, squares the vector error:
   \begin{equation*}
@@ -284,32 +311,32 @@ For example, if $\abs{\lambda_2/\lambda_1} = 0.5$, then after $10$ steps the vec
 
 The square needs $A$ Hermitian (\Cref{lem:rayleigh-quad}). For a general diagonalizable matrix, the eigenvalue error is only $O(\abs{\lambda_2/\lambda_1}^k)$.
 
-What happens when $\abs{\lambda_2/\lambda_1}$ is close to $1$? There are two very different cases: $\lambda_2 \approx \lambda_1$ and $\lambda_2 \approx -\lambda_1$.
+What happens when $\abs{\lambda_2/\lambda_1}$ is close to $1$? There are two very different cases: $\lambda_2 \approx \lambda_1$ and $\lambda_2 \approx -\lambda_1$. The vector's convergence is governed by the \emph{ratio of the moduli}, $\abs{\lambda_2/\lambda_1}$, while the Rayleigh quotient's error is governed by the \emph{differences of the values}, $\lambda_j - \lambda_1$ (\Cref{lem:rayleigh-quad}).
 
 \paragraph{When \texorpdfstring{$\lambda_2 \approx \lambda_1$}{λ2 ≈ λ1}: the eigenvalue still converges.} In short, in this case \emph{the eigenvalue converges well enough, but the eigenvector converges slowly.}
 
 Suppose $\abs{\lambda_1} \sim \abs{\lambda_2} \gg \abs{\lambda_3}$. In the space spanned by $\vec{x}_1, \vec{x}_2, \vec{x}_3$, the iterates move in two phases.
 \begin{enumerate}
-  \item They first fall quickly into the plane $\spn(\vec{x}_1, \vec{x}_2)$, at the rate $\abs{\lambda_3/\lambda_1}^k$.
-  \item Then they turn slowly toward $\vec{x}_1$ within the plane, at the rate $\abs{\lambda_2/\lambda_1}^k$.
+  \item They first fall quickly into the plane $\spn(\vec{x}_1, \vec{x}_2)$, at the rate $\abs{\lambda_3/\lambda_1}^k$. The components along $\vec{x}_3, \dots$ die out within a few steps.
+  \item Then they turn slowly toward $\vec{x}_1$ within the plane, at the rate $\abs{\lambda_2/\lambda_1}^k$. The $\vec{x}_2$ component shrinks only a little per step.
 \end{enumerate}
 After the first phase, $\vec{q} \approx c_1\vec{x}_1 + c_2\vec{x}_2$. The Rayleigh quotient
 \begin{equation*}
   \lambda_1\abs{c_1}^2 + \lambda_2\abs{c_2}^2
 \end{equation*}
-is then a weighted average of $\lambda_1$ and $\lambda_2$. Its error is at most $\abs{\lambda_1 - \lambda_2}$, which is already small.
+is then a weighted average of $\lambda_1$ and $\lambda_2$. The two numbers are close, so the average is close to $\lambda_1$: its error is at most $\abs{\lambda_1 - \lambda_2}$, which is already small. The eigenvalue is accurate even though the vector has not yet converged.
 
 \paragraph{When \texorpdfstring{$\lambda_2 \approx -\lambda_1$}{λ2 ≈ −λ1}: the real failure.} Now only the plane matters. Let $\vec{q} = c_1\vec{x}_1 + c_2\vec{x}_2$. One multiplication by $A$ gives
 \begin{equation*}
-  A\vec{q} \approx \lambda_1(c_1\vec{x}_1 - c_2\vec{x}_2).
+  A\vec{q} = \lambda_1c_1\vec{x}_1 + \lambda_2c_2\vec{x}_2 \approx \lambda_1(c_1\vec{x}_1 - c_2\vec{x}_2).
 \end{equation*}
-Geometrically this is a \emph{reflection across the $\vec{x}_1$ axis}. The iterates jump back and forth between two directions that are symmetric about $\vec{x}_1$.
+Relative to the $\vec{x}_1$ coefficient, the $\vec{x}_2$ coefficient flips sign at every step. Geometrically this is a \emph{reflection across the $\vec{x}_1$ axis}. The iterates jump back and forth between two directions that are symmetric about $\vec{x}_1$.
 
 If $\lambda_2 = -\lambda_1$ exactly, $\abs{c_2/c_1}$ never changes, and there is no convergence at all. The Rayleigh quotient
 \begin{equation}
   \vec{q}^\ast A\vec{q} \approx \lambda_1\left(\abs{c_1}^2 - \abs{c_2}^2\right)
 \end{equation}
-is fixed by the starting vector. It may lie anywhere in $[-\lambda_1, \lambda_1]$.
+is fixed by the starting vector. It is a weighted average of $\lambda_1$ and $-\lambda_1$, which are far apart, so it may lie anywhere in $[-\abs{\lambda_1}, \abs{\lambda_1}]$.
 
 \begin{center}
 \begin{tikzpicture}[scale=1.5, every node/.style={font=\small}]
@@ -335,10 +362,10 @@ is fixed by the starting vector. It may lie anywhere in $[-\lambda_1, \lambda_1]
   \end{scope}
 \end{tikzpicture}
 
-\small Left: with $\lambda_2/\lambda_1 = 0.8$ the iterates turn slowly but steadily toward $\vec{x}_1$. Right: with $\lambda_2 = -\lambda_1$ each step reflects $\vec{q}$ across the $\vec{x}_1$ axis, and the iteration never converges.
+\small Left: with $\lambda_2/\lambda_1 = 0.8$ the $\vec{x}_2$ component shrinks by $0.8$ per step; the iterates turn slowly but steadily toward $\vec{x}_1$. Right: with $\lambda_2 = -\lambda_1$ the $\vec{x}_2$ coefficient flips sign, so each step reflects $\vec{q}$ across the $\vec{x}_1$ axis, and the iteration never converges.
 \end{center}
 
-So the truly bad case is eigenvalues with \emph{similar modulus but far-apart values}; close values do no harm. The cure is to change the spectrum, which is the topic of the next section.
+So the truly bad case is eigenvalues with \emph{similar modulus but far-apart values}; close values do no harm. The cure is to change the spectrum so that the moduli separate. For example, if $\lambda_1 = 1$ and $\lambda_2 = -1$, the shift $\mu = 0.5$ gives $A - \mu I$ with eigenvalues $0.5$ and $-1.5$, whose moduli now differ. This is the topic of the next section.
 
 \section{Matrix Functions: Changing the Spectrum}
 
@@ -376,7 +403,7 @@ So $\vec{x}$ is still an eigenvector of $p(A)$, and its eigenvalue is now $p(\la
   \item $A^k$ makes large eigenvalues larger relative to small ones. This is exactly what power iteration does.
   \item $\alpha A$ scales all eigenvalues by the same factor, so the ratios $\abs{\lambda_j/\lambda_1}$ do not change. It acts like normalization and does not help.
   \item $A + \beta I$ shifts all eigenvalues by the same amount. This \emph{does} change the ratios, and it is the main tool below.
-  \item $p(A)$ is the general case.
+  \item $p(A)$ is the general case; see~\cite{HighamFM} for more on matrix functions.
 \end{itemize}
 
 \paragraph{Power iteration on \texorpdfstring{$p(A)$}{p(A)}.} We run power iteration with $p(A)$ in place of $A$. By \Cref{thm:power}, it converges to the eigenvector $\vec{x}_i$ for which $\abs{p(\lambda_i)}$ is largest, at the rate
@@ -522,7 +549,7 @@ The two updates help each other.
 \end{itemize}
 To see how fast this goes, we first ask how good the Rayleigh quotient is.
 
-\subsection{The Rayleigh Quotient Near an Eigenvector}
+\paragraph{The Rayleigh Quotient Near an Eigenvector.}
 
 Let $A \in \R^{m \times m}$ be symmetric. We define the Rayleigh quotient as
 \begin{equation*}
@@ -574,7 +601,7 @@ In fact, $\nabla r(\vec{x}) = \zerovec$ exactly when $\vec{x}$ is an eigenvector
 
 This is the good news: \emph{getting $\vec{q}$ close to $\vec{x}_J$ gets $\mu$ even closer to $\lambda_J$.} A vector error $\eps$ gives an eigenvalue error $O(\eps^2)$. RQI is similar to Newton's method (see the supplement).
 
-\subsection{Cubic Convergence}
+\paragraph{Cubic Convergence.}
 
 We now bound one step of RQI,
 \begin{equation*}

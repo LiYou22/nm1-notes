@@ -192,7 +192,7 @@ Some remarks:
 \label{sec:pivot-further}
 \subsection{Storing $P$ and the Cost of Pivoting}
 
-In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (LAPACK's \texttt{ipiv}), so each swap exchanges two integers. The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops. In column-major storage, however, a row swap is a strided access, and its cost is not negligible.
+In practice $P$ is not stored as a matrix but as a permutation vector of length $m$ (Julia's \texttt{F.p}), so each swap exchanges two integers; LAPACK instead stores the pivot row of each step (\texttt{ipiv}). The search for pivots costs only $O(m^2)$ comparisons on top of the $\tfrac{2}{3}m^3$ flops. In column-major storage, however, a row swap is a strided access, and its cost is not negligible.
 
 \subsection{Growth Factor}
 

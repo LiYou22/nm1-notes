@@ -248,7 +248,7 @@ The picture below shows one step of each variant.
   \end{algorithmic}
 \end{algorithm}
 
-\subparagraph{Up-looking.} Here $L$ is computed row by row. Row $i$ depends only on its own earlier entries and on the finished rows above it. Row $i$ of $L$ is column $i$ of $R = L^\ast$. So a column-major code stores the upper triangular factor $R$ instead. Then walking along a row of $L$ becomes walking down a column of $R$. In \emph{packed storage}, we store the upper triangle column by column. Column $i$ has length $i$ and comes right after column $i - 1$:
+\subparagraph{Up-looking.} Here $L$ is computed row by row. Row $i$ depends only on its own earlier entries and on the finished rows above it. Row $i$ of $L$, conjugated, is column $i$ of $R = L^\ast$. So a column-major code stores the upper triangular factor $R$ instead. Then walking along a row of $L$ becomes walking down a column of $R$. In \emph{packed storage}, we store the upper triangle column by column. Column $i$ has length $i$ and comes right after column $i - 1$:
 \begin{equation}
   \begin{bmatrix} 1 & 2 & 4 & 7 & 11 \\ & 3 & 5 & 8 & 12 \\ & & 6 & 9 & 13 \\ & & & 10 & 14 \\ & & & & 15 \end{bmatrix}.
 \end{equation}
@@ -333,7 +333,7 @@ The map $A \mapsto B^\ast AB$ is called a \emph{congruence}. We do need $B$ to b
   The lower bound \eqref{eq:pivot-bound} needs a fact about Schur complements. We prove it in \Cref{sec:schur}.
 \end{proof}
 
-Note that ``real'' and ``positive'' come from different assumptions. The pivot is real because $S$ is Hermitian. It is positive because $S$ is positive definite. Along the way we also proved a useful fact: \emph{every diagonal entry of a positive definite matrix is positive}. The lower bound \eqref{eq:pivot-bound} says even more than positivity. The pivots stay a fixed distance away from zero, for every $k$. So tiny pivots cannot occur.
+Note that ``real'' and ``positive'' come from different assumptions. The pivot is real because $S$ is Hermitian. It is positive because $S$ is positive definite. Along the way we also proved a useful fact: \emph{every diagonal entry of a positive definite matrix is positive}. The lower bound \eqref{eq:pivot-bound} says even more than positivity. No pivot is smaller than $\lambda_{\min}(A) = 1/\norm{A^{-1}}_2$, for every $k$.
 
 \begin{corollary}[Uniqueness of the Cholesky Factorization]
   \label{cor:chol-unique}
@@ -487,7 +487,7 @@ The Schur complement $S$ from Step 1 of \Cref{sec:chol-derive} is the special ca
 Note that the Schur complement is \emph{defined} as $A_{22} - A_{21}A_{11}^{-1}A_{12}$. The block equations show that it is \emph{equal} to $L_{22}L_{22}^\ast$. This tells us two things.
 \begin{enumerate}
   \item $L_{22}$ is the Cholesky factor of the Schur complement. So the algorithm can recurse on blocks instead of single columns.
-  \item The Schur complement equals $L_{22}L_{22}^\ast$ with $L_{22}$ invertible, so it is s.p.d. This gives a second proof that the recursion never breaks down. (The first proof was the congruence argument.)
+  \item The Schur complement $A/A_{11}$ is s.p.d.: for $\vec{y} \ne \zerovec$, let $\vec{x} = \left[\begin{smallmatrix} -A_{11}^{-1}A_{12}\vec{y} \\ \vec{y} \end{smallmatrix}\right]$. Then $\vec{x}^\ast A\vec{x} = \vec{y}^\ast (A/A_{11})\vec{y} > 0$. This gives a second proof that the recursion never breaks down. (The first proof was the congruence argument.)
 \end{enumerate}
 
 The Schur complement is also exactly what the column-by-column elimination of \Cref{sec:chol-exists} computes. Let $A_{11}$ be the leading $k \times k$ block. Then after $k$ steps of symmetric elimination,
@@ -576,7 +576,7 @@ Both parts use the Rayleigh quotient bound: for Hermitian $H$ and $\vec{x} \ne \
   \begin{equation}
     d_k \ge \lambda_{\min}(S') \ge \lambda_{\min}(A) = \frac{1}{\norm{A^{-1}}_2},
   \end{equation}
-  where the last equality holds because the singular values of an s.p.d.\ matrix are its eigenvalues (\Cref{thm:twonorm}).
+  where the last equality holds because the singular values of an s.p.d.\ matrix are its eigenvalues (\Cref{thm:spectral}).
 \end{proof}
 
 The same argument with $\lambda_{\min}(\Theta)$ gives $\lambda \le \lambda_{\max}(A)$. So every eigenvalue of a Schur complement of an s.p.d.\ matrix lies in $[\lambda_{\min}(A), \lambda_{\max}(A)]$.

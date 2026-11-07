@@ -251,10 +251,11 @@ Compare with the two earlier algorithms:
 
 How do we choose the $Q_k$?
 
-\paragraph{The Householder reflector.} Let us begin with the first step. $Q_1$ must map the first column $\vec{a}_1$ to a multiple of $\vec{e}_1$. Unitary maps preserve the $2$-norm, so there are only two possible targets:
+\paragraph{The Householder reflector.} Let us begin with the first step. $Q_1$ must map the first column $\vec{a}_1$ to a multiple of $\vec{e}_1$. Unitary maps preserve the $2$-norm, so there are only two possible targets (for $\K = \R$):
 \begin{equation}
   Q_1\vec{a}_1 = \pm\norm{\vec{a}_1}\vec{e}_1.
 \end{equation}
+Over $\C$, define $\sign(z) \defeq z/\abs{z}$ ($\sign(0) \defeq 1$); the target is $-\sign(a_{11})\norm{\vec{a}_1}\vec{e}_1$, and \Cref{alg:householder} works unchanged.
 Take the $+$ sign first.
 
 \emph{Idea:} use a reflection. Since $\vec{a}_1$ and $\norm{\vec{a}_1}\vec{e}_1$ have the same length, they are mirror images of each other. The mirror is the hyperplane through the origin with normal vector
@@ -270,9 +271,9 @@ Reflecting across it sends $\vec{a}_1$ to $\norm{\vec{a}_1}\vec{e}_1$.
   \coordinate (X) at ({3*cos(50)},{3*sin(50)});
   \coordinate (E) at (3,0);
   \draw[dashed] (O) -- ({3.4*cos(25)},{3.4*sin(25)}) node[right] {$H$};
-  \draw[-{Latex},thick] (O) -- (X) node[above] {$\vec{x}$};
-  \draw[-{Latex},thick] (O) -- (E) node[below] {$\norm{\vec{x}}\vec{e}_1$};
-  \draw[-{Latex},thick,red!70!black] (X) -- (E) node[midway,right] {$\norm{\vec{x}}\vec{e}_1 - \vec{x}$};
+  \draw[-{Latex},thick] (O) -- (X) node[above] {$\vec{a}_1$};
+  \draw[-{Latex},thick] (O) -- (E) node[below] {$\norm{\vec{a}_1}\vec{e}_1$};
+  \draw[-{Latex},thick,red!70!black] (X) -- (E) node[midway,right] {$\norm{\vec{a}_1}\vec{e}_1 - \vec{a}_1$};
 \end{tikzpicture}
 \end{center}
 
@@ -379,7 +380,7 @@ $Q_k$ is itself a Householder reflector (with $\vec{v}$ padded by $k - 1$ leadin
   \begin{algorithmic}[1]
     \For{$k = 1, \dots, n$}
       \State $\vec{x} \gets A[k{:}m, k]$
-      \State $\vec{v} \gets \sign(x_1)\norm{\vec{x}}_2\vec{e}_1 + \vec{x}$
+      \State $\vec{v} \gets \sign(x_1)\norm{\vec{x}}_2\vec{e}_1 + \vec{x}$ \Comment{$\sign(z) = z/\abs{z}$, $\sign(0) = 1$}
       \State $\vec{v} \gets \vec{v}/v_1$ \Comment{scale so that $v_1 = 1$}
       \State $A[k{:}m, k{:}n] \gets A[k{:}m, k{:}n] - 2\vec{v}\left(\vec{v}^\ast A[k{:}m, k{:}n]\right)/(\vec{v}^\ast\vec{v})$
       \State $A[k{+}1{:}m, k] \gets \vec{v}[2{:}\mathrm{end}]$ \Comment{store $\vec{v}$ below the diagonal}
@@ -437,7 +438,7 @@ This equals $\kappa(A)$. Since $A = \hat{Q}\hat{R}$ and $\hat{Q}$ has orthonorma
 \end{equation*}
 so $A$ and $\hat{R}$ stretch every vector by the same factor. Their largest and smallest stretches agree, and hence $\kappa(\hat{R}) = \kappa(A)$.
 
-So the triangular transformations of Gram--Schmidt are exactly as ill-conditioned as the problem: the more ill-conditioned $A$, the more the error is amplified. This matches the loss of orthogonality $\approx \epsm\kappa(A)$ of MGS in \Cref{ch:ls}.
+So the triangular transformations of Gram--Schmidt are exactly as ill-conditioned as the problem: the more ill-conditioned $A$, the more the error is amplified. This matches the loss of orthogonality $\lesssim \epsm\kappa(A)$ of MGS in \Cref{ch:ls}.
 
 \subsection{Backward Error Over Many Steps}
 
@@ -464,7 +465,7 @@ This is the argument behind Demmel's Lemma 3.1 and Theorem 3.5~\cite[\S3.4.3]{De
 
 We measure the loss of orthogonality by $\norm{Q^\ast Q - I}_2$.
 \begin{itemize}
-  \item MGS computes $\hat{Q}$ by triangular column operations on $A$. Their condition is $\kappa(A)$, so $\norm{\hat{Q}^\ast\hat{Q} - I}_2 \approx \epsm\kappa(A)$.
+  \item MGS computes $\hat{Q}$ by triangular column operations on $A$. Their condition is $\kappa(A)$, so $\norm{\hat{Q}^\ast\hat{Q} - I}_2 \lesssim \epsm\kappa(A)$.
   \item Householder never builds $Q$ from $A$. $Q$ is a product of reflectors, each unitary up to rounding in $\vec{v}_k$, so $\norm{Q^\ast Q - I}_2 = O(\epsm)$, independently of $\kappa(A)$.
 \end{itemize}
 When an orthonormal basis of $\range(A)$ is needed explicitly, Householder is the safer choice.
@@ -490,7 +491,7 @@ Split $\vec{c}$ into $\vec{c}_1 = \vec{c}[1{:}n]$ and $\vec{c}_2 = \vec{c}[n{+}1
 \begin{equation*}
   \norm{A\vec{x} - \vec{b}}_2^2 = \norm{R\vec{x} - \vec{c}}_2^2 = \norm{\hat{R}\vec{x} - \vec{c}_1}_2^2 + \norm{\vec{c}_2}_2^2.
 \end{equation*}
-The first term vanishes when $\hat{R}\vec{x} = \vec{c}_1$, which we solve by back substitution. The second term does not depend on $\vec{x}$, so $\norm{\vec{c}_2}_2$ is the minimal residual. Details are in \Cref{ch:qr}.
+The first term vanishes when $\hat{R}\vec{x} = \vec{c}_1$, which we solve by back substitution. The second term does not depend on $\vec{x}$, so $\norm{\vec{c}_2}_2$ is the minimal residual. Details are in \Cref{ch:qr,ch:normal}.
 
 \subsection{The Complex Case}
 

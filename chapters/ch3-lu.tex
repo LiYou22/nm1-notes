@@ -78,7 +78,7 @@ Both items rest on one simple fact: $\vec{\ell}_k$ is zero in its first $k$ entr
   \begin{equation}
     M\vec{e}_j = \vec{e}_j + \vec{\ell}_j = \begin{bmatrix} 0 & \cdots & 0 & 1 & \ell_{j+1,j} & \cdots & \ell_{mj} \end{bmatrix}^\T,
   \end{equation}
-  with the $1$ in position $j$. These are exactly the columns of the matrix in item 2.
+  with the $1$ in position $j$ (with $\vec{\ell}_m \defeq \zerovec$). These are exactly the columns of the matrix in item 2.
 \end{proof}
 
 \section{Answering the Two Questions}
@@ -159,7 +159,7 @@ The algorithm divides by $A_{kk}$, the $k$-th \emph{pivot}. If a pivot is zero, 
   \end{equation}
   So $A[1{:}k, 1{:}k]$ is nonsingular if and only if the first $k$ pivots are nonzero.
 
-  \emph{Step 3: a zero pivot stops the algorithm early.} If $u_{kk} = 0$, the algorithm cannot continue past step $k$. But the first $k$ rows and columns of $L$ and $U$ have already been computed, and Step 1 uses only those. So the argument still applies.
+  \emph{Step 3: a zero pivot stops the algorithm early.} If $u_{kk} = 0$, the algorithm cannot continue past step $k$. But the leading $k \times k$ blocks of $L$ and $U$ have already been computed in the first $k - 1$ elimination steps, and Step 1 uses only those. So the argument still applies.
 \end{proof}
 
 \section{Small Pivots Are Also Dangerous}

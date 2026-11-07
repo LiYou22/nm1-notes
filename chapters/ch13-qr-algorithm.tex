@@ -79,11 +79,15 @@ For $j \le p$, $\abs{\lambda_j/\lambda_p} \ge 1$; for $j > p$, $\abs{\lambda_j/\
 \begin{equation}
   \left(\Lambda/\lambda_p\right)^{k+1}X^{-1}Q_0 = \begin{bmatrix} V_k \\ W_k \end{bmatrix}, \qquad V_k \in \K^{p \times p}, \qquad W_k \longrightarrow 0.
 \end{equation}
-We split $X = [X_p\ \tilde{X}_p]$ the same way, with $X_p = [\vec{x}_1 \cdots \vec{x}_p]$. Then
+We split $X = [X_p\ \tilde{X}_p]$ the same way, with $X_p = [\vec{x}_1 \cdots \vec{x}_p]$. Assume that $B_1 \defeq (X^{-1}Q_0)_{1:p,1:p}$ is invertible, a genericity assumption on $Q_0$ (\Cref{sec:orth-iter-conv-precise,sec:xinv-condition} explain why it is needed). Then $V_k = (\Lambda_1/\lambda_p)^{k+1}B_1$ is invertible, with $\Lambda_1 = \diag(\lambda_1, \dots, \lambda_p)$, and
 \begin{equation}
-  \spn(Q_{k+1}) = \spn(X\Lambda^{k+1}X^{-1}Q_0) = \spn(X_pV_k + \tilde{X}_pW_k) \longrightarrow \spn(X_p).
+  \begin{aligned}
+    \spn(Q_{k+1}) &= \spn(X\Lambda^{k+1}X^{-1}Q_0) = \spn(X_pV_k + \tilde{X}_pW_k) \\
+    &= \spn\bigl(X_p + \tilde{X}_pW_kV_k^{-1}\bigr) \longrightarrow \spn(X_p),
+  \end{aligned}
   \label{eq:orth-iter-split}
 \end{equation}
+since $\norm{W_kV_k^{-1}} \to 0$.
 So $\spn(Q_k)$ converges to the invariant subspace of the $p$ dominant eigenvectors, at the rate $\abs{\lambda_{p+1}/\lambda_p}$ (\Cref{sec:orth-iter-conv-precise}).
 
 \section{Convergence to Schur Factorization}

@@ -87,7 +87,7 @@ What should such an iteration converge to? To answer this, we first describe all
 
 So computing all eigenpairs means computing the factorization $A = X\Lambda X^{-1}$.
 
-For self-adjoint matrices ($A^\ast = A$, i.e., Hermitian), we can do better: $X$ can be chosen orthogonal.
+For self-adjoint matrices ($A^\ast = A$, i.e., Hermitian), we can do better: $X$ can be chosen unitary.
 
 \begin{theorem}[Spectral Theorem]
   \label{thm:spectral}
@@ -347,7 +347,7 @@ Since $\lambda$ is simple, $T_{11} - \lambda I$ and $T_{33} - \lambda I$ are non
 
 \paragraph{Caveats.}
 \begin{itemize}
-  \item If $\lambda$ is repeated on the diagonal of $T_{11}$, then $T_{11} - \lambda I$ is singular. This is the defective case again.
+  \item If $\lambda$ is repeated on the diagonal of $T_{11}$, then $T_{11} - \lambda I$ is singular. This is the case of a multiple eigenvalue, which may or may not be defective, and the triangular system may be inconsistent or have many solutions.
   \item If $\lambda$ is close to another diagonal entry of $T_{11}$, then $(\lambda I - T_{11})^{-1}$ is large and $\vec{x}$ is sensitive. This is not a flaw of the method: the eigenvector itself is ill-conditioned.
 \end{itemize}
 
@@ -417,7 +417,7 @@ Another word for nondefective is \emph{diagonalizable}.
 
 \subsection{Powers on an Invariant Subspace}
 
-From $AX = XB$ we get $A^kX = XB^k$. So on an invariant subspace, powers of $A$ (and power iteration) behave like powers of $B$. For the $2 \times 2$ block, $J = \lambda I + N$ with $N^2 = 0$, and the binomial formula gives $J^k = \lambda^kI + k\lambda^{k-1}N$. Even for $\abs{\lambda} < 1$, $\norm{J^k}$ can first grow before it decays (see the supplement of \Cref{ch:eigen}).
+From $AX = XB$ we get $A^kX = XB^k$. So on an invariant subspace, powers of $A$ (and power iteration) behave like powers of $B$. For the $2 \times 2$ block, $J = \lambda I + N$ with $N^2 = 0$, and the binomial formula gives $J^k = \lambda^kI + k\lambda^{k-1}N$. Even for $\abs{\lambda} < 1$, $\norm{J^k}$ can first grow before it decays.
 
 \subsection{No Column Scaling Makes $S_\eps$ Well-Conditioned}
 \label{sec:jordan-scaling}

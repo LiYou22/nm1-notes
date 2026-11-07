@@ -68,7 +68,7 @@ Each step is the same in both algorithms; only the loop runs in opposite directi
 
 \subparagraph{$Q$ is orthogonal by definition.} This point is important. The computed $\vec{v}_k$ have rounding errors. But $I - 2\vec{v}\vec{v}^\ast/(\vec{v}^\ast\vec{v})$ is an exact reflector for \emph{every} nonzero $\vec{v}$, so $Q$ is still exactly unitary. Rounding errors only change \emph{which} unitary matrix we get. They show up as a small backward error in $A$: $Q\tilde{R} = A + \delta A$ with $\norm{\delta A} \le O(\epsm)\norm{A}$.
 
-Gram--Schmidt is different. It computes the columns of $\hat{Q}$ explicitly, so rounding errors make them lose orthogonality: by about $\epsm\kappa(A)$ for MGS and $\epsm\kappa(A)^2$ for CGS. For example, with $\kappa(A) = 10^8$, MGS keeps only about $8$ digits of orthogonality, and CGS keeps none. Householder stays orthogonal to $O(\epsm)$ for any $\kappa(A)$.
+Gram--Schmidt is different. It computes the columns of $\hat{Q}$ explicitly, so rounding errors make them lose orthogonality: by up to $O(\epsm\kappa(A))$ for MGS and $O(\epsm\kappa(A)^2)$ for CGS. For example, with $\kappa(A) = 10^8$, MGS keeps only about $8$ digits of orthogonality, and CGS keeps none. Householder stays orthogonal to $O(\epsm)$ for any $\kappa(A)$.
 
 When we apply the Householder $Q$ (for example to compute $Q^\ast\vec{b}$), we only apply exact reflectors in floating point. This is backward stable, which is why least squares via Householder QR is reliable.
 
@@ -438,7 +438,7 @@ In short: inside $\spn(\vec{a}_1, \dots, \vec{a}_k)$, the directions orthogonal 
   \toprule
   & Factorization & Form of $Q$ & Orthogonality of $Q$ & Dense flops \\
   \midrule
-  MGS & reduced & explicit $\hat{Q}$ & loses $\sim\epsm\kappa(A)$ & $2mn^2$ \\
+  MGS & reduced & explicit $\hat{Q}$ & loses $\lesssim\epsm\kappa(A)$ & $2mn^2$ \\
   Householder & full & implicit ($n$ vectors $\vec{v}_k$) & orthogonal by definition & $2mn^2 - \frac{2}{3}n^3$ \\
   Givens & full & implicit (pairs $(c, s)$) & orthogonal by definition & $3mn^2 - n^3$ \\
   \bottomrule

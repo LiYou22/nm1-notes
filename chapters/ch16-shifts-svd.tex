@@ -1,0 +1,350 @@
+\chapter{Shift Strategies, Symmetric QR, and the SVD}
+\label{ch:shifts-svd}
+
+Supplementary reading:
+\begin{itemize}
+  \item \cite{Demmel} Section 5.3 (symmetric QR iteration, Wilkinson's shift).
+  \item \cite{Demmel} Sections 5.3.3--5.3.5 (divide-and-conquer, bisection and inertia, Jacobi's method).
+  \item \cite{TB} Lectures 29--31.
+\end{itemize}
+
+\section{Recap and Motivation}
+
+Last lecture (\Cref{ch:shifted-qr}) covered four topics.
+
+\paragraph{The implicit Q theorem.} If $Q^\ast AQ = H$ is unreduced upper Hessenberg, then
+\begin{equation}
+  Q = Q(\vec{q}_1, A),
+\end{equation}
+that is, $A$ and the first column $\vec{q}_1$ determine $Q$, up to the signs of its columns (\Cref{thm:implicit-q}).
+
+\paragraph{Shifted QR iteration.}
+\begin{equation}
+  \begin{aligned}
+    T_{k-1} - \mu_kI &= U_kR_k, \\
+    T_k &= R_kU_k + \mu_kI.
+  \end{aligned}
+\end{equation}
+In terms of shapes: $T_{k-1} - \mu_kI$ is Hessenberg, $U_k$ is Hessenberg, and $R_k$ is upper triangular. Then $R_kU_k$ is again Hessenberg, and adding $\mu_kI$ only changes the diagonal (\Cref{sec:shifted-qr}).
+
+\paragraph{Choosing the shift, practical QR iteration.} We choose $\mu_k \approx \lambda_m$, and split the problem whenever a subdiagonal entry of $T_k$ is $\approx 0$ (\Cref{sec:choosing-shift}, \Cref{alg:practical-qr}).
+
+\paragraph{QR iteration and (inverse) power iteration.} With $\underline{Q}_k = U_1\cdots U_k$ and $\underline{R}_k = R_k\cdots R_1$,
+\begin{equation}
+  \begin{aligned}
+    \underline{Q}_k\underline{R}_k &= (H - \mu_kI)\cdots(H - \mu_1I), \\
+    \underline{Q}_k\underline{R}_k^{-\ast} &= (H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast}.
+  \end{aligned}
+\end{equation}
+The first columns of $\underline{Q}_k$ do power iteration, and the last columns do shifted inverse iteration (\Cref{sec:shifted-orth-iter}).
+
+The plan of this chapter:
+\begin{enumerate}
+  \item How to select shifts: the Wilkinson shift, and the Francis double shift for real matrices (\Cref{sec:select-shifts}).
+  \item The symmetric case (\Cref{sec:symmetric-qr}).
+  \item Convergence of the QR iteration (\Cref{sec:qr-convergence}).
+  \item Alternatives to the QR iteration (\Cref{sec:qr-alternatives}).
+  \item Computing the SVD (\Cref{sec:computing-svd}).
+\end{enumerate}
+
+\section{How to Select Shifts}
+\label{sec:select-shifts}
+
+\paragraph{Simplest choice.} Take the lower right entry, which is the Rayleigh quotient shift (\Cref{sec:rq-shift-supp}),\footnote{The board writes $(T_k)_{mm}$. We use $T_{k-1}$ to match the iteration $T_{k-1} - \mu_kI = U_kR_k$.}
+\begin{equation}
+  \mu_k = (T_{k-1})_{mm}.
+\end{equation}
+The idea: the diagonal of $T_k$ converges to the eigenvalues, ordered by size (\Cref{thm:orth-iter-schur}). So the lower right entry approaches $\lambda_m$, the eigenvalue we want the shift to be close to.
+
+\begin{example}
+  \label{ex:shift-symmetric-stuck}
+  Take
+  \begin{equation}
+    A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}.
+  \end{equation}
+  The shift is zero, and the eigenvalues are $\lambda_1 = 1$, $\lambda_2 = -1$. What is the problem? We have $\abs{\lambda_1} = \abs{\lambda_2}$. By symmetry, the iteration cannot decide whether to move the estimate up (toward $1$) or down (toward $-1$) (cf.\ \Cref{sec:wilkinson-supp}).
+\end{example}
+
+So we use shifts based on the lower right $2 \times 2$ block,
+\begin{equation}
+  (T_{k-1})_{m-1:m,\,m-1:m}.
+\end{equation}
+
+\subsection{The Wilkinson Shift}
+\label{sec:wilkinson}
+
+We need to break the symmetry deliberately. The idea: use the lower right $2 \times 2$ submatrix of $T_{k-1}$.
+
+First consider the symmetric case:
+\begin{equation}
+  B = \begin{bmatrix} a & b \\ b & c \end{bmatrix}.
+\end{equation}
+
+\begin{definition}[Wilkinson Shift]
+  \label{def:wilkinson}
+  The \emph{Wilkinson shift} is the eigenvalue of $B$ that is closer to $c$; break ties arbitrarily. In formulas,
+  \begin{equation}
+    \mu = c - \frac{\operatorname{sign}(\delta)\,b^2}{\abs{\delta} + \sqrt{\delta^2 + b^2}}
+    \qquad\text{for}\qquad
+    \delta = \frac{a - c}{2}.
+  \end{equation}
+\end{definition}
+
+\subsection{The Francis Shift}
+\label{sec:francis}
+
+What if $A \in \R^{m \times m}$ is not symmetric? Then the eigenvalues of the bottom right $2 \times 2$ block can be complex. Can we keep the Schur factorization real?
+
+For $B \in \R^{2 \times 2}$, the complex eigenvalues come in a pair $\mu, \bar{\mu}$:
+\begin{equation}
+  B\vec{u} = \mu\vec{u}
+  \quad\Longleftrightarrow\quad
+  B\bar{\vec{u}} = \bar{\mu}\bar{\vec{u}}.
+\end{equation}
+
+\paragraph{Idea.} Perform the two iterations with $\mu$ and $\bar{\mu}$ at once, and ``skip'' the complex intermediate $T_1$:
+\begin{equation}
+  \begin{aligned}
+    T - \mu I &= U_1R_1, & T_1 &= R_1U_1 + \mu I, \\
+    T_1 - \bar{\mu}I &= U_2R_2, & T_2 &= R_2U_2 + \bar{\mu}I.
+  \end{aligned}
+\end{equation}
+Here $U_1, U_2$ will be complex unitary.
+
+\begin{proposition}
+  \label{prop:francis-t2-real}
+  $T_2$ is a real matrix.
+\end{proposition}
+
+\begin{proof}
+  First,
+  \begin{equation}
+    T_2 = U_2^\ast T_1U_2 = U_2^\ast U_1^\ast TU_1U_2 = (U_1U_2)^\ast T(U_1U_2).
+  \end{equation}
+  So $T_2$ is real once $U_1U_2$ is real, which is \Cref{lem:francis-u-real}.
+\end{proof}
+
+\begin{lemma}
+  \label{lem:francis-u-real}
+  $U_1U_2$ is real.
+\end{lemma}
+
+\begin{proof}
+  Denote $s \defeq \mu + \bar{\mu}$ and $t \defeq \abs{\mu}^2$. Then
+  \begin{equation}
+    \begin{aligned}
+      (U_1U_2)(R_2R_1) &= U_1(T_1 - \bar{\mu}I)R_1 \\
+      &= U_1\bigl(R_1U_1 + (\mu - \bar{\mu})I\bigr)R_1 \\
+      &= U_1R_1\bigl(U_1R_1 + (\mu - \bar{\mu})I\bigr) \\
+      &= (T - \mu I)\bigl(T - \mu I + (\mu - \bar{\mu})I\bigr) \\
+      &= (T - \mu I)(T - \bar{\mu}I) = T^2 - sT + tI.
+    \end{aligned}
+  \end{equation}
+  Since $s, t \in \R$, this is a real matrix. So $U_1U_2$ is the Q factor of a real matrix, which is real (up to the column phases, \Cref{thm:qr-unique}).
+\end{proof}
+
+\paragraph{A possible algorithm.} \Cref{alg:francis-explicit} computes $T_2$ directly from the real matrix $M$.
+
+\begin{algorithm}[H]
+  \caption{Explicit double-shift step.}
+  \label{alg:francis-explicit}
+  \begin{algorithmic}[1]
+    \Require real Hessenberg $T$, shifts $\mu, \bar{\mu}$
+    \State $s \gets \mu + \bar{\mu}$, $t \gets \abs{\mu}^2$
+    \State $M \gets T^2 - sT + tI$
+    \State $M = VR$ \Comment{QR factorization}
+    \State $T_2 \gets V^\T TV$
+  \end{algorithmic}
+\end{algorithm}
+
+This is too expensive: forming $M$ alone costs $O(m^3)$ flops, while one Hessenberg QR step costs $O(m^2)$.
+
+Look at the first column of $M$:
+\begin{equation}
+  M[:, 1] = \begin{bmatrix}
+    T_{11}^2 + T_{12}T_{21} - sT_{11} + t \\
+    T_{21}(T_{11} + T_{22} - s) \\
+    T_{21}T_{32} \\
+    0 \\
+    \vdots \\
+    0
+  \end{bmatrix}.
+  \label{eq:francis-first-col}
+\end{equation}
+Only the first three entries are nonzero.
+
+Write $U_1U_2 = P_1\cdots P_m$ as a product of Householder reflections.\footnote{The board writes $P_m\cdots P_1$. Since $T_2 = P_m\cdots P_1TP_1\cdots P_m$, the orthogonal factor is $P_1\cdots P_m$. Its first column is $P_1\vec{e}_1$, because $P_2, \dots, P_m$ do not touch the first row.} Define $P_1$ by
+\begin{equation}
+  P_1M[:, 1] \propto \vec{e}_1.
+\end{equation}
+Since $M[:, 1]$ has only three nonzero entries, $P_1$ only acts on the first three rows:
+\begin{equation}
+  P_1 = \begin{bmatrix} \hat{P}_1 & 0 \\ 0 & I \end{bmatrix},
+  \qquad \hat{P}_1 \in \R^{3 \times 3}.
+\end{equation}
+Applying $P_1$ on both sides creates a bulge (marked $+$) below the subdiagonal:
+\begin{equation}
+  P_1TP_1 = \begin{bmatrix}
+    \times & \times & \times & \times & \times & \times \\
+    \times & \times & \times & \times & \times & \times \\
+    + & \times & \times & \times & \times & \times \\
+    + & + & \times & \times & \times & \times \\
+      &   &   & \times & \times & \times \\
+      &   &   &   & \times & \times
+  \end{bmatrix}.
+\end{equation}
+Next, choose $P_2$, acting on rows $2$--$4$, to zero out the bulge in column $1$. Applying it on both sides moves the bulge one step down:
+\begin{equation}
+  P_2P_1TP_1P_2 = \begin{bmatrix}
+    \times & \times & \times & \times & \times & \times \\
+    \times & \times & \times & \times & \times & \times \\
+      & \times & \times & \times & \times & \times \\
+      & + & \times & \times & \times & \times \\
+      & + & + & \times & \times & \times \\
+      &   &   &   & \times & \times
+  \end{bmatrix}.
+\end{equation}
+This is bulge chasing once more (\Cref{sec:bulge-chasing}). By the implicit Q theorem, the first column $P_1\vec{e}_1$ fixes the whole step (\Cref{sec:implicit-q-shifts}). \Cref{alg:francis} summarizes it.
+
+\begin{algorithm}[H]
+  \caption{Francis double-shift step.}
+  \label{alg:francis}
+  \begin{algorithmic}[1]
+    \Require real unreduced Hessenberg $T \in \R^{m \times m}$, shifts $\mu, \bar{\mu}$
+    \State $s \gets \mu + \bar{\mu}$, $t \gets \abs{\mu}^2$
+    \State $\vec{x} \gets M[1{:}3, 1]$ \Comment{\cref{eq:francis-first-col}; $M$ is never formed}
+    \State choose $P_1$ with $\hat{P}_1\vec{x} \propto \vec{e}_1$, $T \gets P_1TP_1$ \Comment{creates the bulge}
+    \For{$k = 2, \dots, m - 1$}
+      \State choose $P_k$, acting on rows $k{:}\min(k + 2, m)$, to zero $T[k{+}1{:}\min(k + 2, m), k - 1]$
+      \State $T \gets P_kTP_k$ \Comment{moves the bulge one step down}
+    \EndFor
+    \State \Return $T$ \Comment{$= T_2$, up to signs}
+  \end{algorithmic}
+\end{algorithm}
+
+\section{The Symmetric Case}
+\label{sec:symmetric-qr}
+
+Assume that $A = T_0$ is symmetric. Then
+\begin{equation}
+  T_0 = QR, \qquad T_1 = RQ = Q^\ast QRQ = Q^\ast T_0Q.
+\end{equation}
+So symmetry is preserved. But $T$ is symmetric and upper Hessenberg, so it is \emph{tridiagonal}:
+\begin{equation}
+  \begin{bmatrix}
+    \times & \times & \times & \times & \times \\
+    \times & \times & \times & \times & \times \\
+      & \times & \times & \times & \times \\
+      &   & \times & \times & \times \\
+      &   &   & \times & \times
+  \end{bmatrix}
+  \longrightarrow
+  \begin{bmatrix}
+    \times & \times &   &   &   \\
+    \times & \times & \times &   &   \\
+      & \times & \times & \times &   \\
+      &   & \times & \times & \times \\
+      &   &   & \times & \times
+  \end{bmatrix}.
+\end{equation}
+The cost is $O(m)$ per iteration, after a one-time reduction to tridiagonal form that costs about $\frac{4}{3}m^3$ flops.
+
+\section{Convergence of the QR Iteration}
+\label{sec:qr-convergence}
+
+\begin{theorem}[Local Convergence of Shifted QR]
+  \label{thm:qr-local-conv}
+  Apply the shifted QR iteration with the Rayleigh quotient shift $\mu_k = (T_{k-1})_{mm}$ to $A$, with iterates $T_k$. Assume
+  \begin{equation}
+    \abs{(T_k)_{m,m-1}} \le \varepsilon
+  \end{equation}
+  for $\varepsilon$ small enough. Then
+  \begin{equation}
+    \abs{(T_{k+1})_{m,m-1}} = O(\varepsilon^2).
+  \end{equation}
+  For $A$ symmetric, we can show that
+  \begin{equation}
+    \abs{(T_{k+1})_{m,m-1}} = O(\varepsilon^3).
+  \end{equation}
+  See~\cite[Sections 4.4.4 and 5.3.2]{Demmel}.
+\end{theorem}
+
+\section{Alternatives to the QR Iteration}
+\label{sec:qr-alternatives}
+
+\paragraph{Bisection.} Use bisection to find the roots of $\det(A - \sigma I)$; turning this into a reliable method takes many more details.
+
+\paragraph{Inertia.} The inertia of a real symmetric $A$ is the number of positive, negative, and zero eigenvalues. It is invariant under $A \mapsto X^\T AX$ (for $X$ nonsingular). Use the $LDL^\T$ factorization to compute the inertia of $A + zI$, and apply bisection in $z$.
+
+\paragraph{Divide and conquer.} Assume that $A$ is in tridiagonal form, and write
+\begin{equation}
+  A = \begin{bmatrix} A_1 & \\ & A_2 \end{bmatrix} + \rho\,\vec{u}\vec{u}^\T.
+\end{equation}
+We solve the problems for $A_1$ and $A_2$ recursively, and exploit the low rank structure of $\rho\,\vec{u}\vec{u}^\T$ to combine the results.
+
+\paragraph{Jacobi.} Apply small rotations (Jacobi rotations, similar to Givens) so as to reduce the off-diagonal entries.
+
+\section{Computing the SVD}
+\label{sec:computing-svd}
+
+Let $A = U\Sigma V^\ast$ (\Cref{def:svd}). How do we compute it?\footnote{The board swaps the roles of $U$ and $V$ (for example $AA^\ast = V\Lambda V^\ast$), and writes $\Lambda$ and $\tilde{U}$ in the polar decomposition. We keep the convention of \Cref{def:svd} throughout this section.}
+
+\paragraph{First attempt.} Compute the eigendecomposition
+\begin{equation}
+  A^\ast A = V\Sigma^2V^\ast,
+  \qquad\text{then set}\qquad
+  \vec{u}_i = A\vec{v}_i/\sigma_i.
+\end{equation}
+We cannot instead compute $AA^\ast = U\Sigma^2U^\ast$ separately and pair the two factors: eigenvectors are fixed only up to sign (phase), or up to a basis of the eigenspace when singular values repeat, so separately computed $U$ and $V$ need not match. Problem: this squares the condition number, so we lose numerical precision.
+
+\paragraph{Alternative: symmetric dilation.} Form
+\begin{equation}
+  \begin{bmatrix} 0 & A^\ast \\ A & 0 \end{bmatrix}.
+\end{equation}
+Its eigenvectors are $\begin{bmatrix} \vec{v}_i \\ \vec{u}_i \end{bmatrix}$ and $\begin{bmatrix} \vec{v}_i \\ -\vec{u}_i \end{bmatrix}$, with eigenvalues $\sigma_i$ and $-\sigma_i$. So, for square $A$, the eigenvalues are $\Sigma, -\Sigma$; for $m \ne n$ there are $\abs{m - n}$ extra zero eigenvalues.
+
+We can also use the SVD to compute the polar decomposition of a square $A$:
+\begin{equation}
+  A = U\Sigma V^\ast = \underbrace{UV^\ast}_{W}\,\underbrace{V\Sigma V^\ast}_{S} = WS,
+\end{equation}
+with $W$ unitary and $S$ Hermitian positive semidefinite. For $m > n$, the same formula with the reduced SVD gives $W = \hat{U}V^\ast$, which has orthonormal columns.
+
+\section{(SUPPLEMENT) Further Topics}
+\label{sec:shifts-svd-supp}
+
+\subsection{Golub--Kahan Bidiagonalization}
+
+The standard SVD algorithm never forms $A^\ast A$. For $A \in \K^{m \times n}$ with $m \ge n$, it works in two phases~\cite[Lecture 31]{TB}, \cite[Section 5.4]{Demmel}.
+\begin{enumerate}
+  \item \emph{Bidiagonalization.} Apply Householder reflectors alternately from the left and from the right. The left reflector at step $k$ zeros column $k$ below the diagonal, as in Householder QR; the right reflector zeros row $k$ to the right of the superdiagonal. The result is
+  \begin{equation}
+    U_1^\ast AV_1 = B, \qquad B \text{ upper bidiagonal},
+  \end{equation}
+  at a cost of about $4mn^2 - \frac{4}{3}n^3$ flops. The right reflectors leave the zeros made by the left ones intact, because each acts only on columns $k + 1, \dots, n$. This is the analogue of the Hessenberg reduction for eigenvalues.
+  \item \emph{SVD of $B$.} Compute $B = U_2\Sigma V_2^\ast$, for example by a QR iteration that works on $B$ directly. It implicitly runs the symmetric tridiagonal QR iteration of \Cref{sec:symmetric-qr} on $B^\ast B$, without forming it. Then $A = (U_1U_2)\Sigma(V_1V_2)^\ast$.
+\end{enumerate}
+
+\paragraph{Why not $A^\ast A$?} Every step above is a unitary transformation of $A$, so the computed singular values have absolute errors $O(\epsm)\norm{A} = O(\epsm\sigma_1)$. Forming $A^\ast A$ in floating point instead perturbs its entries by $O(\epsm)\norm{A}^2$. This changes $\sigma_i^2$ by $O(\epsm\sigma_1^2)$, and so $\sigma_i$ by about $\epsm\sigma_1^2/\sigma_i$. For the smallest singular value the relative error is then about $\epsm\kappa(A)^2$ instead of $\epsm\kappa(A)$, and singular values below $\sqrt{\epsm}\,\sigma_1$ can be lost entirely.
+
+\subsection{Sylvester's Law of Inertia and Bisection}
+
+The inertia paragraph of \Cref{sec:qr-alternatives} rests on the following theorem~\cite[Theorem 5.3]{Demmel}.
+
+\begin{theorem}[Sylvester's Law of Inertia]
+  \label{thm:sylvester-inertia}
+  Let $A \in \R^{m \times m}$ be symmetric and $X \in \R^{m \times m}$ nonsingular. Then $A$ and $X^\T AX$ have the same numbers of positive, negative, and zero eigenvalues.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+  Suppose $A$ has $\nu$ negative eigenvalues and $X^\T AX$ has $\nu' < \nu$. Let $N$ be the span of the eigenvectors of $A$ for its negative eigenvalues, so $\dim N = \nu$, and let $P$ be the span of the eigenvectors of $X^\T AX$ for its nonnegative eigenvalues, so $\dim XP = m - \nu'$. Since $\nu + (m - \nu') > m$, there is a nonzero $\vec{x} \in N \cap XP$. Then $\vec{x}^\T A\vec{x} < 0$, but also $\vec{x} = X\vec{y}$ with $\vec{y} \in P$, so $\vec{x}^\T A\vec{x} = \vec{y}^\T X^\T AX\vec{y} \ge 0$, a contradiction. By symmetry $\nu' > \nu$ is impossible too, and the same argument applies to the positive eigenvalues.
+\end{proof}
+
+\paragraph{Bisection.} If $A - zI = LDL^\T$ with $L$ unit lower triangular, then by \Cref{thm:sylvester-inertia} the number of negative $d_{ii}$ equals the number of eigenvalues of $A$ less than $z$:
+\begin{equation}
+  \operatorname{Negcount}(z) \defeq \#\{i : d_{ii} < 0\} = \#\{j : \lambda_j < z\}.
+\end{equation}
+So $\operatorname{Negcount}(z_2) - \operatorname{Negcount}(z_1)$ eigenvalues lie in $[z_1, z_2)$, and we can bisect any interval until it isolates an eigenvalue to the desired accuracy. For tridiagonal $A$, with diagonal $a_i$ and off-diagonal $b_i$, the pivots follow the recurrence
+\begin{equation}
+  d_1 = a_1 - z, \qquad d_i = (a_i - z) - \frac{b_{i-1}^2}{d_{i-1}},
+\end{equation}
+so each bisection step costs $O(m)$, and we can compute only the eigenvalues we need. Although this is $LDL^\T$ without pivoting, the computed $\operatorname{Negcount}$ is the exact one for a slightly perturbed tridiagonal matrix~\cite[Lemma 5.3]{Demmel}.
