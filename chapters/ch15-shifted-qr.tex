@@ -16,7 +16,7 @@ The plan of this chapter:
 \begin{enumerate}
   \item Prove the implicit Q theorem, and apply it to bulge chasing (\Cref{sec:implicit-q-proof,sec:implicit-q-bulge}).
   \item The shifted QR iteration (\Cref{sec:shifted-qr}).
-  \item Choosing the shift, and the practical QR iteration (\Cref{sec:choosing-shift}).
+  \item Choosing the shift (\Cref{sec:choosing-shift}), and the practical QR iteration (\Cref{sec:practical-qr}).
   \item The QR iteration is both power and inverse power iteration (\Cref{sec:shifted-orth-iter}).
 \end{enumerate}
 
@@ -25,8 +25,26 @@ The plan of this chapter:
 
 Recall the statement (\Cref{thm:implicit-q}): if $Q$ is orthogonal and $Q^\T AQ = H$ is unreduced upper Hessenberg, then the first column of $Q$ determines columns $2, \dots, m$, up to signs.
 
+\paragraph{Intuition: $Q$ is built one column at a time.} Read $AQ = QH$ column by column. Column $i$ of $H$ has nonzeros only in its first $i + 1$ entries, so column $i$ reads
+\begin{equation*}
+  A\vec{q}_i = H_{1i}\vec{q}_1 + \cdots + H_{ii}\vec{q}_i + H_{i+1,i}\,\vec{q}_{i+1}.
+\end{equation*}
+Rearranging,
+\begin{equation*}
+  H_{i+1,i}\,\vec{q}_{i+1} = A\vec{q}_i - \sum_{j=1}^{i}H_{ji}\vec{q}_j.
+\end{equation*}
+Suppose $\vec{q}_1, \dots, \vec{q}_i$ are known. Then:
+\begin{itemize}
+  \item the coefficients $H_{ji} = \vec{q}_j^\T A\vec{q}_i$ are determined;
+  \item hence the right-hand side is a fixed vector;
+  \item since $H_{i+1,i} \ne 0$ (unreduced), $\vec{q}_{i+1}$ is this vector normalized, which leaves only a choice of sign.
+\end{itemize}
+So $\vec{q}_1$ determines $\vec{q}_2$, then $\vec{q}_1, \vec{q}_2$ determine $\vec{q}_3$, and so on. \emph{The whole of $Q$ is determined by its first column, up to signs.} (This is exactly the Arnoldi iteration.)
+
+If some $H_{i+1,i} = 0$, the chain breaks and $\vec{q}_{i+1}$ is no longer determined. This is why the theorem requires $H$ to be unreduced.
+
 \begin{proof}
-  Let both $Q^\T AQ = H$ and $V^\T AV = G$ be such, with equal first column $\vec{q}_1 = \vec{v}_1$. We want to show that
+  Let $Q$ and $V$ be orthogonal with $Q^\T AQ = H$ unreduced upper Hessenberg, $V^\T AV = G$ upper Hessenberg (not necessarily unreduced), and equal first column $\vec{q}_1 = \vec{v}_1$. We want to show that
   \begin{equation}
     W \defeq V^\T Q = \diag(\pm 1, \dots, \pm 1).
   \end{equation}
@@ -47,7 +65,7 @@ Recall the statement (\Cref{thm:implicit-q}): if $Q$ is orthogonal and $Q^\T AQ 
   \begin{equation}
     \vec{w}_i = \begin{bmatrix} \times \\ \vdots \\ \times \\ 0 \\ \vdots \\ 0 \end{bmatrix} \begin{matrix} \\ \\ \leftarrow i \\ \\ \\ \\ \end{matrix}
   \end{equation}
-  This holds for $\vec{w}_1 = \vec{e}_1$. If it holds up to $i$, then on the right of \eqref{eq:implicit-q-recursion}, $G\vec{w}_i$ is zero below row $i + 1$ (since $G$ is Hessenberg), and the sum is zero below row $i$. Since $H$ is unreduced, $H_{i+1,i} \ne 0$, so $\vec{w}_{i+1}$ is zero below row $i + 1$.
+  This holds for $\vec{w}_1 = \vec{e}_1$. If it holds up to $i$, then on the right of \eqref{eq:implicit-q-recursion}, $G\vec{w}_i$ is a combination of the first $i$ columns of $G$ (as $\vec{w}_i$ is zero below row $i$), which are zero below row $i + 1$ since $G$ is Hessenberg; and the sum is zero below row $i$. Since $H$ is unreduced, $H_{i+1,i} \ne 0$, so $\vec{w}_{i+1}$ is zero below row $i + 1$.
 
   So $W$ is upper triangular and orthogonal. Then $W^{-1} = W^\T$ is both upper and lower triangular, so $W$ is diagonal, with $w_{ii}^2 = 1$.
 \end{proof}
@@ -98,7 +116,17 @@ How does the shift affect convergence? Which $\mu_k$ should we choose?
 
 \paragraph{Exact shift.} Assume $\mu_k$ is an eigenvalue. Then $T_{k-1} - \mu_kI$ is singular. Assume also that the off-diagonal entries $t_{j+1,j}$ are nonzero.
 
-The first $m - 1$ columns of $T_{k-1} - \mu_kI$ are independent: rows $2, \dots, m$ of these columns form an upper triangular matrix with the nonzero $t_{j+1,j}$ on its diagonal. In $T_{k-1} - \mu_kI = U_kR_k$, column $j$ is a combination of $\vec{u}_1, \dots, \vec{u}_j$ with coefficient $r_{jj}$ on $\vec{u}_j$. So $r_{11}, \dots, r_{m-1,m-1} \ne 0$. But $R_k$ is singular, so the last entry must be zero, $r_{mm} = 0$:
+Write $M = T_{k-1} - \mu_kI$, with columns $\vec{c}_1, \dots, \vec{c}_m$. The shift changes only the diagonal, so $M$ is unreduced Hessenberg too. We show that $r_{mm}$ is the only zero on the diagonal of $R_k$.
+
+\emph{The first $m - 1$ columns of $M$ are independent.} Rows $2, \dots, m$ of these columns form an upper triangular matrix with the nonzero $t_{j+1,j}$ on its diagonal, for $m = 4$
+\begin{equation*}
+  \begin{bmatrix} t_{21} & \times & \times \\ 0 & t_{32} & \times \\ 0 & 0 & t_{43} \end{bmatrix},
+\end{equation*}
+which is invertible. So these columns are independent already in rows $2, \dots, m$.
+
+\emph{$r_{11}, \dots, r_{m-1,m-1} \ne 0$.} In $M = U_kR_k$, column $j$ is $\vec{c}_j = r_{1j}\vec{u}_1 + \cdots + r_{jj}\vec{u}_j$. For $j \le m - 1$, the independent columns $\vec{c}_1, \dots, \vec{c}_{j-1}$ lie in the $(j-1)$-dimensional space $\spn(\vec{u}_1, \dots, \vec{u}_{j-1})$, so they span it. If $r_{jj} = 0$, then $\vec{c}_j$ lies in this space, i.e., it is a combination of $\vec{c}_1, \dots, \vec{c}_{j-1}$. This contradicts the independence of the first $m - 1$ columns.
+
+\emph{$r_{mm} = 0$.} $M$ is singular, so $0 = \det M = \det U_k\det R_k$. Since $U_k$ is unitary, $\det U_k \ne 0$, so $\det R_k = r_{11}\cdots r_{mm} = 0$, and only the last factor can vanish:
 \begin{equation}
   \underbrace{T_{k-1} - \mu_kI}_{\text{unreduced Hessenberg}} = U_k\,\underbrace{\begin{bmatrix} \times & \times & \times & \times \\ 0 & \times & \times & \times \\ 0 & 0 & \times & \times \\ 0 & 0 & 0 & 0 \end{bmatrix}}_{R_k}.
 \end{equation}
@@ -115,7 +143,8 @@ With an exact shift, one step splits off the eigenvalue $\mu_k$. We do not have 
   = \begin{bmatrix} Q^\ast\hat{T}Q & Q^\ast\vec{t} \\ 0 & \mu_k \end{bmatrix}.
 \end{equation}
 
-\subsection{Practical QR Iteration}
+\section{Practical QR Iteration}
+\label{sec:practical-qr}
 
 \paragraph{Goal.} Choose $\mu_k \approx$ an eigenvalue, and split up the problem whenever a subdiagonal entry approaches $0$:
 \begin{equation}
@@ -215,13 +244,6 @@ the Rayleigh quotient of $T_{k-1}$ at $\vec{e}_m$. By the inverse iteration view
   \item Setting the off-diagonal part of the last row to zero changes a well separated eigenvalue by $O(\eta\norm{A})$. So $\abs{\lambda_m - t_{mm}} = O(\eta\norm{A})$.
   \item The next step shrinks the last row by the factor $\abs{\lambda_m - \mu}/\min_{j \ne m}\abs{\lambda_j - \mu} = O(\eta)$, giving $O(\eta^2)$.
 \end{itemize}
-
-\subsection{The Wilkinson Shift}
-\label{sec:wilkinson-supp}
-
-The Rayleigh quotient shift can get stuck. Take $T_0 = \left[\begin{smallmatrix} 0 & 1 \\ 1 & 0 \end{smallmatrix}\right]$. Then $\mu_1 = t_{22} = 0$. $T_0$ is orthogonal, so $U_1 = T_0$, $R_1 = I$, and $T_1 = T_0$. Nothing changes, because the eigenvalues $\pm 1$ are equally far from the shift.
-
-The \emph{Wilkinson shift} takes the eigenvalue of the last $2 \times 2$ block of $T_{k-1}$ that is closer to $t_{mm}$. In the example this is $\pm 1$, an exact eigenvalue, so one step is enough. For symmetric tridiagonal matrices, QR iteration with the Wilkinson shift converges globally, at least linearly, and for almost all matrices cubically in the limit~\cite[Theorem 5.8]{Demmel}.
 
 \subsection{When Is a Subdiagonal Entry $\approx 0$?}
 

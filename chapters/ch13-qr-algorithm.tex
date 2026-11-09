@@ -11,6 +11,8 @@ Supplementary reading:
 
 Last lecture (\Cref{ch:orth-iter}) showed that the Schur factorization is a diagonalization exactly for normal matrices, and introduced orthogonal iteration: power iteration on several vectors, kept orthonormal by a QR factorization. Now we prove that it converges to the Schur factorization, and rewrite it as an iteration on a single matrix.
 
+Why rewrite it? The QR iteration computes the same $T_k = Q_k^\ast AQ_k$, but it updates $T_k$ directly instead of multiplying by $A$ at every step. This is the form that Hessenberg reduction and shifts can speed up (\Cref{ch:hessenberg-qr,ch:shifted-qr}).
+
 The plan of this chapter:
 \begin{enumerate}
   \item The link between the eigendecomposition and the Schur form: $X = QR$ (\Cref{sec:schur-eig}).
@@ -28,7 +30,7 @@ In this lecture we consider
   \label{eq:qr-alg-assumption}
 \end{equation}
 
-This assumption is \emph{generic}: an arbitrarily small perturbation makes it true. Every $A$ has a Schur factorization $A = QTQ^\ast$ with the eigenvalues on the diagonal of $T$ (\Cref{thm:schur}). We add a small perturbation to $T$, and hence to $A$:
+This assumption is \emph{generic}: it holds for almost every matrix, and if some $A$ fails it, an arbitrarily small change to $A$ fixes this. Every $A$ has a Schur factorization $A = QTQ^\ast$ with the eigenvalues on the diagonal of $T$ (\Cref{thm:schur}). We add a small perturbation to $T$, and hence to $A$:
 \begin{equation}
   \tilde{A} \defeq Q\bigl(T + \diag(\eps_1, \dots, \eps_m)\bigr)Q^\ast = A + Q\diag(\eps_1, \dots, \eps_m)Q^\ast.
 \end{equation}
@@ -109,7 +111,7 @@ The rank condition is on $X^{-1}$, not on $X$; a condition on $X_{1:j,1:j}$ is n
   \begin{equation}
     T_k = Q_k^\ast AQ_k = \begin{bmatrix} \bar{Q}_k^\ast A\bar{Q}_k & \bar{Q}_k^\ast A\tilde{Q}_k \\ \tilde{Q}_k^\ast A\bar{Q}_k & \tilde{Q}_k^\ast A\tilde{Q}_k \end{bmatrix}.
   \end{equation}
-  The first $p$ columns of a QR factorization depend only on the first $p$ columns of the matrix. So $\bar{Q}_k$ is orthogonal iteration with $p$ columns, and by \Cref{sec:orth-iter-conv},
+  As in \Cref{sec:orth-iter-eigvec}, $\bar{Q}_k$ is orthogonal iteration with $p$ columns, and by \Cref{sec:orth-iter-conv},
   \begin{equation}
     \spn(\bar{Q}_k) \longrightarrow \spn(\vec{x}_1, \dots, \vec{x}_p)
     \quad\Longrightarrow\quad

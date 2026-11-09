@@ -91,7 +91,7 @@ For self-adjoint matrices ($A^\ast = A$, i.e., Hermitian), we can do better: $X$
 
 \begin{theorem}[Spectral Theorem]
   \label{thm:spectral}
-  If $A \in \K^{m \times m}$ is self-adjoint, there is a unitary $X$ with
+  If $A \in \K^{m \times m}$ is self-adjoint ($A^\ast = A$), there is a unitary $X$ with
   \begin{equation}
     A = X\Lambda X^\ast,
   \end{equation}
@@ -259,7 +259,7 @@ For Hermitian $A$, the spectral theorem now follows in two lines.
   \emph{Normal case.} See \Cref{thm:normal-diag} in \Cref{ch:orth-iter}.
 \end{proof}
 
-\subsection{The Real Schur Form}
+\paragraph{The real Schur form.}
 
 When we work with real matrices, we prefer to stay with real numbers. Complex arithmetic costs more, and rounding would break the exact conjugate symmetry of the eigenvalues.
 
@@ -355,103 +355,37 @@ Since $\lambda$ is simple, $T_{11} - \lambda I$ and $T_{33} - \lambda I$ are non
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:schur-supp}
 
-\subsection{Eigenvectors for Distinct Eigenvalues Are Independent}
-
 \begin{lemma}[Eigenvectors for Distinct Eigenvalues]
   \label{lem:distinct-indep}
   Eigenvectors $\vec{x}_1, \dots, \vec{x}_k$ of $A$ corresponding to distinct eigenvalues $\lambda_1, \dots, \lambda_k$ are linearly independent~\cite[5.11]{Axler}.
 \end{lemma}
 
 \begin{proof}
-  Suppose not. Among all vanishing combinations with nonzero coefficients, pick one with the fewest terms: $\sum_{i \in S}c_i\vec{x}_i = \zerovec$, all $c_i \ne 0$. Then $S$ has at least two elements, since eigenvectors are nonzero. Fix $j \in S$ and apply $A - \lambda_jI$:
-  \begin{equation}
-    \sum_{i \in S \setminus \{j\}}c_i(\lambda_i - \lambda_j)\vec{x}_i = \zerovec.
-  \end{equation}
-  The term $i = j$ dropped out. All remaining coefficients are nonzero, since $\lambda_i \ne \lambda_j$. This is a shorter vanishing combination, a contradiction.
+  Take a shortest vanishing combination $\sum_{i \in S}c_i\vec{x}_i = \zerovec$ with all $c_i \ne 0$; it has at least two terms. Applying $A - \lambda_jI$ for some $j \in S$ gives $\sum_{i \in S \setminus \{j\}}c_i(\lambda_i - \lambda_j)\vec{x}_i = \zerovec$, a shorter one with nonzero coefficients. Contradiction.
 \end{proof}
 
-\subsection{Algebraic and Geometric Multiplicity}
+\paragraph{Algebraic and geometric multiplicity.}
 \label{sec:multiplicity}
-
-This subsection follows~\cite[Lecture~24]{TB}. Throughout, $A \in \C^{m \times m}$.
-
-\begin{itemize}
-  \item The \emph{eigenspace} $E_\lambda = \nullsp(A - \lambda I)$ is an invariant subspace. Its dimension is the \emph{geometric multiplicity} of $\lambda$: the largest number of independent eigenvectors for $\lambda$.
-  \item The \emph{characteristic polynomial} $p_A(z) = \det(zI - A)$ is monic of degree $m$. $\lambda$ is an eigenvalue if and only if $\lambda I - A$ is singular, i.e., $p_A(\lambda) = 0$. So a real matrix may have complex eigenvalues.
-  \item By the fundamental theorem of algebra, $p_A(z) = (z - \lambda_1)\cdots(z - \lambda_m)$. The multiplicity of $\lambda$ as a root is its \emph{algebraic multiplicity}. So $A$ has $m$ eigenvalues, counted with algebraic multiplicity.
-  \item Similar matrices $A$ and $X^{-1}AX$ have the same characteristic polynomial, since $\det(zI - X^{-1}AX) = \det(X^{-1})\det(zI - A)\det(X)$. They also have the same geometric multiplicities, since $X^{-1}$ maps $E_\lambda(A)$ onto $E_\lambda(X^{-1}AX)$.
-\end{itemize}
-
-\begin{definition}[Defective]
-  \label{def:multiplicity}
-  An eigenvalue whose algebraic multiplicity exceeds its geometric multiplicity is \emph{defective}. A matrix with a defective eigenvalue is a \emph{defective matrix}.
-\end{definition}
-
-Example~\cite[Ex.~24.1]{TB}: $2I_3$ and $\left[\begin{smallmatrix} 2 & 1 & \\ & 2 & 1 \\ & & 2 \end{smallmatrix}\right]$ both have $p(z) = (z - 2)^3$. The first has three independent eigenvectors; the second only $\vec{e}_1$, so it is defective.
-
-\begin{theorem}[{\cite[Thm.~24.4]{TB}}]
-  \label{thm:alg-geq-geo}
-  The algebraic multiplicity of an eigenvalue is at least its geometric multiplicity.
-\end{theorem}
-
-\begin{proof}
-  Let $n = \dim E_\lambda$, and let $\hat{V}$ hold an orthonormal basis of $E_\lambda$. Extend to a unitary $V = [\hat{V}\ \tilde{V}]$. Since $A\hat{V} = \lambda\hat{V}$,
-  \begin{equation}
-    V^\ast AV = \begin{bmatrix} \lambda I_n & C \\ 0 & D \end{bmatrix}, \qquad \det(zI - V^\ast AV) = (z - \lambda)^n\det(zI - D).
-  \end{equation}
-  So $\lambda$ is a root of $p_A$ of multiplicity at least $n$.
-\end{proof}
+Following~\cite[Lecture~24]{TB}, let $A \in \C^{m \times m}$. The \emph{geometric multiplicity} of $\lambda$ is $\dim\nullsp(A - \lambda I)$, the number of independent eigenvectors. Its \emph{algebraic multiplicity} is its multiplicity as a root of $p_A(z) = \det(zI - A)$; counted this way, $A$ has $m$ eigenvalues. Both are invariant under similarity. An eigenvalue is \emph{defective} if its algebraic multiplicity exceeds its geometric one. For example, $2I_3$ and $\left[\begin{smallmatrix} 2 & 1 & \\ & 2 & 1 \\ & & 2 \end{smallmatrix}\right]$ both have $p(z) = (z - 2)^3$, but the second has only the eigenvector $\vec{e}_1$~\cite[Ex.~24.1]{TB}.
 
 \begin{theorem}[{\cite[Thm.~24.5]{TB}}]
   \label{thm:nondefective}
-  $A$ has an eigenvalue decomposition $A = X\Lambda X^{-1}$ if and only if $A$ is nondefective.
+  $A$ has an eigenvalue decomposition $A = X\Lambda X^{-1}$ if and only if $A$ is nondefective (\emph{diagonalizable}).
 \end{theorem}
 
 \begin{proof}
-  ($\Rightarrow$) $A$ is similar to $\Lambda$, so it has the same multiplicities, and a diagonal matrix is nondefective.
-
-  ($\Leftarrow$) Take a basis of each eigenspace. Their sizes add up to the algebraic multiplicities, so to $m$. Together they are independent: group a vanishing combination by eigenvalue as $\vec{u}_1 + \dots + \vec{u}_r = \zerovec$ with $\vec{u}_s \in E_{\mu_s}$; by \Cref{lem:distinct-indep} every $\vec{u}_s = \zerovec$, so all coefficients vanish. These $m$ vectors form an invertible $X$ with $AX = X\Lambda$.
+  ($\Rightarrow$) Similarity preserves multiplicities, and $\Lambda$ is nondefective. ($\Leftarrow$) The geometric multiplicities equal the algebraic ones, which sum to $m$. So bases of all eigenspaces together have $m$ vectors, and they are independent by \Cref{lem:distinct-indep}. They form $X$.
 \end{proof}
 
-Another word for nondefective is \emph{diagonalizable}.
-
-\subsection{Powers on an Invariant Subspace}
-
-From $AX = XB$ we get $A^kX = XB^k$. So on an invariant subspace, powers of $A$ (and power iteration) behave like powers of $B$. For the $2 \times 2$ block, $J = \lambda I + N$ with $N^2 = 0$, and the binomial formula gives $J^k = \lambda^kI + k\lambda^{k-1}N$. Even for $\abs{\lambda} < 1$, $\norm{J^k}$ can first grow before it decays.
-
-\subsection{No Column Scaling Makes $S_\eps$ Well-Conditioned}
+\paragraph{No column scaling makes \texorpdfstring{$S_\eps$}{S\_eps} well-conditioned.}
 \label{sec:jordan-scaling}
+Normalize the columns of $S_\eps$ to unit vectors $\vec{u}, \vec{v}$ at angle $\theta$, $\tan\theta = \eps$. For any scaling $SD = [a\vec{u}\ b\vec{v}]$, the vector $\vec{w} = (1/a, -1/b)^\T$ gives $SD\vec{w} = \vec{u} - \vec{v}$ with $\norm{\vec{w}} \ge 1/\min(\abs{a}, \abs{b})$, so $\sigma_{\min}(SD) \le \min(\abs{a}, \abs{b})\norm{\vec{u} - \vec{v}}$, while $\sigma_{\max}(SD) \ge \max(\abs{a}, \abs{b})$. Hence
+\begin{equation*}
+  \kappa_2(SD) \ge \frac{1}{\norm{\vec{u} - \vec{v}}} = \frac{1}{2\sin(\theta/2)} \approx \frac{1}{\eps}.
+\end{equation*}
 
-Normalize the columns of $S_\eps$ to unit vectors $\vec{u}, \vec{v}$ with angle $\theta$, $\tan\theta = \eps$. Then $\kappa_2 = \cot(\theta/2) \approx 2/\eps$. For any scaling $SD = [a\vec{u}\ b\vec{v}]$:
-\begin{itemize}
-  \item with $\vec{w} = (1/a, -1/b)^\T$ we get $SD\vec{w} = \vec{u} - \vec{v}$ and $\norm{\vec{w}} \ge 1/\min(\abs{a}, \abs{b})$, so
-  \begin{equation*}
-    \sigma_{\min}(SD) \le \min(\abs{a}, \abs{b})\norm{\vec{u} - \vec{v}};
-  \end{equation*}
-  \item $\sigma_{\max}(SD) \ge \max(\abs{a}, \abs{b})$.
-\end{itemize}
-Hence $\kappa_2(SD) \ge 1/\norm{\vec{u} - \vec{v}} = 1/(2\sin(\theta/2)) \approx 1/\eps$. Since $A_\eps$ is diagonalizable, this also shows that eigenvector matrices of matrices close to defective ones are badly conditioned.
-
-\subsection{Schur versus Jordan}
-
-Both forms exist for every matrix. Jordan uses an $S$ that may be ill-conditioned, and it is discontinuous. Schur uses a unitary $Q$ with $\kappa_2(Q) = 1$. The price is that $T$ is only triangular: its strictly upper part may be dense.
-
-\subsection{Nested Invariant Subspaces}
-
-We write $AQ = QT$ and keep the first $k$ columns. Since $T$ is upper triangular, this gives $AQ_{:,1:k} = Q_{:,1:k}T_{1:k,1:k}$. So $\spn(\vec{q}_1) \subset \spn(\vec{q}_1, \vec{q}_2) \subset \cdots$ is a nested sequence of invariant subspaces (\Cref{def:invariant}), with orthonormal bases. Conversely, if all leading spans of a basis are invariant, the basis gives an upper triangular matrix~\cite[5.39]{Axler}. This is the goal of subspace iteration with orthonormalization (\Cref{sec:subspace-motivation}).
-
-\subsection{How Ill-Conditioned Eigenvalues Near a Jordan Block Are}
-
-In \Cref{ex:jordan-unstable}, the eigenvalues moved by only $O(\eps)$, while the Jordan structure and $S$ broke down. A different perturbation moves the eigenvalues themselves much more. Put $\eps$ in the bottom left corner of an $n \times n$ Jordan block with eigenvalue $0$. The result is the companion matrix (\Cref{lem:companion}) of $z^n - \eps$. Its eigenvalues are the $n$ complex $n$-th roots of $\eps$, all of modulus $\eps^{1/n}$~\cite[Example~4.4]{Demmel}. For $n = 10$ and $\eps = 10^{-10}$, a perturbation of size $10^{-10}$ moves the eigenvalues by $0.1$. A multiple eigenvalue in a nontrivial Jordan block has infinite condition number.
-
-\subsection{The Bauer--Fike Theorem}
-
-We can make the role of $\kappa(X)$ quantitative. Let $A = X\Lambda X^{-1}$ be diagonalizable, and let $\mu$ be an eigenvalue of $A + E$. Then
+\paragraph{Eigenvalue sensitivity and Bauer--Fike.} Perturbing a Jordan block can move the eigenvalues far more than $O(\eps)$. Putting $\eps$ in the bottom left corner of an $n \times n$ Jordan block with eigenvalue $0$ gives the companion matrix (\Cref{lem:companion}) of $z^n - \eps$, whose eigenvalues have modulus $\eps^{1/n}$~\cite[Example~4.4]{Demmel}: for $n = 10$, a perturbation of $10^{-10}$ moves them by $0.1$. For diagonalizable $A = X\Lambda X^{-1}$, the Bauer--Fike theorem~\cite[\S4.3]{Demmel} quantifies this: every eigenvalue $\mu$ of $A + E$ satisfies
 \begin{equation}
   \min_i\abs{\mu - \lambda_i} \le \kappa_2(X)\norm{E}_2.
 \end{equation}
-To see this, assume $\mu$ is not an eigenvalue of $A$. Since $A + E - \mu I$ is singular, so is $X^{-1}(A + E - \mu I)X = (\Lambda - \mu I) + X^{-1}EX$. Hence $I + (\Lambda - \mu I)^{-1}X^{-1}EX$ is also singular. A matrix $I + M$ can only be singular if $\norm{M} \ge 1$. So
-\begin{equation}
-  1 \le \norm{(\Lambda - \mu I)^{-1}}\,\norm{X^{-1}}\,\norm{E}\,\norm{X} = \frac{\kappa_2(X)\norm{E}_2}{\min_i\abs{\lambda_i - \mu}}.
-\end{equation}
-For normal matrices, $X$ can be unitary. Then $\kappa_2(X) = 1$, and the eigenvalues move by at most $\norm{E}_2$. When $A$ approaches a defective matrix, $\kappa_2(X) \to \infty$ and the bound becomes useless. This agrees with the $\eps^{1/n}$ behavior above. See~\cite[\S4.3]{Demmel}.
+(If $\mu$ is not an eigenvalue of $A$, then $I + (\Lambda - \mu I)^{-1}X^{-1}EX$ is singular, so its second term has norm $\ge 1$.) For normal $A$, $\kappa_2(X) = 1$; near a defective matrix, $\kappa_2(X) \to \infty$.

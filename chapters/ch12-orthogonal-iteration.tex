@@ -74,7 +74,13 @@ In this section, $A \in \R^{m \times m}$ is diagonalizable, with
 \begin{equation}
   \abs{\lambda_1} > \abs{\lambda_2} > \dots > \abs{\lambda_m}.
 \end{equation}
-Non-real eigenvalues of a real matrix come in conjugate pairs of equal modulus. So all eigenvalues and eigenvectors here are real.
+This ordering forces all eigenvalues and eigenvectors to be real.
+
+\begin{proof}
+  If $A\vec{x} = \lambda\vec{x}$, conjugating and using $\overline{A} = A$ gives $A\overline{\vec{x}} = \overline{\lambda}\,\overline{\vec{x}}$. So $\overline{\lambda}$ is also an eigenvalue, with $\abs{\overline{\lambda}} = \abs{\lambda}$. If $\lambda$ were not real, these would be two different eigenvalues of equal modulus, contradicting the strict inequalities above.
+
+  For real $\lambda$, write an eigenvector as $\vec{x} = \vec{a} + i\vec{b}$ with $\vec{a}, \vec{b}$ real. Since $A - \lambda I$ is real, $(A - \lambda I)\vec{x} = \zerovec$ splits into $(A - \lambda I)\vec{a} = \zerovec$ and $(A - \lambda I)\vec{b} = \zerovec$. One of $\vec{a}, \vec{b}$ is nonzero, and it is a real eigenvector.
+\end{proof}
 
 Assume we want to compute $r = 2$ eigenpairs at once. We apply power iteration to two vectors at once.
 \begin{itemize}
@@ -97,7 +103,7 @@ Assume we want to compute $r = 2$ eigenpairs at once. We apply power iteration t
 
 The last two lines are Gram--Schmidt on $[A\vec{q}_1\ A\vec{q}_2]$, i.e., a reduced QR factorization (\Cref{ch:ls}).
 
-\subsection{What Do the Two Vectors Converge To?}
+\paragraph{What Do the Two Vectors Converge To?}
 
 The iteration of $\vec{q}_1$ is unchanged:
 \begin{equation}
@@ -140,7 +146,7 @@ But the subspace converges:
 \end{equation}
 since $P\vec{x}_2 = \vec{x}_2 - (\vec{x}_1^\T\vec{x}_2)\vec{x}_1$. This is an invariant subspace of $A$, and $\vec{q}_1, \vec{q}_2$ are the first two columns of a Schur factorization (\Cref{sec:schur-fact}).
 
-\subsection{Extracting the Eigenvalues}
+\paragraph{Extracting the Eigenvalues.}
 
 How do we find the eigenvalues? We collect the iterates and project $A$ onto their span:
 \begin{equation}
@@ -157,29 +163,30 @@ How do we find the eigenvalues? We collect the iterates and project $A$ onto the
 
 \begin{center}
 \begin{tikzpicture}[scale=0.9, every node/.style={font=\small}]
-  \draw (0,1.6) rectangle (2.4,2.4); \draw (0,2.0) -- (2.4,2.0);
-  \node at (1.2,2.2) {$\vec{q}_1^\T$}; \node at (1.2,1.8) {$\vec{q}_2^\T$};
+  \draw (0,0.6) rectangle (2.4,1.8); \draw (0,1.2) -- (2.4,1.2);
+  \node at (1.2,1.5) {$\vec{q}_1^\T$}; \node at (1.2,0.9) {$\vec{q}_2^\T$};
   \draw (2.7,0) rectangle (5.1,2.4); \node at (3.9,1.2) {$A$};
-  \draw (5.4,0) rectangle (6.2,2.4); \draw (5.8,0) -- (5.8,2.4);
-  \node[font=\scriptsize] at (5.6,1.2) {$\vec{q}_1$}; \node[font=\scriptsize] at (6.0,1.2) {$\vec{q}_2$};
-  \node at (6.7,2.0) {$\approx$};
-  \draw (7.2,1.6) rectangle (8.8,2.4); \draw (8.0,1.6) -- (8.0,2.4); \draw (7.2,2.0) -- (8.8,2.0);
-  \fill[blue!25] (8.0,2.0) rectangle (8.8,2.4);
-  \node at (7.6,2.2) {$\lambda_1$}; \node at (8.4,2.2) {$\ast$};
-  \node at (7.6,1.8) {$0$}; \node at (8.4,1.8) {$\lambda_2$};
+  \draw (5.4,0) rectangle (6.6,2.4); \draw (6.0,0) -- (6.0,2.4);
+  \node at (5.7,1.2) {$\vec{q}_1$}; \node at (6.3,1.2) {$\vec{q}_2$};
+  \node at (7.1,1.2) {$\approx$};
+  \fill[blue!25] (8.5,1.2) rectangle (9.4,1.8);
+  \draw (7.6,0.6) rectangle (9.4,1.8); \draw (8.5,0.6) -- (8.5,1.8); \draw (7.6,1.2) -- (9.4,1.2);
+  \node at (8.05,1.5) {$\lambda_1$}; \node at (8.95,1.5) {$\ast$};
+  \node at (8.05,0.9) {$0$}; \node at (8.95,0.9) {$\lambda_2$};
 \end{tikzpicture}
 \end{center}
 
 \begin{proof}[Proof sketch]
-  Write $Q = Q_k$. For the $(2,1)$ entry, we use $\vec{q}_1 \approx \vec{x}_1$ twice:
+  Write $Q = Q_k$. We use $\vec{q}_1 \approx \vec{x}_1$ (up to sign) and $\range(Q) \approx \spn(\vec{x}_1, \vec{x}_2)$. For the $(2,1)$ entry, swap $\vec{q}_1$ for $\vec{x}_1$, apply $A\vec{x}_1 = \lambda_1\vec{x}_1$, swap back, and use $\vec{q}_2 \perp \vec{q}_1$:
   \begin{equation}
     \vec{q}_2^\T A\vec{q}_1 \approx \vec{q}_2^\T A\vec{x}_1 = \lambda_1\vec{q}_2^\T\vec{x}_1 \approx \lambda_1\vec{q}_2^\T\vec{q}_1 = 0.
   \end{equation}
-  For the eigenvalues, let $\vec{v}_i \in \R^2$ with $Q\vec{v}_i \approx \vec{x}_i$, $i = 1, 2$. It exists because $\vec{x}_i$ lies (approximately) in $\range(Q)$. With $Q^\T Q = I_2$,
+  For the eigenvalues, $\vec{x}_i$ lies approximately in $\range(Q)$, so $Q\vec{v}_i \approx \vec{x}_i$ for $\vec{v}_i \defeq Q^\T\vec{x}_i \in \R^2$, $i = 1, 2$. With $Q^\T Q = I_2$,
   \begin{equation}
     Q^\T AQ\vec{v}_i \approx Q^\T A\vec{x}_i = \lambda_iQ^\T\vec{x}_i \approx \lambda_iQ^\T Q\vec{v}_i = \lambda_i\vec{v}_i.
+    \label{eq:orth-iter-ritz}
   \end{equation}
-  So $\lambda_1, \lambda_2$ are the eigenvalues of the $2 \times 2$ matrix. The $(1,1)$ entry is the Rayleigh quotient of $\vec{q}_1 \approx \vec{x}_1$, so it tends to $\lambda_1$, and the $(2,2)$ entry tends to $\lambda_2$.
+  So the eigenvalues of the $2 \times 2$ matrix tend to $\lambda_1, \lambda_2$. The $(1,1)$ entry is the Rayleigh quotient of $\vec{q}_1 \approx \vec{x}_1$, so it tends to $\lambda_1$. Since the matrix tends to upper triangular, the $(2,2)$ entry tends to the other eigenvalue, $\lambda_2$.
 \end{proof}
 
 The proof also gives the eigenvectors: solve the small problem $Q_k^\T AQ_k\vec{v}_i = \lambda_i\vec{v}_i$, then lift, $\vec{x}_i \approx Q_k\vec{v}_i$.
@@ -213,11 +220,7 @@ Let $Q_k = [\vec{q}_1^{(k)} \cdots \vec{q}_r^{(k)}]$ be the iterate after $k$ st
 \end{equation}
 This holds under a genericity assumption on $Q_0$, and we prove it in \Cref{sec:orth-iter-conv}.
 
-\paragraph{Eigenvalues.} By the same argument as before, with $Q_k\vec{v}_i \approx \vec{x}_i$,
-\begin{equation}
-  Q_k^\T AQ_k\vec{v}_i \approx Q_k^\T A\vec{x}_i = \lambda_iQ_k^\T\vec{x}_i \approx \lambda_iQ_k^\T Q_k\vec{v}_i = \lambda_i\vec{v}_i.
-\end{equation}
-What about the eigenvectors?
+\paragraph{Eigenvalues.} By the same argument as in \cref{eq:orth-iter-ritz}, now with $Q_k \in \R^{m \times r}$ and $Q_k\vec{v}_i \approx \vec{x}_i$, the eigenvalues of $Q_k^\T AQ_k$ approximate $\lambda_1, \dots, \lambda_r$. What about the eigenvectors?
 
 \paragraph{Symmetric case.} If $A$ is symmetric, then as before $\vec{q}_1^{(k)} \to \vec{x}_1$ and $\vec{q}_2^{(k)} \to \vec{x}_2$. By the same argument,
 \begin{equation}
@@ -254,30 +257,31 @@ For symmetric $A$ the eigenvectors are orthonormal, so $Q^X = [\vec{x}_1 \cdots 
 \section{Convergence to Schur Factorization}
 \label{sec:orth-iter-schur}
 
-Now take $r = m$, so $Q_k$ and $Q^X$ are square and orthogonal. Consider
+Now take $r = m$, so $Q_k$ and $Q^X$ are square and orthogonal. By \Cref{prop:orth-iter-QX}, $Q_k \to Q^X$ up to column signs, so we consider
 \begin{equation}
-  Q_k^\T AQ_k \longrightarrow Q^{X\T}AQ^X,
+  Q_k^\T AQ_k \longrightarrow Q^{X\T}AQ^X.
 \end{equation}
-using
+To compute the limit, we use
 \begin{equation}
   Q^XR^X = X \quad\Longleftrightarrow\quad Q^X = X(R^X)^{-1} \quad\Longleftrightarrow\quad Q^{X\T} = R^XX^{-1}.
 \end{equation}
 Then
 \begin{equation}
   Q^{X\T}AQ^X = R^XX^{-1}AX(R^X)^{-1} = R^XX^{-1}X\Lambda(R^X)^{-1} = \underbrace{R^X\Lambda(R^X)^{-1}}_{\text{upper triangular!}}.
-  \label{eq:orth-iter-schur-limit}
 \end{equation}
-Its diagonal is $r_{ii}\lambda_ir_{ii}^{-1} = \lambda_i$. Its eigenpairs are
-\begin{equation}
-  \bigl(\lambda_i, R^X\vec{e}_i\bigr), \qquad\text{since}\quad R^X\Lambda(R^X)^{-1}R^X\vec{e}_i = \lambda_iR^X\vec{e}_i.
-\end{equation}
-(The eigenvector is $R^X\vec{e}_i$, not $(R^X)^{-1}\vec{e}_i$. Lifting it gives $Q^XR^X\vec{e}_i = \vec{x}_i$.) The column signs do not matter: $Q_k \approx Q^XD$ with $D = \diag(\pm 1)$ only flips the signs of some entries above the diagonal.
+$R^X$ and $(R^X)^{-1}$ are upper triangular, so the product is too, with diagonal $r_{ii}\lambda_ir_{ii}^{-1} = \lambda_i$. (This is the computation of \cref{eq:schur-from-eig}.) Its eigenpairs are $(\lambda_i, R^X\vec{e}_i)$,\footnote{The board writes $(R^X)^{-1}\vec{e}_i$. But $R^X\Lambda(R^X)^{-1}R^X\vec{e}_i = R^X\Lambda\vec{e}_i = \lambda_iR^X\vec{e}_i$, so the eigenvector is $R^X\vec{e}_i$.} and lifting by $Q^X$ gives back $\vec{x}_i$.
 
-In summary,
+The signs need care, because they can change from step to step: if $\lambda_1 < 0$, then $\vec{q}_1^{(k)}$ flips sign at every step, as in power iteration. Precisely, there are $D_k = \diag(\pm 1)$ with $Q_kD_k \to Q^X$, and then
 \begin{equation}
-  Q_k, \quad Q_k^\T AQ_k, \quad Q_k^\T
+  Q_k^\T AQ_k \approx D_kR^X\Lambda(R^X)^{-1}D_k.
 \end{equation}
-converge to the Schur factorization of $A$. We can read off the eigenvalues from the diagonal of $Q_k^\T AQ_k$. \Cref{thm:orth-iter-schur} gives the exact conditions, and \Cref{sec:basic-qr} computes $Q_k^\T AQ_k$ without forming $Q_k$.
+So the diagonal and the zeros below it converge, while the entries above the diagonal converge only up to sign.
+
+In summary, in the identity
+\begin{equation}
+  A = Q_k\,\bigl(Q_k^\T AQ_k\bigr)\,Q_k^\T,
+\end{equation}
+the three factors $Q_k$, $Q_k^\T AQ_k$, $Q_k^\T$ converge, up to these signs, to the Schur factorization $A = Q^X\bigl(R^X\Lambda(R^X)^{-1}\bigr)Q^{X\T}$. We can read off the eigenvalues from the diagonal of $Q_k^\T AQ_k$. \Cref{thm:orth-iter-schur} gives the exact conditions, and \Cref{sec:basic-qr} computes $Q_k^\T AQ_k$ without forming $Q_k$.
 
 \section{(SUPPLEMENT) Further Topics}
 \label{sec:orth-iter-supp}

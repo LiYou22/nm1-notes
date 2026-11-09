@@ -10,33 +10,7 @@ Supplementary reading:
 
 \section{Recap and Motivation}
 
-Last lecture (\Cref{ch:shifted-qr}) covered four topics.
-
-\paragraph{The implicit Q theorem.} If $Q^\ast AQ = H$ is unreduced upper Hessenberg, then
-\begin{equation}
-  Q = Q(\vec{q}_1, A),
-\end{equation}
-that is, $A$ and the first column $\vec{q}_1$ determine $Q$, up to the signs of its columns (\Cref{thm:implicit-q}).
-
-\paragraph{Shifted QR iteration.}
-\begin{equation}
-  \begin{aligned}
-    T_{k-1} - \mu_kI &= U_kR_k, \\
-    T_k &= R_kU_k + \mu_kI.
-  \end{aligned}
-\end{equation}
-In terms of shapes: $T_{k-1} - \mu_kI$ is Hessenberg, $U_k$ is Hessenberg, and $R_k$ is upper triangular. Then $R_kU_k$ is again Hessenberg, and adding $\mu_kI$ only changes the diagonal (\Cref{sec:shifted-qr}).
-
-\paragraph{Choosing the shift, practical QR iteration.} We choose $\mu_k \approx \lambda_m$, and split the problem whenever a subdiagonal entry of $T_k$ is $\approx 0$ (\Cref{sec:choosing-shift}, \Cref{alg:practical-qr}).
-
-\paragraph{QR iteration and (inverse) power iteration.} With $\underline{Q}_k = U_1\cdots U_k$ and $\underline{R}_k = R_k\cdots R_1$,
-\begin{equation}
-  \begin{aligned}
-    \underline{Q}_k\underline{R}_k &= (H - \mu_kI)\cdots(H - \mu_1I), \\
-    \underline{Q}_k\underline{R}_k^{-\ast} &= (H - \mu_kI)^{-\ast}\cdots(H - \mu_1I)^{-\ast}.
-  \end{aligned}
-\end{equation}
-The first columns of $\underline{Q}_k$ do power iteration, and the last columns do shifted inverse iteration (\Cref{sec:shifted-orth-iter}).
+Last lecture (\Cref{ch:shifted-qr}) proved the implicit Q theorem ($A$ and $\vec{q}_1$ determine $Q$ up to column signs), so bulge chasing is a valid QR step. It added shifts, $T_{k-1} - \mu_kI = U_kR_k$, $T_k = R_kU_k + \mu_kI$, with $\mu_k \approx \lambda_m$ and splitting whenever a subdiagonal entry is $\approx 0$. And it showed that the first columns of $\underline{Q}_k$ do power iteration while the last columns do shifted inverse iteration. Now we ask how to choose the shifts in practice, and turn to the symmetric case and the SVD.
 
 The plan of this chapter:
 \begin{enumerate}
@@ -62,7 +36,7 @@ The idea: the diagonal of $T_k$ converges to the eigenvalues, ordered by size (\
   \begin{equation}
     A = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}.
   \end{equation}
-  The shift is zero, and the eigenvalues are $\lambda_1 = 1$, $\lambda_2 = -1$. What is the problem? We have $\abs{\lambda_1} = \abs{\lambda_2}$. By symmetry, the iteration cannot decide whether to move the estimate up (toward $1$) or down (toward $-1$) (cf.\ \Cref{sec:wilkinson-supp}).
+  The shift is zero, and the eigenvalues are $\lambda_1 = 1$, $\lambda_2 = -1$. What is the problem? We have $\abs{\lambda_1} = \abs{\lambda_2}$. By symmetry, the iteration cannot decide whether to move the estimate up (toward $1$) or down (toward $-1$).
 \end{example}
 
 So we use shifts based on the lower right $2 \times 2$ block,
